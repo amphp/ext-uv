@@ -26,12 +26,14 @@ static zend_function_entry php_uv_methods[] = {
 	{NULL, NULL, NULL}
 };
 
-static php_uv_class_init(TSRMLS_D)
+static int php_uv_class_init(TSRMLS_D)
 {
 	zend_class_entry ce;
 	INIT_CLASS_ENTRY(ce, "UV", php_uv_methods);
 	uv_class_entry = zend_register_internal_class(&ce TSRMLS_CC);
 	//uv_class_entry->create_object = php_uv_new;
+
+	return 0;
 }
 
 void php_uv_init(TSRMLS_D)
