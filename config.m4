@@ -18,6 +18,6 @@ if test $PHP_UV != "no"; then
 
 
     PHP_SUBST(UV_SHARED_LIBADD)
-    CFLAGS=" -Wunused-variable -Wpointer-sign -Wimplicit-function-declaration -Wl,libuv/uv.a"
+    CFLAGS=" -g -O -Wunused-variable -Wpointer-sign -Wimplicit-function-declaration -Wl,libuv/uv.a"
     PHP_SUBST([CFLAGS])
 fi

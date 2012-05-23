@@ -30,6 +30,8 @@ typedef struct {
 	uv_tcp_t socket;
 	zend_fcall_info fci_connect;
 	zend_fcall_info_cache fcc_connect;
+	zend_fcall_info fci_listen;
+	zend_fcall_info_cache fcc_listen;
 } php_uv_t;
 
 #define PHP_UV_RESOURCE_NAME "uv"
