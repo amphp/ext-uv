@@ -28,6 +28,8 @@ typedef struct {
 	struct sockaddr_in addr;
 	uv_connect_t connect;
 	uv_tcp_t socket;
+	zend_fcall_info fci_connect;
+	zend_fcall_info_cache fcc_connect;
 } php_uv_t;
 
 #define PHP_UV_RESOURCE_NAME "uv"
