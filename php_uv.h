@@ -32,8 +32,10 @@ typedef struct {
 	zend_fcall_info_cache fcc_connect;
 	zend_fcall_info fci_listen;
 	zend_fcall_info_cache fcc_listen;
+	zval *listen_cb;
 } php_uv_t;
 
 #define PHP_UV_RESOURCE_NAME "uv"
+#define PHP_UV_CONNECT_RESOURCE_NAME "uv_connect"
 
 #endif /* PHP_UV_H */
