@@ -116,7 +116,7 @@ PHP_FUNCTION(uv_tcp_bind)
 	memset(&uv->addr,'\0',sizeof(struct sockaddr_in));
 	uv->addr = uv_ip4_addr(address, port);
 	
-	r = uv_tcp_bind((uv_handle_t*)&uv->socket, uv->addr);
+	r = uv_tcp_bind((uv_handle_t*)uv->socket, uv->addr);
 	if (r) {
 		fprintf(stderr,"bind error %d\n", r);
 	}
@@ -136,7 +136,8 @@ PHP_FUNCTION(uv_accept)
 	ZEND_FETCH_RESOURCE(stream, uv_connect_t *, &z_svr, -1, PHP_UV_CONNECT_RESOURCE_NAME, uv_connect_handle);
 	ZEND_FETCH_RESOURCE(client, php_uv_t *, &z_cli, -1, PHP_UV_RESOURCE_NAME, uv_resource_handle);
 	
-	uv_accept(&stream, (uv_stream_t *)&client->socket);
+	client->socket->data = stream;
+	uv_accept(stream, (uv_stream_t *)client->socket);
 }
 
 
@@ -180,13 +181,16 @@ static void after_read(uv_stream_t* stream, ssize_t nread, uv_buf_t buf)
 	fprintf(stderr,"after read");
 }
 
-static uv_buf_t php_uv_read_alloc(uv_handle_t* handle, size_t suggested_size) {
-  return uv_buf_init(malloc(suggested_size), suggested_size);
+static uv_buf_t php_uv_read_alloc(uv_handle_t* handle, size_t suggested_size)
+{
+	fprintf(stderr,"uv_read_alloc");
+	return uv_buf_init(malloc(suggested_size), suggested_size);
 }
 
 PHP_FUNCTION(uv_read_start)
 {
 	zval *client, *callback;
+	php_uv_t *uv;
 	uv_stream_t *stream;
 	long backlog = SOMAXCONN;
 	
@@ -195,7 +199,9 @@ PHP_FUNCTION(uv_read_start)
 		return;
 	}
 	
-	ZEND_FETCH_RESOURCE(stream, uv_stream_t *, &client, -1, PHP_UV_CONNECT_RESOURCE_NAME, uv_connect_handle);
+	ZEND_FETCH_RESOURCE(uv, php_uv_t *, &client, -1, PHP_UV_RESOURCE_NAME, uv_resource_handle);
+	stream = (uv_stream_t *)uv->socket;
+	
 	uv_read_start(stream, php_uv_read_alloc, after_read);
 }
 
@@ -214,7 +220,7 @@ PHP_FUNCTION(uv_listen)
 
 	ZVAL_ZVAL(uv->listen_cb,callback,1,1);
 	
-	uv_listen((uv_stream_t*)&uv->socket, backlog, php_uv_listen_cb);
+	uv_listen((uv_stream_t*)uv->socket, backlog, php_uv_listen_cb);
 }
 
 PHP_FUNCTION(uv_tcp_connect)
@@ -250,13 +256,16 @@ PHP_FUNCTION(uv_tcp_init)
 		return;
 	}
 
-	uv = (php_uv_t *)ecalloc(1,sizeof(php_uv_t));
-	r = uv_tcp_init(uv_default_loop(), &uv->socket);
+	uv = (php_uv_t *)emalloc(sizeof(php_uv_t));
+	uv_tcp_t *tcp = emalloc(sizeof(uv_tcp_t));
+	uv->socket = tcp;
+
+	r = uv_tcp_init(uv_default_loop(), tcp);
 	if (r) {
 		fprintf(stderr, "Socket creation error\n");
 		return;
 	}
-	uv->socket.data = uv;
+	uv->socket->data = uv;
 	MAKE_STD_ZVAL(uv->listen_cb);
 	
 	ZEND_REGISTER_RESOURCE(return_value, uv, uv_resource_handle);

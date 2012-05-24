@@ -27,7 +27,7 @@ extern zend_class_entry *uv_class_entry;
 typedef struct {
 	struct sockaddr_in addr;
 	uv_connect_t connect;
-	uv_tcp_t socket;
+	uv_tcp_t *socket;
 	zend_fcall_info fci_connect;
 	zend_fcall_info_cache fcc_connect;
 	zend_fcall_info fci_listen;
