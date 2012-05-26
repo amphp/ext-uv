@@ -32,6 +32,7 @@ typedef struct {
 	zval *listen_cb;
 	zval *read_cb;
 	zval *write_cb;
+	zval *close_cb;
 	/* TODO: remove lator */
 	zend_fcall_info fci_connect;
 	zend_fcall_info_cache fcc_connect;
