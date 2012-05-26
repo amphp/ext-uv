@@ -23,10 +23,8 @@ extern zend_module_entry uv_module_entry;
 
 extern zend_class_entry *uv_class_entry;
 
-/* TODO: fix lator */
 typedef struct {
-	struct sockaddr_in addr;
-	uv_connect_t connect;
+	int resource_id;
 	union {
 		uv_tcp_t tcp;
 		uv_udp_t udp;
@@ -38,16 +36,11 @@ typedef struct {
 		uv_handle_t handle;
 		uv_stream_t stream;
 	} uv;
-	int resource_id;
 	zval *listen_cb;
 	zval *read_cb;
 	zval *write_cb;
 	zval *close_cb;
-	/* TODO: remove lator */
-	zend_fcall_info fci_connect;
-	zend_fcall_info_cache fcc_connect;
-	zend_fcall_info fci_listen;
-	zend_fcall_info_cache fcc_listen;
+	zval *timer_cb;
 } php_uv_t;
 
 #define PHP_UV_RESOURCE_NAME "uv"

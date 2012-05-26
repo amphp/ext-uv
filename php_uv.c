@@ -88,6 +88,17 @@ ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_last_error, 0, 0, 1)
 	ZEND_ARG_INFO(0, loop)
 ZEND_END_ARG_INFO()
 
+ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_timer_init, 0, 0, 1)
+	ZEND_ARG_INFO(0, loop)
+ZEND_END_ARG_INFO()
+
+ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_timer_start, 0, 0, 4)
+	ZEND_ARG_INFO(0, timer)
+	ZEND_ARG_INFO(0, timeout)
+	ZEND_ARG_INFO(0, repeat)
+	ZEND_ARG_INFO(0, callback)
+ZEND_END_ARG_INFO()
+
 
 ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_tcp_bind, 0, 0, 1)
 	ZEND_ARG_INFO(0, resource)
@@ -117,6 +128,7 @@ PHP_FUNCTION(uv_tcp_bind)
 	char *address;
 	int address_len;
 	long port = 8080;
+	struct sockaddr_in addr;
 	php_uv_t *uv;
 	int r;
 	
@@ -126,10 +138,9 @@ PHP_FUNCTION(uv_tcp_bind)
 	}
 	
 	ZEND_FETCH_RESOURCE(uv, php_uv_t *, &resource, -1, PHP_UV_RESOURCE_NAME, uv_resource_handle);
-	memset(&uv->addr,'\0',sizeof(struct sockaddr_in));
-	uv->addr = uv_ip4_addr(address, port);
+	addr = uv_ip4_addr(address, port);
 	
-	r = uv_tcp_bind((uv_tcp_t*)&uv->uv.tcp, uv->addr);
+	r = uv_tcp_bind((uv_tcp_t*)&uv->uv.tcp, addr);
 	if (r) {
 		fprintf(stderr,"bind error %d\n", r);
 	}
@@ -407,6 +418,88 @@ PHP_FUNCTION(uv_tcp_connect)
 	//uv_tcp_connect(uv->connect, uv->socket, uv->addr, php_uv_tcp_connect_cb);
 }
 
+PHP_FUNCTION(uv_timer_init)
+{
+	int r;
+	/* TODO */
+	zval *loop;
+	php_uv_t *uv;
+	
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
+		"|z",&loop) == FAILURE) {
+		return;
+	}
+
+	uv = (php_uv_t *)emalloc(sizeof(php_uv_t));
+
+	r = uv_timer_init(uv_default_loop(), &uv->uv.timer);
+	if (r) {
+		fprintf(stderr, "Socket creation error\n");
+		return;
+	}
+	uv->uv.timer.data = uv;
+	
+	ZEND_REGISTER_RESOURCE(return_value, uv, uv_resource_handle);
+	uv->resource_id = Z_LVAL_P(return_value);
+}
+
+static void php_uv_timer_cb(uv_timer_t *handle, int status)
+{
+	TSRMLS_FETCH();
+	zval *retval_ptr, *stat, *client= NULL;
+	zval **params[2];
+	zend_fcall_info fci;
+	zend_fcall_info_cache fcc;
+	char *is_callable_error = NULL;
+
+	php_uv_t *uv = (php_uv_t*)handle->data;
+	
+	if(zend_fcall_info_init(uv->timer_cb, 0, &fci,&fcc,NULL,&is_callable_error TSRMLS_CC) == SUCCESS) {
+		if (is_callable_error) {
+			fprintf(stderr,"to be a valid callback\n");
+		}
+	}
+	
+	/* for now */
+	fci.retval_ptr_ptr = &retval_ptr;
+
+	MAKE_STD_ZVAL(stat);
+	ZVAL_LONG(stat, status);
+	MAKE_STD_ZVAL(client);
+
+	client->value.lval = uv->resource_id;
+	client->type = IS_RESOURCE;
+
+	params[0] = &stat;
+	params[1] = &client;
+	
+	fci.params = params;
+	fci.param_count = 2;
+	
+	zend_call_function(&fci, &fcc TSRMLS_CC);
+	zval_ptr_dtor(&retval_ptr);
+}
+
+PHP_FUNCTION(uv_timer_start)
+{
+//int uv_timer_start(uv_timer_t* handle, uv_timer_cb timer_cb, int64_t timeout,int64_t repeat) {
+	zval *timer, *callback;
+	php_uv_t *uv;
+	long timeout, repeat = 0;
+	
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
+		"rllz",&timer, &timeout, &repeat, &callback) == FAILURE) {
+		return;
+	}
+
+	ZEND_FETCH_RESOURCE(uv, php_uv_t *, &timer, -1, PHP_UV_RESOURCE_NAME, uv_resource_handle);
+	Z_ADDREF_P(callback);
+
+	uv->timer_cb = callback;
+	uv_timer_start((uv_timer_t*)&uv->uv.timer, php_uv_timer_cb, timeout, repeat);
+}
+
+
 PHP_FUNCTION(uv_tcp_init)
 {
 	int r;
@@ -446,6 +539,8 @@ PHP_FUNCTION(uv_last_error)
 
 static zend_function_entry uv_functions[] = {
 	PHP_FE(uv_run, arginfo_uv_run)
+	PHP_FE(uv_timer_init, arginfo_uv_timer_init)
+	PHP_FE(uv_timer_start, arginfo_uv_timer_start)
 	PHP_FE(uv_tcp_init, arginfo_uv_tcp_init)
 	PHP_FE(uv_tcp_bind, arginfo_uv_tcp_bind)
 	PHP_FE(uv_listen, arginfo_uv_listen)
