@@ -27,7 +27,17 @@ extern zend_class_entry *uv_class_entry;
 typedef struct {
 	struct sockaddr_in addr;
 	uv_connect_t connect;
-	uv_tcp_t *socket;
+	union {
+		uv_tcp_t tcp;
+		uv_udp_t udp;
+		uv_pipe_t pipe;
+		uv_idle_t idle;
+		uv_timer_t timer;
+		uv_async_t async;
+		uv_loop_t loop;
+		uv_handle_t handle;
+		uv_stream_t stream;
+	} uv;
 	int resource_id;
 	zval *listen_cb;
 	zval *read_cb;
