@@ -175,7 +175,8 @@ PHP_FUNCTION(uv_accept)
 static void php_uv_listen_cb(uv_stream_t* server, int status)
 {
 	TSRMLS_FETCH();
-	zval *retval_ptr,**params = NULL;
+	zval *retval_ptr, *svr= NULL;
+	zval **params[1];
 	zend_fcall_info fci;
 	zend_fcall_info_cache fcc;
 	char *is_callable_error = NULL;
@@ -190,16 +191,13 @@ static void php_uv_listen_cb(uv_stream_t* server, int status)
 	
 	/* for now */
 	fci.retval_ptr_ptr = &retval_ptr;
-	params = emalloc(sizeof(zval**) * 1);
 
-	//MAKE_STD_ZVAL(server);
-
-	/* TODO: */
-	//ZEND_REGISTER_RESOURCE(server, server, uv_resource_handle);
-	//params[0] = server;
-
-	fci.params = NULL;//&params;
-	fci.param_count = 0;
+	MAKE_STD_ZVAL(svr);
+	ZEND_REGISTER_RESOURCE(svr, uv, uv_resource_handle);
+	params[0] = &svr;
+	
+	fci.params = params;
+	fci.param_count = 1;
 	
 	zend_call_function(&fci, &fcc TSRMLS_CC);
 	zval_ptr_dtor(&retval_ptr);
