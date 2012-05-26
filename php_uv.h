@@ -28,13 +28,15 @@ typedef struct {
 	struct sockaddr_in addr;
 	uv_connect_t connect;
 	uv_tcp_t *socket;
+	int resource_id;
+	zval *listen_cb;
+	zval *read_cb;
+	zval *write_cb;
+	/* TODO: remove lator */
 	zend_fcall_info fci_connect;
 	zend_fcall_info_cache fcc_connect;
 	zend_fcall_info fci_listen;
 	zend_fcall_info_cache fcc_listen;
-	zval *listen_cb;
-	zval *read_cb;
-	zval *write_cb;
 } php_uv_t;
 
 #define PHP_UV_RESOURCE_NAME "uv"

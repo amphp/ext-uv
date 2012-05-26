@@ -150,7 +150,10 @@ static void php_uv_write_cb(uv_write_t* req, int status)
 	MAKE_STD_ZVAL(stat);
 	ZVAL_LONG(stat, status);
 	MAKE_STD_ZVAL(client);
-	ZEND_REGISTER_RESOURCE(client, uv, uv_resource_handle);
+
+	client->value.lval = uv->resource_id;
+	client->type = IS_RESOURCE;
+
 	params[0] = &stat;
 	params[1] = &client;
 	
@@ -226,7 +229,9 @@ static void php_uv_listen_cb(uv_stream_t* server, int status)
 	fci.retval_ptr_ptr = &retval_ptr;
 
 	MAKE_STD_ZVAL(svr);
-	ZEND_REGISTER_RESOURCE(svr, uv, uv_resource_handle);
+	svr->value.lval = uv->resource_id;
+	svr->type = IS_RESOURCE;
+
 	params[0] = &svr;
 	
 	fci.params = params;
@@ -261,7 +266,8 @@ static void php_uv_read_cb(uv_stream_t* handle, ssize_t nread, uv_buf_t buf)
 
 	zval *rsc;
 	MAKE_STD_ZVAL(rsc);
-	ZEND_REGISTER_RESOURCE(rsc, uv, uv_resource_handle);
+	rsc->value.lval = uv->resource_id;
+	rsc->type = IS_RESOURCE;
 	
 	params[0] = &buffer;
 	params[1] = &rsc;
@@ -363,6 +369,7 @@ PHP_FUNCTION(uv_tcp_init)
 	uv->socket = tcp;
 	
 	ZEND_REGISTER_RESOURCE(return_value, uv, uv_resource_handle);
+	uv->resource_id = Z_LVAL_P(return_value);
 }
 
 static zend_function_entry uv_functions[] = {
