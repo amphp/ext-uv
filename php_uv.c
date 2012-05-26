@@ -129,13 +129,42 @@ PHP_FUNCTION(uv_tcp_bind)
 
 static void php_uv_write_cb(uv_write_t* req, int status)
 {
-	fprintf(stderr,"write!");
+	TSRMLS_FETCH();
+	zval *retval_ptr, *stat, *client= NULL;
+	zval **params[2];
+	zend_fcall_info fci;
+	zend_fcall_info_cache fcc;
+	char *is_callable_error = NULL;
+
+	php_uv_t *uv = (php_uv_t*)req->data;
+	
+	if(zend_fcall_info_init(uv->write_cb, 0, &fci,&fcc,NULL,&is_callable_error TSRMLS_CC) == SUCCESS) {
+		if (is_callable_error) {
+			fprintf(stderr,"to be a valid callback\n");
+		}
+	}
+	
+	/* for now */
+	fci.retval_ptr_ptr = &retval_ptr;
+
+	MAKE_STD_ZVAL(stat);
+	ZVAL_LONG(stat, status);
+	MAKE_STD_ZVAL(client);
+	ZEND_REGISTER_RESOURCE(client, uv, uv_resource_handle);
+	params[0] = &stat;
+	params[1] = &client;
+	
+	fci.params = params;
+	fci.param_count = 2;
+	
+	zend_call_function(&fci, &fcc TSRMLS_CC);
+	zval_ptr_dtor(&retval_ptr);
 	efree(req);
 }
 
 PHP_FUNCTION(uv_write)
 {
-	zval *z_cli;
+	zval *z_cli,*callback;
 	char *data;
 	int data_len = 0;
 	uv_buf_t buf;
@@ -143,13 +172,17 @@ PHP_FUNCTION(uv_write)
 	uv_write_t *w;
 	
 	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
-		"zs",&z_cli, &data, &data_len) == FAILURE) {
+		"zsz",&z_cli, &data, &data_len,&callback) == FAILURE) {
 		return;
 	}
 	
 	ZEND_FETCH_RESOURCE(client, php_uv_t *, &z_cli, -1, PHP_UV_RESOURCE_NAME, uv_resource_handle);
-	
+
+	Z_ADDREF_P(callback);
+	client->write_cb = callback;
+
 	w = emalloc(sizeof(uv_write_t));
+	w->data = client;
 	buf = uv_buf_init(malloc(sizeof(char)*data_len), data_len);
 	buf.base = estrdup(data);
 	uv_write(w, client->socket, &buf, 1, php_uv_write_cb);
