@@ -79,6 +79,11 @@ ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_read_start, 0, 0, 2)
 	ZEND_ARG_INFO(0, callback)
 ZEND_END_ARG_INFO()
 
+ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_write, 0, 0, 2)
+	ZEND_ARG_INFO(0, client)
+	ZEND_ARG_INFO(0, data)
+ZEND_END_ARG_INFO()
+
 
 ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_tcp_bind, 0, 0, 1)
 	ZEND_ARG_INFO(0, resource)
@@ -120,6 +125,34 @@ PHP_FUNCTION(uv_tcp_bind)
 	if (r) {
 		fprintf(stderr,"bind error %d\n", r);
 	}
+}
+
+static void php_uv_write_cb(uv_write_t* req, int status)
+{
+	fprintf(stderr,"write!");
+	efree(req);
+}
+
+PHP_FUNCTION(uv_write)
+{
+	zval *z_cli;
+	char *data;
+	int data_len = 0;
+	uv_buf_t buf;
+	php_uv_t *client;
+	uv_write_t *w;
+	
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
+		"zs",&z_cli, &data, &data_len) == FAILURE) {
+		return;
+	}
+	
+	ZEND_FETCH_RESOURCE(client, php_uv_t *, &z_cli, -1, PHP_UV_RESOURCE_NAME, uv_resource_handle);
+	
+	w = emalloc(sizeof(uv_write_t));
+	buf = uv_buf_init(malloc(sizeof(char)*data_len), data_len);
+	buf.base = estrdup(data);
+	uv_write(w, client->socket, &buf, 1, php_uv_write_cb);
 }
 
 PHP_FUNCTION(uv_accept)
@@ -172,7 +205,7 @@ static void php_uv_listen_cb(uv_stream_t* server, int status)
 	zval_ptr_dtor(&retval_ptr);
 }
 
-static void after_read(uv_stream_t* handle, ssize_t nread, uv_buf_t buf)
+static void php_uv_read_cb(uv_stream_t* handle, ssize_t nread, uv_buf_t buf)
 {
 	TSRMLS_FETCH();
 	zval *retval_ptr,**params = NULL;
@@ -182,13 +215,11 @@ static void after_read(uv_stream_t* handle, ssize_t nread, uv_buf_t buf)
 	char *is_callable_error = NULL;
 
 	php_uv_t *uv = (php_uv_t*)handle->data;
-	fprintf(stderr,"after read\n");
 	if(zend_fcall_info_init(uv->read_cb, 0, &fci, &fcc, NULL, &is_callable_error TSRMLS_CC) == SUCCESS) {
 		if (is_callable_error) {
 			fprintf(stderr,"to be a valid callback\n");
 		}
 	}
-	fprintf(stderr,"after read cb\n");
 	
 	// for now
 	fci.retval_ptr_ptr = &retval_ptr;
@@ -196,13 +227,18 @@ static void after_read(uv_stream_t* handle, ssize_t nread, uv_buf_t buf)
 
 	MAKE_STD_ZVAL(buffer);
 	ZVAL_STRING(buffer,buf.base, 1);
+	//zval *rsc;
+	//MAKE_STD_ZVAL(rsc);
+	//ZEND_REGISTER_RESOURCE(rsc, uv, uv_resource_handle);
+	
 	params[0] = buffer;
+	//params[1] = rsc;
 
 	fci.params = &params;
 	fci.param_count = 1;
 	
 	//zend_fcall_info_args(&fci, params TSRMLS_CC);
-	zend_call_function(&fci, &fcc TSRMLS_CC);
+	zend_call_function(&fci, NULL TSRMLS_CC);
 	//zend_fcall_info_args_clear(&fcc, 1);
 	zval_ptr_dtor(&retval_ptr);
 }
@@ -221,7 +257,6 @@ PHP_FUNCTION(uv_read_start)
 		"rz",&client, &callback) == FAILURE) {
 		return;
 	}
-	fprintf(stderr,"uv_read_start\n");
 	php_var_dump(&client, 1 TSRMLS_CC);
 
 	ZEND_FETCH_RESOURCE(uv, php_uv_t *, &client, -1, PHP_UV_RESOURCE_NAME, uv_resource_handle);
@@ -231,7 +266,7 @@ PHP_FUNCTION(uv_read_start)
 	uv->read_cb = callback;
 	uv->socket->data = uv;
 
-	uv_read_start((uv_stream_t*)uv->socket, php_uv_read_alloc, after_read);
+	uv_read_start((uv_stream_t*)uv->socket, php_uv_read_alloc, php_uv_read_cb);
 }
 
 PHP_FUNCTION(uv_listen)
@@ -296,7 +331,6 @@ PHP_FUNCTION(uv_tcp_init)
 	tcp->data  = uv;
 	uv->socket = tcp;
 	
-	fprintf(stderr,"hanl:%p\n", uv->socket->data);
 	ZEND_REGISTER_RESOURCE(return_value, uv, uv_resource_handle);
 }
 
@@ -306,6 +340,7 @@ static zend_function_entry uv_functions[] = {
 	PHP_FE(uv_tcp_bind, arginfo_uv_tcp_bind)
 	PHP_FE(uv_listen, arginfo_uv_listen)
 	PHP_FE(uv_accept, arginfo_uv_accept)
+	PHP_FE(uv_write, arginfo_uv_write)
 	PHP_FE(uv_read_start, arginfo_uv_read_start)
 	PHP_FE(uv_tcp_connect, arginfo_uv_tcp_connect)
 	{NULL, NULL, NULL}
