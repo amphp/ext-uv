@@ -31,12 +31,26 @@ void static destruct_uv(zend_rsrc_list_entry *rsrc TSRMLS_DC)
 {
 	php_uv_t *obj = (php_uv_t *)rsrc->ptr;
 	
-	// todo
-	//if (Z_TYPE_P(cons->car) == IS_RESOURCE) {
-	//	zend_list_delete(Z_RESVAL_P(cons->car));
-//}
-
-	efree(obj);
+	if (obj->read_cb) {
+		zval_ptr_dtor(&obj->read_cb);
+		obj->read_cb = NULL;
+	}
+	if (obj->write_cb) {
+		zval_ptr_dtor(&obj->write_cb);
+		obj->write_cb = NULL;
+	}
+	if (obj->close_cb) {
+		zval_ptr_dtor(&obj->close_cb);
+		obj->close_cb = NULL;
+	}
+	if (obj->listen_cb) {
+		zval_ptr_dtor(&obj->listen_cb);
+		obj->listen_cb = NULL;
+	}
+	
+	if (obj) {
+		efree(obj);
+	}
 }
 
 
@@ -199,7 +213,7 @@ PHP_FUNCTION(uv_write)
 	}
 	
 	ZEND_FETCH_RESOURCE(client, php_uv_t *, &z_cli, -1, PHP_UV_RESOURCE_NAME, uv_resource_handle);
-
+	Z_ADDREF_P(z_cli);
 	Z_ADDREF_P(callback);
 	client->write_cb = callback;
 
@@ -343,6 +357,7 @@ static void php_uv_close_cb(uv_handle_t *handle)
 	zend_call_function(&fci, &fcc TSRMLS_CC);
 	//zend_fcall_info_args_clear(&fcc, 1);
 	zval_ptr_dtor(&retval_ptr);
+	zval_ptr_dtor(&h);
 }
 
 PHP_FUNCTION(uv_close)
@@ -521,13 +536,23 @@ PHP_FUNCTION(uv_tcp_init)
 	}
 
 	uv = (php_uv_t *)emalloc(sizeof(php_uv_t));
+	if (!uv) {
+		fprintf(stderr, "emalloc error\n");
+		return;
+	}
 
 	r = uv_tcp_init(uv_default_loop(), &uv->uv.tcp);
 	if (r) {
 		fprintf(stderr, "Socket creation error\n");
 		return;
 	}
+	
 	uv->uv.tcp.data = uv;
+	uv->listen_cb   = NULL;
+	uv->read_cb     = NULL;
+	uv->write_cb    = NULL;
+	uv->close_cb    = NULL;
+	uv->timer_cb    = NULL;
 	
 	ZEND_REGISTER_RESOURCE(return_value, uv, uv_resource_handle);
 	uv->resource_id = Z_LVAL_P(return_value);
