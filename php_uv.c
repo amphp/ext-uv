@@ -27,6 +27,9 @@ static int uv_connect_handle;
 
 void php_uv_init(TSRMLS_D);
 
+static void php_uv_close_cb(uv_handle_t *handle);
+
+
 void static destruct_uv(zend_rsrc_list_entry *rsrc TSRMLS_DC)
 {
 	int base_id = -1;
@@ -301,6 +304,11 @@ static void php_uv_listen_cb(uv_stream_t* server, int status)
 	zval_ptr_dtor(&svr);
 }
 
+static void php_uv_shutdown_cb(uv_shutdown_t* req, int status) {
+	uv_close((uv_handle_t*)req->handle, php_uv_close_cb);
+	efree(req);
+}
+
 static void php_uv_read_cb(uv_stream_t* handle, ssize_t nread, uv_buf_t buf)
 {
 	TSRMLS_FETCH();
@@ -310,7 +318,27 @@ static void php_uv_read_cb(uv_stream_t* handle, ssize_t nread, uv_buf_t buf)
 	zend_fcall_info fci;
 	zend_fcall_info_cache fcc;
 	char *is_callable_error = NULL;
+	
+	if (nread < 0) {
+		uv_shutdown_t* req;
+		/* Error or EOF */
+		if (buf.base) {
+			efree(buf.base);
+		}
+			
+		fprintf(stderr,"eof or error\n");
+		req = (uv_shutdown_t*) emalloc(sizeof *req);
+		uv_shutdown(req, handle, php_uv_shutdown_cb);
 
+		return;
+	}
+	
+	if (nread == 0) {
+		/* Everything OK, but nothing read. */
+		efree(buf.base);
+		return;
+	}
+	
 	php_uv_t *uv = (php_uv_t*)handle->data;
 	if(zend_fcall_info_init(uv->read_cb, 0, &fci, &fcc, NULL, &is_callable_error TSRMLS_CC) == SUCCESS) {
 		if (is_callable_error) {
@@ -335,6 +363,10 @@ static void php_uv_read_cb(uv_stream_t* handle, ssize_t nread, uv_buf_t buf)
 	fci.params = params;
 	fci.param_count = 2;
 	
+	if (buf.base) {
+		efree(buf.base);
+	}
+
 	//zend_fcall_info_args(&fci, *params TSRMLS_CC);
 	zend_call_function(&fci, &fcc TSRMLS_CC);
 	//zend_fcall_info_args_clear(&fcc, 1);
@@ -345,7 +377,7 @@ static void php_uv_read_cb(uv_stream_t* handle, ssize_t nread, uv_buf_t buf)
 
 static uv_buf_t php_uv_read_alloc(uv_handle_t* handle, size_t suggested_size)
 {
-	return uv_buf_init(malloc(suggested_size), suggested_size);
+	return uv_buf_init(emalloc(suggested_size), suggested_size);
 }
 
 
@@ -381,7 +413,7 @@ static void php_uv_close_cb(uv_handle_t *handle)
 	zend_call_function(&fci, &fcc TSRMLS_CC);
 	//zend_fcall_info_args_clear(&fcc, 1);
 	zval_ptr_dtor(&retval_ptr);
-	zval_ptr_dtor(&h);
+	zval_ptr_dtor(&h); /* call destruct_uv */
 	/* for testing resource ref count.
 	{
 		zend_rsrc_list_entry *le;
