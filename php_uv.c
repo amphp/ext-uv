@@ -37,12 +37,16 @@ typedef struct {
 void static destruct_uv(zend_rsrc_list_entry *rsrc TSRMLS_DC)
 {
 	int base_id = -1;
-	php_uv_t *obj = (php_uv_t *)rsrc->ptr;
-	if (obj->in_free) {
-		return;
-	}
-	obj->in_free = 1;
 	//fprintf(stderr, "will be free\n");
+	php_uv_t *obj = (php_uv_t *)rsrc->ptr;
+	
+	if (obj->in_free) {
+		/* TODO: why other php_uv_t has already set this? */
+		//fprintf(stderr, "resource_id: %d is freeing", obj->resource_id);
+		//return;
+	}
+	
+	obj->in_free = 1;
 	
 	if (obj->read_cb) {
 		//fprintf(stderr, "readcb: %d\n", Z_REFCOUNT_P(obj->read_cb));
@@ -330,7 +334,10 @@ static void php_uv_read_cb(uv_stream_t* handle, ssize_t nread, uv_buf_t buf)
 	
 	if (nread < 0) {
 		uv_shutdown_t* req;
+		
 		/* Error or EOF */
+		ASSERT (uv_last_error(uv_default_loop()).code == UV_EOF);
+		
 		if (buf.base) {
 			efree(buf.base);
 		}
@@ -421,17 +428,18 @@ static void php_uv_close_cb(uv_handle_t *handle)
 	zend_call_function(&fci, &fcc TSRMLS_CC);
 	//zend_fcall_info_args_clear(&fcc, 1);
 	zval_ptr_dtor(&retval_ptr);
-	zval_ptr_dtor(&h); /* call destruct_uv */
 	/* for testing resource ref count.
 	{
 		zend_rsrc_list_entry *le;
 		if (zend_hash_index_find(&EG(regular_list), uv->resource_id, (void **) &le)==SUCCESS) {
 			printf("del(%d): %d->%d\n", uv->resource_id, le->refcount, le->refcount-1);
+			zend_list_delete(uv->resource_id);
 		} else {
 			printf("can't find");
 		}
 	}
 	*/
+	zval_ptr_dtor(&h); /* call destruct_uv */
 }
 
 PHP_FUNCTION(uv_close)
