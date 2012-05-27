@@ -317,9 +317,14 @@ static void php_uv_listen_cb(uv_stream_t* server, int status)
 	zval_ptr_dtor(&svr);
 }
 
+static void php_uv_close_cb2(uv_handle_t *handle)
+{
+	/* FIXME */
+	//efree(handle);
+}
+
 static void php_uv_shutdown_cb(uv_shutdown_t* req, int status) {
-	uv_close((uv_handle_t*)req->handle, php_uv_close_cb);
-	efree(req);
+	uv_close((uv_handle_t*)req->handle, php_uv_close_cb2);
 }
 
 static void php_uv_read_cb(uv_stream_t* handle, ssize_t nread, uv_buf_t buf)
@@ -336,13 +341,21 @@ static void php_uv_read_cb(uv_stream_t* handle, ssize_t nread, uv_buf_t buf)
 		uv_shutdown_t* req;
 		
 		/* Error or EOF */
-		ASSERT (uv_last_error(uv_default_loop()).code == UV_EOF);
+		assert(uv_last_error(uv_default_loop()).code == UV_EOF);
 		
 		if (buf.base) {
 			efree(buf.base);
 		}
-			
+		
 		fprintf(stderr,"eof or error\n");
+		/* FIXME: can't free in callback function
+eof or error
+[Sun May 27 23:52:40 2012]  Script:  'examples/example.php'
+---------------------------------------
+/Users/chobie/src/php-uv/php_uv.c(322) : Block 0x102e8de58 status: // efree on php_uv_close_cb2.
+Invalid pointer: ((thread_id=0x02BCD480) != (expected=0x74917960))
+Invalid pointer: ((size=0x00000071) != (next.prev=0x00000000))
+		*/
 		req = (uv_shutdown_t*) emalloc(sizeof *req);
 		uv_shutdown(req, handle, php_uv_shutdown_cb);
 		return;
