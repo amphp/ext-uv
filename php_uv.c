@@ -35,20 +35,25 @@ void static destruct_uv(zend_rsrc_list_entry *rsrc TSRMLS_DC)
 		return;
 	}
 	obj->in_free = 1;
+	//fprintf(stderr, "will be free\n");
 	
 	if (obj->read_cb) {
+		//fprintf(stderr, "readcb: %d\n", Z_REFCOUNT_P(obj->read_cb));
 		zval_ptr_dtor(&obj->read_cb);
 		obj->read_cb = NULL;
 	}
 	if (obj->write_cb) {
+		//fprintf(stderr, "writecb: %d\n", Z_REFCOUNT_P(obj->write_cb));
 		zval_ptr_dtor(&obj->write_cb);
 		obj->write_cb = NULL;
 	}
 	if (obj->close_cb) {
+		//fprintf(stderr, "closecb: %d\n", Z_REFCOUNT_P(obj->close_cb));
 		zval_ptr_dtor(&obj->close_cb);
 		obj->close_cb = NULL;
 	}
 	if (obj->listen_cb) {
+		//fprintf(stderr, "listencb: %d\n", Z_REFCOUNT_P(obj->listen_cb));
 		zval_ptr_dtor(&obj->listen_cb);
 		obj->listen_cb = NULL;
 	}
@@ -57,7 +62,7 @@ void static destruct_uv(zend_rsrc_list_entry *rsrc TSRMLS_DC)
 		obj->resource_id = NULL;
 	}
 
-	if (obj) {
+	if (obj != NULL) {
 		efree(obj);
 		obj = NULL;
 	}
@@ -400,7 +405,6 @@ PHP_FUNCTION(uv_close)
 	}
 
 	ZEND_FETCH_RESOURCE(uv, php_uv_t *, &client, -1, PHP_UV_RESOURCE_NAME, uv_resource_handle);
-	zend_list_addref(uv->resource_id);
 	Z_ADDREF_P(callback);
 
 	uv->close_cb = callback;
@@ -492,6 +496,11 @@ PHP_FUNCTION(uv_timer_init)
 		return;
 	}
 	uv->uv.timer.data = uv;
+	uv->listen_cb   = NULL;
+	uv->read_cb     = NULL;
+	uv->write_cb    = NULL;
+	uv->close_cb    = NULL;
+	uv->timer_cb    = NULL;
 	
 	ZEND_REGISTER_RESOURCE(return_value, uv, uv_resource_handle);
 	uv->resource_id = Z_LVAL_P(return_value);
