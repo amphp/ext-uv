@@ -377,7 +377,7 @@ static void php_uv_close_cb(uv_handle_t *handle)
 	//zend_fcall_info_args_clear(&fcc, 1);
 	zval_ptr_dtor(&retval_ptr);
 	zval_ptr_dtor(&h);
-	/*
+	/* for testing resource ref count.
 	{
 		zend_rsrc_list_entry *le;
 		if (zend_hash_index_find(&EG(regular_list), uv->resource_id, (void **) &le)==SUCCESS) {
@@ -530,8 +530,8 @@ static void php_uv_timer_cb(uv_timer_t *handle, int status)
 	fci.param_count = 2;
 	
 	zend_call_function(&fci, &fcc TSRMLS_CC);
-	zval_ptr_dtor(&retval_ptr);
 
+	zval_ptr_dtor(&retval_ptr);
 	zval_ptr_dtor(&stat);
 	zval_ptr_dtor(&client);
 }
