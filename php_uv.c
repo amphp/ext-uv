@@ -29,6 +29,10 @@ void php_uv_init(TSRMLS_D);
 
 static void php_uv_close_cb(uv_handle_t *handle);
 
+typedef struct {
+	uv_write_t req;
+	uv_buf_t buf;
+} write_req_t;
 
 void static destruct_uv(zend_rsrc_list_entry *rsrc TSRMLS_DC)
 {
@@ -187,12 +191,14 @@ PHP_FUNCTION(uv_tcp_bind)
 static void php_uv_write_cb(uv_write_t* req, int status)
 {
 	TSRMLS_FETCH();
+	write_req_t* wr;
 	zval *retval_ptr, *stat, *client= NULL;
 	zval **params[2];
 	zend_fcall_info fci;
 	zend_fcall_info_cache fcc;
 	char *is_callable_error = NULL;
 
+	wr = (write_req_t*) req;
 	php_uv_t *uv = (php_uv_t*)req->data;
 	
 	if(zend_fcall_info_init(uv->write_cb, 0, &fci,&fcc,NULL,&is_callable_error TSRMLS_CC) == SUCCESS) {
@@ -221,7 +227,11 @@ static void php_uv_write_cb(uv_write_t* req, int status)
 	zval_ptr_dtor(&retval_ptr);
 	zval_ptr_dtor(&stat);
 	zval_ptr_dtor(&client);
-	efree(req);
+
+	if (wr->buf.base) {
+		//free(wr->buf.base);
+	}
+	efree(wr);
 }
 
 PHP_FUNCTION(uv_write)
@@ -229,9 +239,8 @@ PHP_FUNCTION(uv_write)
 	zval *z_cli,*callback;
 	char *data;
 	int data_len = 0;
-	uv_buf_t buf;
 	php_uv_t *client;
-	uv_write_t *w;
+	write_req_t *w;
 	
 	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
 		"zsz",&z_cli, &data, &data_len,&callback) == FAILURE) {
@@ -243,10 +252,10 @@ PHP_FUNCTION(uv_write)
 	Z_ADDREF_P(callback);
 	client->write_cb = callback;
 
-	w = emalloc(sizeof(uv_write_t));
-	w->data = client;
-	buf = uv_buf_init(data, data_len);
-	uv_write(w, &client->uv.tcp, &buf, 1, php_uv_write_cb);
+	w = emalloc(sizeof(write_req_t));
+	w->req.data = client;
+	w->buf = uv_buf_init(data, data_len);
+	uv_write(&w->req, &client->uv.tcp, &w->buf, 1, php_uv_write_cb);
 }
 
 PHP_FUNCTION(uv_accept)
@@ -329,7 +338,6 @@ static void php_uv_read_cb(uv_stream_t* handle, ssize_t nread, uv_buf_t buf)
 		fprintf(stderr,"eof or error\n");
 		req = (uv_shutdown_t*) emalloc(sizeof *req);
 		uv_shutdown(req, handle, php_uv_shutdown_cb);
-
 		return;
 	}
 	
@@ -350,7 +358,7 @@ static void php_uv_read_cb(uv_stream_t* handle, ssize_t nread, uv_buf_t buf)
 	fci.retval_ptr_ptr = &retval_ptr;
 
 	MAKE_STD_ZVAL(buffer);
-	ZVAL_STRING(buffer,buf.base, 1);
+	ZVAL_STRINGL(buffer,buf.base,nread, 1);
 
 	zval *rsc;
 	MAKE_STD_ZVAL(rsc);
@@ -363,16 +371,16 @@ static void php_uv_read_cb(uv_stream_t* handle, ssize_t nread, uv_buf_t buf)
 	fci.params = params;
 	fci.param_count = 2;
 	
-	if (buf.base) {
-		efree(buf.base);
-	}
-
 	//zend_fcall_info_args(&fci, *params TSRMLS_CC);
 	zend_call_function(&fci, &fcc TSRMLS_CC);
 	//zend_fcall_info_args_clear(&fcc, 1);
 	zval_ptr_dtor(&buffer);
 	zval_ptr_dtor(&rsc);
 	zval_ptr_dtor(&retval_ptr);
+
+	if (buf.base) {
+		efree(buf.base);
+	}
 }
 
 static uv_buf_t php_uv_read_alloc(uv_handle_t* handle, size_t suggested_size)
