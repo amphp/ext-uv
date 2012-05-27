@@ -516,8 +516,14 @@ static void php_uv_timer_cb(uv_timer_t *handle, int status)
 	fci.param_count = 2;
 	
 	zend_call_function(&fci, &fcc TSRMLS_CC);
-	zval_ptr_dtor(&stat);
 	zval_ptr_dtor(&retval_ptr);
+
+	zval_ptr_dtor(&stat);
+
+	client->value.lval = 0;
+	client->type = IS_NULL;
+	zval_ptr_dtor(&client);
+	
 }
 
 PHP_FUNCTION(uv_timer_start)
