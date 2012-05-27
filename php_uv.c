@@ -29,7 +29,13 @@ void php_uv_init(TSRMLS_D);
 
 void static destruct_uv(zend_rsrc_list_entry *rsrc TSRMLS_DC)
 {
+	int base_id = -1;
 	php_uv_t *obj = (php_uv_t *)rsrc->ptr;
+	if (obj->in_free) {
+		return;
+	}
+	
+	obj->in_free = 1;
 	
 	if (obj->read_cb) {
 		zval_ptr_dtor(&obj->read_cb);
@@ -47,11 +53,20 @@ void static destruct_uv(zend_rsrc_list_entry *rsrc TSRMLS_DC)
 		zval_ptr_dtor(&obj->listen_cb);
 		obj->listen_cb = NULL;
 	}
-	
+	if (obj->resource_id) {
+		base_id = obj->resource_id;
+		obj->resource_id = NULL;
+	}
+
 	if (obj) {
 		fprintf(stderr, "close");
 		efree(obj);
+		obj = NULL;
 	}
+	if (base_id) {
+		zend_list_delete(base_id);
+	}
+
 }
 
 
@@ -185,8 +200,7 @@ static void php_uv_write_cb(uv_write_t* req, int status)
 	ZVAL_LONG(stat, status);
 	
 	MAKE_STD_ZVAL(client);
-	client->value.lval = uv->resource_id;
-	client->type = IS_RESOURCE;
+	ZVAL_RESOURCE(client, uv->resource_id);
 
 	params[0] = &stat;
 	params[1] = &client;
@@ -273,8 +287,7 @@ static void php_uv_listen_cb(uv_stream_t* server, int status)
 	fci.retval_ptr_ptr = &retval_ptr;
 
 	MAKE_STD_ZVAL(svr);
-	svr->value.lval = uv->resource_id;
-	svr->type = IS_RESOURCE;
+	ZVAL_RESOURCE(svr, uv->resource_id);
 
 	params[0] = &svr;
 	
@@ -315,8 +328,7 @@ static void php_uv_read_cb(uv_stream_t* handle, ssize_t nread, uv_buf_t buf)
 
 	zval *rsc;
 	MAKE_STD_ZVAL(rsc);
-	rsc->value.lval = uv->resource_id;
-	rsc->type = IS_RESOURCE;
+	ZVAL_RESOURCE(rsc, uv->resource_id);
 	
 	params[0] = &buffer;
 	params[1] = &rsc;
@@ -359,8 +371,7 @@ static void php_uv_close_cb(uv_handle_t *handle)
 	fci.retval_ptr_ptr = &retval_ptr;
 
 	MAKE_STD_ZVAL(h);
-	h->value.lval = uv->resource_id;
-	h->type = IS_RESOURCE;
+	ZVAL_RESOURCE(h, uv->resource_id);
 	
 	params[0] = &h;
 	
@@ -505,9 +516,7 @@ static void php_uv_timer_cb(uv_timer_t *handle, int status)
 	MAKE_STD_ZVAL(stat);
 	ZVAL_LONG(stat, status);
 	MAKE_STD_ZVAL(client);
-
-	client->value.lval = uv->resource_id;
-	client->type = IS_RESOURCE;
+	ZVAL_RESOURCE(client, uv->resource_id);
 
 	params[0] = &stat;
 	params[1] = &client;

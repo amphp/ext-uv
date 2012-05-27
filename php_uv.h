@@ -24,6 +24,7 @@ extern zend_module_entry uv_module_entry;
 extern zend_class_entry *uv_class_entry;
 
 typedef struct {
+	int in_free;
 	int resource_id;
 	union {
 		uv_tcp_t tcp;
