@@ -34,7 +34,6 @@ void static destruct_uv(zend_rsrc_list_entry *rsrc TSRMLS_DC)
 	if (obj->in_free) {
 		return;
 	}
-	
 	obj->in_free = 1;
 	
 	if (obj->read_cb) {
@@ -59,11 +58,12 @@ void static destruct_uv(zend_rsrc_list_entry *rsrc TSRMLS_DC)
 	}
 
 	if (obj) {
-		fprintf(stderr, "close");
 		efree(obj);
 		obj = NULL;
 	}
+	
 	if (base_id) {
+		/* basically, this block always fail */
 		zend_list_delete(base_id);
 	}
 
@@ -201,6 +201,7 @@ static void php_uv_write_cb(uv_write_t* req, int status)
 	
 	MAKE_STD_ZVAL(client);
 	ZVAL_RESOURCE(client, uv->resource_id);
+	zend_list_addref(uv->resource_id);
 
 	params[0] = &stat;
 	params[1] = &client;
@@ -211,12 +212,7 @@ static void php_uv_write_cb(uv_write_t* req, int status)
 	zend_call_function(&fci, &fcc TSRMLS_CC);
 	zval_ptr_dtor(&retval_ptr);
 	zval_ptr_dtor(&stat);
-	
-	/* does these correct ? */
-	client->value.lval = 0;
-	client->type = IS_NULL;
 	zval_ptr_dtor(&client);
-	
 	efree(req);
 }
 
@@ -235,7 +231,7 @@ PHP_FUNCTION(uv_write)
 	}
 	
 	ZEND_FETCH_RESOURCE(client, php_uv_t *, &z_cli, -1, PHP_UV_RESOURCE_NAME, uv_resource_handle);
-	Z_ADDREF_P(z_cli);
+	zend_list_addref(client->resource_id);
 	Z_ADDREF_P(callback);
 	client->write_cb = callback;
 
@@ -288,6 +284,7 @@ static void php_uv_listen_cb(uv_stream_t* server, int status)
 
 	MAKE_STD_ZVAL(svr);
 	ZVAL_RESOURCE(svr, uv->resource_id);
+	zend_list_addref(uv->resource_id);
 
 	params[0] = &svr;
 	
@@ -296,10 +293,6 @@ static void php_uv_listen_cb(uv_stream_t* server, int status)
 	
 	zend_call_function(&fci, &fcc TSRMLS_CC);
 	zval_ptr_dtor(&retval_ptr);
-
-	/* does these correct ? */
-	svr->value.lval = 0;
-	svr->type = IS_NULL;
 	zval_ptr_dtor(&svr);
 }
 
@@ -329,7 +322,8 @@ static void php_uv_read_cb(uv_stream_t* handle, ssize_t nread, uv_buf_t buf)
 	zval *rsc;
 	MAKE_STD_ZVAL(rsc);
 	ZVAL_RESOURCE(rsc, uv->resource_id);
-	
+	//zend_list_addref(uv->resource_id);
+
 	params[0] = &buffer;
 	params[1] = &rsc;
 	
@@ -372,7 +366,7 @@ static void php_uv_close_cb(uv_handle_t *handle)
 
 	MAKE_STD_ZVAL(h);
 	ZVAL_RESOURCE(h, uv->resource_id);
-	
+
 	params[0] = &h;
 	
 	fci.params = params;
@@ -383,6 +377,16 @@ static void php_uv_close_cb(uv_handle_t *handle)
 	//zend_fcall_info_args_clear(&fcc, 1);
 	zval_ptr_dtor(&retval_ptr);
 	zval_ptr_dtor(&h);
+	/*
+	{
+		zend_rsrc_list_entry *le;
+		if (zend_hash_index_find(&EG(regular_list), uv->resource_id, (void **) &le)==SUCCESS) {
+			printf("del(%d): %d->%d\n", uv->resource_id, le->refcount, le->refcount-1);
+		} else {
+			printf("can't find");
+		}
+	}
+	*/
 }
 
 PHP_FUNCTION(uv_close)
@@ -396,6 +400,7 @@ PHP_FUNCTION(uv_close)
 	}
 
 	ZEND_FETCH_RESOURCE(uv, php_uv_t *, &client, -1, PHP_UV_RESOURCE_NAME, uv_resource_handle);
+	zend_list_addref(uv->resource_id);
 	Z_ADDREF_P(callback);
 
 	uv->close_cb = callback;
@@ -415,7 +420,7 @@ PHP_FUNCTION(uv_read_start)
 
 	ZEND_FETCH_RESOURCE(uv, php_uv_t *, &client, -1, PHP_UV_RESOURCE_NAME, uv_resource_handle);
 	Z_ADDREF_P(callback);
-	Z_ADDREF_P(client);
+	zend_list_addref(uv->resource_id);
 
 	uv->read_cb = callback;
 	uv->uv.tcp.data = uv;
@@ -436,10 +441,9 @@ PHP_FUNCTION(uv_listen)
 	}
 	
 	ZEND_FETCH_RESOURCE(uv, php_uv_t *, &resource, -1, PHP_UV_RESOURCE_NAME, uv_resource_handle);
-
-	//Z_ADDREF_P(resource);
 	Z_ADDREF_P(callback);
 	uv->listen_cb = callback;
+	zend_list_addref(uv->resource_id);
 
 	r = uv_listen((uv_stream_t*)&uv->uv.tcp, backlog, php_uv_listen_cb);
 	if (r) {
@@ -517,6 +521,7 @@ static void php_uv_timer_cb(uv_timer_t *handle, int status)
 	ZVAL_LONG(stat, status);
 	MAKE_STD_ZVAL(client);
 	ZVAL_RESOURCE(client, uv->resource_id);
+	zend_list_addref(uv->resource_id);
 
 	params[0] = &stat;
 	params[1] = &client;
@@ -528,11 +533,7 @@ static void php_uv_timer_cb(uv_timer_t *handle, int status)
 	zval_ptr_dtor(&retval_ptr);
 
 	zval_ptr_dtor(&stat);
-
-	client->value.lval = 0;
-	client->type = IS_NULL;
 	zval_ptr_dtor(&client);
-	
 }
 
 PHP_FUNCTION(uv_timer_start)
