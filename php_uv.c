@@ -214,6 +214,7 @@ PHP_FUNCTION(uv_accept)
 {
 	zval *z_svr,*z_cli;
 	php_uv_t *server, *client;
+	int r;
 	
 	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
 		"zz",&z_svr, &z_cli) == FAILURE) {
@@ -223,7 +224,10 @@ PHP_FUNCTION(uv_accept)
 	ZEND_FETCH_RESOURCE(server, php_uv_t *, &z_svr, -1, PHP_UV_RESOURCE_NAME, uv_resource_handle);
 	ZEND_FETCH_RESOURCE(client, php_uv_t *, &z_cli, -1, PHP_UV_RESOURCE_NAME, uv_resource_handle);
 	
-	uv_accept((uv_stream_t *)&server->uv.tcp, (uv_stream_t *)&client->uv.tcp);
+	r = uv_accept((uv_stream_t *)&server->uv.tcp, (uv_stream_t *)&client->uv.tcp);
+	if (r) {
+		fprintf(stderr, "failed");
+	}
 }
 
 
@@ -384,6 +388,7 @@ PHP_FUNCTION(uv_listen)
 	zval *resource, *callback;
 	long backlog = SOMAXCONN;
 	php_uv_t *uv;
+	int r;
 	
 	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
 		"zlz",&resource, &backlog, &callback) == FAILURE) {
@@ -394,7 +399,10 @@ PHP_FUNCTION(uv_listen)
 
 	Z_ADDREF_P(callback);
 	uv->listen_cb = callback;
-	uv_listen((uv_stream_t*)&uv->uv.tcp, backlog, php_uv_listen_cb);
+	r = uv_listen((uv_stream_t*)&uv->uv.tcp, backlog, php_uv_listen_cb);
+	if (r) {
+		fprintf(stderr, "damepo");
+	}
 }
 
 PHP_FUNCTION(uv_tcp_connect)
