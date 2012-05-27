@@ -49,6 +49,7 @@ void static destruct_uv(zend_rsrc_list_entry *rsrc TSRMLS_DC)
 	}
 	
 	if (obj) {
+		fprintf(stderr, "close");
 		efree(obj);
 	}
 }
@@ -182,8 +183,8 @@ static void php_uv_write_cb(uv_write_t* req, int status)
 
 	MAKE_STD_ZVAL(stat);
 	ZVAL_LONG(stat, status);
+	
 	MAKE_STD_ZVAL(client);
-
 	client->value.lval = uv->resource_id;
 	client->type = IS_RESOURCE;
 
@@ -195,6 +196,13 @@ static void php_uv_write_cb(uv_write_t* req, int status)
 	
 	zend_call_function(&fci, &fcc TSRMLS_CC);
 	zval_ptr_dtor(&retval_ptr);
+	zval_ptr_dtor(&stat);
+	
+	/* does these correct ? */
+	client->value.lval = 0;
+	client->type = IS_NULL;
+	zval_ptr_dtor(&client);
+	
 	efree(req);
 }
 
@@ -219,8 +227,7 @@ PHP_FUNCTION(uv_write)
 
 	w = emalloc(sizeof(uv_write_t));
 	w->data = client;
-	buf = uv_buf_init(malloc(sizeof(char)*data_len), data_len);
-	buf.base = estrdup(data);
+	buf = uv_buf_init(data, data_len);
 	uv_write(w, &client->uv.tcp, &buf, 1, php_uv_write_cb);
 }
 
@@ -276,6 +283,11 @@ static void php_uv_listen_cb(uv_stream_t* server, int status)
 	
 	zend_call_function(&fci, &fcc TSRMLS_CC);
 	zval_ptr_dtor(&retval_ptr);
+
+	/* does these correct ? */
+	svr->value.lval = 0;
+	svr->type = IS_NULL;
+	zval_ptr_dtor(&svr);
 }
 
 static void php_uv_read_cb(uv_stream_t* handle, ssize_t nread, uv_buf_t buf)
@@ -315,6 +327,8 @@ static void php_uv_read_cb(uv_stream_t* handle, ssize_t nread, uv_buf_t buf)
 	//zend_fcall_info_args(&fci, *params TSRMLS_CC);
 	zend_call_function(&fci, &fcc TSRMLS_CC);
 	//zend_fcall_info_args_clear(&fcc, 1);
+	zval_ptr_dtor(&buffer);
+	zval_ptr_dtor(&rsc);
 	zval_ptr_dtor(&retval_ptr);
 }
 
@@ -412,8 +426,10 @@ PHP_FUNCTION(uv_listen)
 	
 	ZEND_FETCH_RESOURCE(uv, php_uv_t *, &resource, -1, PHP_UV_RESOURCE_NAME, uv_resource_handle);
 
+	//Z_ADDREF_P(resource);
 	Z_ADDREF_P(callback);
 	uv->listen_cb = callback;
+
 	r = uv_listen((uv_stream_t*)&uv->uv.tcp, backlog, php_uv_listen_cb);
 	if (r) {
 		fprintf(stderr, "damepo");
@@ -500,6 +516,7 @@ static void php_uv_timer_cb(uv_timer_t *handle, int status)
 	fci.param_count = 2;
 	
 	zend_call_function(&fci, &fcc TSRMLS_CC);
+	zval_ptr_dtor(&stat);
 	zval_ptr_dtor(&retval_ptr);
 }
 
