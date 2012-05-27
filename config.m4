@@ -14,8 +14,6 @@ if test $PHP_UV != "no"; then
     ],[
         -Llibuv
     ])
-    PHP_SUBST(MRUBY_SHARED_LIBADD)
-
 
     PHP_SUBST(UV_SHARED_LIBADD)
     CFLAGS=" -g -O0 -Wunused-variable -Wpointer-sign -Wimplicit-function-declaration -Wl,libuv/uv.a"
