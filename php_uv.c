@@ -192,7 +192,7 @@ static void php_uv_tcp_connect_cb(uv_connect_t *req, int status)
 	
 	if(zend_fcall_info_init(uv->connect_cb, 0, &fci,&fcc,NULL,&is_callable_error TSRMLS_CC) == SUCCESS) {
 		if (is_callable_error) {
-			fprintf(stderr,"to be a valid callback\n");
+			php_error_docref(NULL TSRMLS_CC, E_ERROR, "to be a valid callback");
 		}
 	}
 	
@@ -233,7 +233,7 @@ static void php_uv_write_cb(uv_write_t* req, int status)
 	
 	if(zend_fcall_info_init(uv->write_cb, 0, &fci,&fcc,NULL,&is_callable_error TSRMLS_CC) == SUCCESS) {
 		if (is_callable_error) {
-			fprintf(stderr,"to be a valid callback\n");
+			php_error_docref(NULL TSRMLS_CC, E_ERROR, "to be a valid callback");
 		}
 	}
 	
@@ -277,7 +277,7 @@ static void php_uv_listen_cb(uv_stream_t* server, int status)
 	
 	if(zend_fcall_info_init(uv->listen_cb, 0, &fci,&fcc,NULL,&is_callable_error TSRMLS_CC) == SUCCESS) {
 		if (is_callable_error) {
-			fprintf(stderr,"to be a valid callback\n");
+			php_error_docref(NULL TSRMLS_CC, E_ERROR, "to be a valid callback");
 		}
 	}
 	
@@ -343,7 +343,7 @@ static void php_uv_read_cb(uv_stream_t* handle, ssize_t nread, uv_buf_t buf)
 	php_uv_t *uv = (php_uv_t*)handle->data;
 	if(zend_fcall_info_init(uv->read_cb, 0, &fci, &fcc, NULL, &is_callable_error TSRMLS_CC) == SUCCESS) {
 		if (is_callable_error) {
-			fprintf(stderr,"to be a valid callback\n");
+			php_error_docref(NULL TSRMLS_CC, E_ERROR, "to be a valid callback");
 		}
 	}
 	
@@ -395,7 +395,7 @@ static void php_uv_close_cb(uv_handle_t *handle)
 	php_uv_t *uv = (php_uv_t*)handle->data;
 	if(zend_fcall_info_init(uv->close_cb, 0, &fci, &fcc, NULL, &is_callable_error TSRMLS_CC) == SUCCESS) {
 		if (is_callable_error) {
-			fprintf(stderr,"to be a valid callback\n");
+			php_error_docref(NULL TSRMLS_CC, E_ERROR, "to be a valid callback");
 		}
 	}
 	
@@ -442,7 +442,7 @@ static void php_uv_idle_cb(uv_timer_t *handle, int status)
 	
 	if(zend_fcall_info_init(uv->idle_cb, 0, &fci,&fcc,NULL,&is_callable_error TSRMLS_CC) == SUCCESS) {
 		if (is_callable_error) {
-			fprintf(stderr,"to be a valid callback\n");
+			php_error_docref(NULL TSRMLS_CC, E_ERROR, "to be a valid callback");
 		}
 	}
 	
@@ -483,7 +483,7 @@ static void php_uv_timer_cb(uv_timer_t *handle, int status)
 	
 	if(zend_fcall_info_init(uv->timer_cb, 0, &fci,&fcc,NULL,&is_callable_error TSRMLS_CC) == SUCCESS) {
 		if (is_callable_error) {
-			fprintf(stderr,"to be a valid callback\n");
+			php_error_docref(NULL TSRMLS_CC, E_ERROR, "to be a valid callback");
 		}
 	}
 	
@@ -745,7 +745,7 @@ PHP_FUNCTION(uv_tcp_bind)
 	
 	r = uv_tcp_bind((uv_tcp_t*)&uv->uv.tcp, addr);
 	if (r) {
-		fprintf(stderr,"bind error %d\n", r);
+		php_error_docref(NULL TSRMLS_CC, E_ERROR, "bind failed");
 	}
 }
 
@@ -804,7 +804,7 @@ PHP_FUNCTION(uv_accept)
 	
 	r = uv_accept((uv_stream_t *)&server->uv.tcp, (uv_stream_t *)&client->uv.tcp);
 	if (r) {
-		fprintf(stderr, "failed");
+		php_error_docref(NULL TSRMLS_CC, E_NOTICE, "accept");
 	}
 }
 
@@ -829,6 +829,7 @@ PHP_FUNCTION(uv_read_start)
 {
 	zval *client, *callback;
 	php_uv_t *uv;
+	int r;
 	
 	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
 		"rz",&client, &callback) == FAILURE) {
@@ -842,7 +843,10 @@ PHP_FUNCTION(uv_read_start)
 	uv->read_cb = callback;
 	uv->uv.tcp.data = uv;
 
-	uv_read_start((uv_stream_t*)&uv->uv.tcp, php_uv_read_alloc, php_uv_read_cb);
+	r = uv_read_start((uv_stream_t*)&uv->uv.tcp, php_uv_read_alloc, php_uv_read_cb);
+	if (r) {
+		php_error_docref(NULL TSRMLS_CC, E_NOTICE, "read failed");
+	}
 }
 
 PHP_FUNCTION(uv_ip4_addr)
@@ -885,7 +889,7 @@ PHP_FUNCTION(uv_listen)
 
 	r = uv_listen((uv_stream_t*)&uv->uv.tcp, backlog, php_uv_listen_cb);
 	if (r) {
-		fprintf(stderr, "damepo");
+		php_error_docref(NULL TSRMLS_CC, E_ERROR, "listen failed");
 	}
 }
 
@@ -930,7 +934,7 @@ PHP_FUNCTION(uv_timer_init)
 
 	r = uv_timer_init(uv_default_loop(), &uv->uv.timer);
 	if (r) {
-		fprintf(stderr, "Socket creation error\n");
+		php_error_docref(NULL TSRMLS_CC, E_ERROR, "uv_timer_init failed");
 		return;
 	}
 	uv->uv.timer.data = uv;
@@ -1030,13 +1034,13 @@ PHP_FUNCTION(uv_tcp_init)
 
 	uv = (php_uv_t *)emalloc(sizeof(php_uv_t));
 	if (!uv) {
-		fprintf(stderr, "emalloc error\n");
+		php_error_docref(NULL TSRMLS_CC, E_ERROR, "uv_tcp_init emalloc failed");
 		return;
 	}
 
 	r = uv_tcp_init(uv_default_loop(), &uv->uv.tcp);
 	if (r) {
-		fprintf(stderr, "Socket creation error\n");
+		php_error_docref(NULL TSRMLS_CC, E_ERROR, "uv_tcp_init failed");
 		return;
 	}
 	
@@ -1063,7 +1067,7 @@ PHP_FUNCTION(uv_idle_init)
 
 	r = uv_idle_init(uv_default_loop(), &uv->uv.idle);
 	if (r) {
-		fprintf(stderr, "Socket creation error\n");
+		php_error_docref(NULL TSRMLS_CC, E_ERROR, "uv_idle_init failed");
 		return;
 	}
 	uv->uv.timer.data = uv;
