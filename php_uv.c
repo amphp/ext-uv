@@ -22,13 +22,6 @@
 extern void php_uv_init(TSRMLS_D);
 extern zend_class_entry *uv_class_entry;
 
-static int uv_resource_handle;
-static int uv_connect_handle;
-
-void php_uv_init(TSRMLS_D);
-
-static void php_uv_close_cb(uv_handle_t *handle);
-
 typedef struct {
 	uv_write_t req;
 	uv_buf_t buf;
@@ -43,6 +36,38 @@ typedef struct {
 		uv->timer_cb    = NULL; \
 		uv->idle_cb     = NULL; \
 	}
+
+
+static int uv_resource_handle;
+
+static int uv_connect_handle;
+
+
+void php_uv_init(TSRMLS_D);
+
+static void php_uv_close_cb(uv_handle_t *handle);
+
+void static destruct_uv(zend_rsrc_list_entry *rsrc TSRMLS_DC);
+
+static void php_uv_tcp_connect_cb(uv_connect_t *conn_req, int status);
+
+static void php_uv_write_cb(uv_write_t* req, int status);
+
+static void php_uv_listen_cb(uv_stream_t* server, int status);
+
+static void php_uv_close_cb2(uv_handle_t *handle);
+
+static void php_uv_shutdown_cb(uv_shutdown_t* req, int status);
+
+static void php_uv_read_cb(uv_stream_t* handle, ssize_t nread, uv_buf_t buf);
+
+static uv_buf_t php_uv_read_alloc(uv_handle_t* handle, size_t suggested_size);
+
+static void php_uv_close_cb(uv_handle_t *handle);
+
+static void php_uv_timer_cb(uv_timer_t *handle, int status);
+
+static void php_uv_idle_cb(uv_timer_t *handle, int status);
 
 
 void static destruct_uv(zend_rsrc_list_entry *rsrc TSRMLS_DC)
@@ -356,7 +381,8 @@ static void php_uv_close_cb2(uv_handle_t *handle)
 	//efree(handle);
 }
 
-static void php_uv_shutdown_cb(uv_shutdown_t* req, int status) {
+static void php_uv_shutdown_cb(uv_shutdown_t* req, int status)
+{
 	uv_close((uv_handle_t*)req->handle, php_uv_close_cb2);
 }
 
