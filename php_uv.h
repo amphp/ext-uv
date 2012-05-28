@@ -36,7 +36,9 @@ typedef struct {
 		uv_loop_t loop;
 		uv_handle_t handle;
 		uv_stream_t stream;
+		uv_getaddrinfo_t addrinfo;
 	} uv;
+	zval *address;
 	zval *listen_cb;
 	zval *read_cb;
 	zval *write_cb;
@@ -44,9 +46,20 @@ typedef struct {
 	zval *timer_cb;
 	zval *idle_cb;
 	zval *connect_cb;
+	zval *getaddr_cb;
 } php_uv_t;
 
+typedef struct {
+	int is_ipv4;
+	int resource_id;
+	union {
+		struct sockaddr_in ipv4;
+		struct sockaddr_in6 ipv6;
+	} addr;
+} php_uv_sockaddr_t;
+
 #define PHP_UV_RESOURCE_NAME "uv"
+#define PHP_UV_SOCKADDR_RESOURCE_NAME "uv_sockaddr"
 #define PHP_UV_LOOP_RESOURCE_NAME "uv_loop"
 #define PHP_UV_CONNECT_RESOURCE_NAME "uv_connect"
 
