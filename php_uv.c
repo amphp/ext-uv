@@ -627,7 +627,7 @@ ZEND_END_ARG_INFO()
 
 /* PHP Functions */
 
-
+/* {{{ */
 PHP_FUNCTION(uv_unref)
 {
 	zval *z_loop = NULL;
@@ -641,7 +641,9 @@ PHP_FUNCTION(uv_unref)
 	ZEND_FETCH_RESOURCE(loop, uv_loop_t *, &z_loop, -1, PHP_UV_LOOP_RESOURCE_NAME, uv_loop_handle);
 	uv_unref(loop);
 }
+/* }}} */
 
+/* {{{ */
 PHP_FUNCTION(uv_last_error)
 {
 	uv_loop_t *loop;
@@ -657,7 +659,9 @@ PHP_FUNCTION(uv_last_error)
 
 	RETVAL_LONG(err.code);
 }
+/* }}} */
 
+/* {{{ */
 PHP_FUNCTION(uv_ref)
 {
 	zval *z_loop = NULL;
@@ -671,7 +675,9 @@ PHP_FUNCTION(uv_ref)
 	ZEND_FETCH_RESOURCE(loop, uv_loop_t *, &z_loop, -1, PHP_UV_LOOP_RESOURCE_NAME, uv_loop_handle);
 	uv_ref(loop);
 }
+/* }}} */
 
+/* {{{ */
 PHP_FUNCTION(uv_loop_refcount)
 {
 	zval *z_loop = NULL;
@@ -686,7 +692,9 @@ PHP_FUNCTION(uv_loop_refcount)
 	
 	RETURN_LONG(uv_loop_refcount(loop));
 }
+/* }}} */
 
+/* {{{ */
 PHP_FUNCTION(uv_run)
 {
 	zval *z_loop = NULL;
@@ -705,7 +713,9 @@ PHP_FUNCTION(uv_run)
 	
 	uv_run(loop);
 }
+/* }}} */
 
+/* {{{ */
 PHP_FUNCTION(uv_run_once)
 {
 	zval *z_loop = NULL;
@@ -724,7 +734,9 @@ PHP_FUNCTION(uv_run_once)
 	
 	uv_run_once(loop);
 }
+/* }}} */
 
+/* {{{ */
 PHP_FUNCTION(uv_tcp_bind)
 {
 	zval *resource;
@@ -748,7 +760,9 @@ PHP_FUNCTION(uv_tcp_bind)
 		php_error_docref(NULL TSRMLS_CC, E_ERROR, "bind failed");
 	}
 }
+/* }}} */
 
+/* {{{ */
 PHP_FUNCTION(uv_write)
 {
 	zval *z_cli,*callback;
@@ -772,7 +786,9 @@ PHP_FUNCTION(uv_write)
 	w->buf = uv_buf_init(data, data_len);
 	uv_write(&w->req, &client->uv.tcp, &w->buf, 1, php_uv_write_cb);
 }
+/* }}} */
 
+/* {{{ */
 PHP_FUNCTION(uv_tcp_nodelay)
 {
 	zval *z_cli;
@@ -787,7 +803,9 @@ PHP_FUNCTION(uv_tcp_nodelay)
 	ZEND_FETCH_RESOURCE(client, php_uv_t *, &z_cli, -1, PHP_UV_RESOURCE_NAME, uv_resource_handle);
 	uv_tcp_nodelay(client, bval);
 }
+/* }}} */
 
+/* {{{ */
 PHP_FUNCTION(uv_accept)
 {
 	zval *z_svr,*z_cli;
@@ -807,7 +825,9 @@ PHP_FUNCTION(uv_accept)
 		php_error_docref(NULL TSRMLS_CC, E_NOTICE, "accept");
 	}
 }
+/* }}} */
 
+/* {{{ */
 PHP_FUNCTION(uv_close)
 {
 	zval *client, *callback;
@@ -824,7 +844,9 @@ PHP_FUNCTION(uv_close)
 	uv->close_cb = callback;
 	uv_close((uv_stream_t*)&uv->uv.tcp, php_uv_close_cb);
 }
+/* }}} */
 
+/* {{{ */
 PHP_FUNCTION(uv_read_start)
 {
 	zval *client, *callback;
@@ -848,7 +870,9 @@ PHP_FUNCTION(uv_read_start)
 		php_error_docref(NULL TSRMLS_CC, E_NOTICE, "read failed");
 	}
 }
+/* }}} */
 
+/* {{{ */
 PHP_FUNCTION(uv_ip4_addr)
 {
 	char *address;
@@ -869,7 +893,9 @@ PHP_FUNCTION(uv_ip4_addr)
 	ZEND_REGISTER_RESOURCE(return_value, sockaddr, uv_sockaddr_handle);
 	sockaddr->resource_id = Z_LVAL_P(return_value);
 }
+/* }}} */
 
+/* {{{ */
 PHP_FUNCTION(uv_listen)
 {
 	zval *resource, *callback;
@@ -892,7 +918,10 @@ PHP_FUNCTION(uv_listen)
 		php_error_docref(NULL TSRMLS_CC, E_ERROR, "listen failed");
 	}
 }
+/* }}} */
 
+
+/* {{{ */
 PHP_FUNCTION(uv_tcp_connect)
 {
 	zval *resource,*address, *callback;
@@ -917,7 +946,9 @@ PHP_FUNCTION(uv_tcp_connect)
 	uv->connect_cb = callback;
 	uv_tcp_connect(req, &uv->uv.tcp, addr->addr.ipv4, php_uv_tcp_connect_cb);
 }
+/* }}} */
 
+/* {{{ */
 PHP_FUNCTION(uv_timer_init)
 {
 	int r;
@@ -943,7 +974,9 @@ PHP_FUNCTION(uv_timer_init)
 	ZEND_REGISTER_RESOURCE(return_value, uv, uv_resource_handle);
 	uv->resource_id = Z_LVAL_P(return_value);
 }
+/* }}} */
 
+/* {{{ */
 PHP_FUNCTION(uv_timer_start)
 {
 //int uv_timer_start(uv_timer_t* handle, uv_timer_cb timer_cb, int64_t timeout,int64_t repeat) {
@@ -962,7 +995,9 @@ PHP_FUNCTION(uv_timer_start)
 	uv->timer_cb = callback;
 	uv_timer_start((uv_timer_t*)&uv->uv.timer, php_uv_timer_cb, timeout, repeat);
 }
+/* }}} */
 
+/* {{{ */
 PHP_FUNCTION(uv_idle_start)
 {
 	zval *idle, *callback;
@@ -980,7 +1015,9 @@ PHP_FUNCTION(uv_idle_start)
 	uv->idle_cb = callback;
 	uv_idle_start((uv_timer_t*)&uv->uv.idle, php_uv_idle_cb);
 }
+/* }}} */
 
+/* {{{ */
 PHP_FUNCTION(uv_getaddrinfo)
 {
 	zval *z_loop, *callback = NULL;
@@ -1003,7 +1040,9 @@ PHP_FUNCTION(uv_getaddrinfo)
 	uv->getaddr_cb = callback;
 	uv_getaddrinfo(loop, handle, php_uv_getaddrinfo_cb, node, service, NULL);
 }
+/* }}} */
 
+/* {{{ */
 PHP_FUNCTION(uv_idle_stop)
 {
 	zval *idle;
@@ -1019,7 +1058,9 @@ PHP_FUNCTION(uv_idle_stop)
 	ZEND_FETCH_RESOURCE(uv, php_uv_t *, &idle, -1, PHP_UV_RESOURCE_NAME, uv_resource_handle);
 	uv_idle_stop((uv_timer_t*)&uv->uv.idle);
 }
+/* }}} */
 
+/* {{{ */
 PHP_FUNCTION(uv_tcp_init)
 {
 	int r;
@@ -1050,7 +1091,9 @@ PHP_FUNCTION(uv_tcp_init)
 	ZEND_REGISTER_RESOURCE(return_value, uv, uv_resource_handle);
 	uv->resource_id = Z_LVAL_P(return_value);
 }
-
+/* }}} */
+	
+/* {{{ */
 PHP_FUNCTION(uv_idle_init)
 {
 	int r;
@@ -1076,11 +1119,14 @@ PHP_FUNCTION(uv_idle_init)
 	ZEND_REGISTER_RESOURCE(return_value, uv, uv_resource_handle);
 	uv->resource_id = Z_LVAL_P(return_value);
 }
+/* }}} */
 
+/* {{{ */
 PHP_FUNCTION(uv_default_loop)
 {
 	ZEND_REGISTER_RESOURCE(return_value, php_uv_default_loop(), uv_loop_handle);
 }
+/* }}} */
 
 static zend_function_entry uv_functions[] = {
 	/* general */
