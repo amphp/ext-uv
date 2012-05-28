@@ -46,6 +46,7 @@ typedef struct {
 } php_uv_t;
 
 #define PHP_UV_RESOURCE_NAME "uv"
+#define PHP_UV_LOOP_RESOURCE_NAME "uv_loop"
 #define PHP_UV_CONNECT_RESOURCE_NAME "uv_connect"
 
 #endif /* PHP_UV_H */

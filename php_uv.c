@@ -42,6 +42,10 @@ static int uv_resource_handle;
 
 static int uv_connect_handle;
 
+static int uv_loop_handle;
+
+
+static uv_loop_t *_php_uv_default_loop;
 
 void php_uv_init(TSRMLS_D);
 
@@ -68,6 +72,23 @@ static void php_uv_close_cb(uv_handle_t *handle);
 static void php_uv_timer_cb(uv_timer_t *handle, int status);
 
 static void php_uv_idle_cb(uv_timer_t *handle, int status);
+
+void static destruct_uv_loop(zend_rsrc_list_entry *rsrc TSRMLS_DC)
+{
+	uv_loop_t *loop = (php_uv_t *)rsrc->ptr;
+	if (loop != _php_uv_default_loop) {
+		uv_loop_delete(loop);
+	}
+}
+
+static uv_loop_t *php_uv_default_loop()
+{
+	if (_php_uv_default_loop == NULL) {
+		_php_uv_default_loop = uv_default_loop();
+	}
+	
+	return _php_uv_default_loop;
+}
 
 
 void static destruct_uv(zend_rsrc_list_entry *rsrc TSRMLS_DC)
@@ -132,9 +153,15 @@ PHP_MINIT_FUNCTION(uv) {
 	php_uv_init(TSRMLS_C);
 	uv_resource_handle = zend_register_list_destructors_ex(destruct_uv, NULL, PHP_UV_RESOURCE_NAME, module_number);
 	uv_connect_handle  = zend_register_list_destructors_ex(destruct_uv, NULL, PHP_UV_CONNECT_RESOURCE_NAME, module_number);
+	uv_loop_handle = zend_register_list_destructors_ex(destruct_uv_loop, NULL, PHP_UV_LOOP_RESOURCE_NAME, module_number);
 
 	return SUCCESS;
 }
+
+ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_run_once, 0, 0, 1)
+	ZEND_ARG_INFO(0, loop)
+ZEND_END_ARG_INFO()
+
 
 ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_run, 0, 0, 1)
 	ZEND_ARG_INFO(0, loop)
@@ -214,11 +241,44 @@ ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_idle_init, 0, 0, 0)
 	ZEND_ARG_INFO(0, loop)
 ZEND_END_ARG_INFO()
 
-
 PHP_FUNCTION(uv_run)
 {
-	uv_run(uv_default_loop());
+	zval *z_loop = NULL;
+	uv_loop_t *loop;
+	php_uv_t *uv;
+	
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
+		"|z",&z_loop) == FAILURE) {
+		return;
+	}
+	if (z_loop != NULL) {
+		ZEND_FETCH_RESOURCE(loop, uv_loop_t *, &z_loop, -1, PHP_UV_LOOP_RESOURCE_NAME, uv_loop_handle);
+	} else {
+		loop = php_uv_default_loop();
+	}
+	
+	uv_run(loop);
 }
+
+PHP_FUNCTION(uv_run_once)
+{
+	zval *z_loop = NULL;
+	uv_loop_t *loop;
+	php_uv_t *uv;
+	
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
+		"|z",&z_loop) == FAILURE) {
+		return;
+	}
+	if (z_loop != NULL) {
+		ZEND_FETCH_RESOURCE(loop, uv_loop_t *, &z_loop, -1, PHP_UV_LOOP_RESOURCE_NAME, uv_loop_handle);
+	} else {
+		loop = php_uv_default_loop();
+	}
+	
+	uv_run_once(loop);
+}
+
 
 static void php_uv_tcp_connect_cb(uv_connect_t *conn_req, int status)
 {
@@ -743,7 +803,8 @@ PHP_FUNCTION(uv_idle_stop)
 		"r", &idle) == FAILURE) {
 		return;
 	}
-	zend_list_delete(uv->resource_id);
+	/* probably this doesn't need */ 
+	//zend_list_delete(uv->resource_id);
 
 	ZEND_FETCH_RESOURCE(uv, php_uv_t *, &idle, -1, PHP_UV_RESOURCE_NAME, uv_resource_handle);
 	uv_idle_stop((uv_timer_t*)&uv->uv.idle);
@@ -822,8 +883,16 @@ PHP_FUNCTION(uv_idle_init)
 }
 
 
+PHP_FUNCTION(uv_default_loop)
+{
+	ZEND_REGISTER_RESOURCE(return_value, php_uv_default_loop(), uv_loop_handle);
+}
+
+
 static zend_function_entry uv_functions[] = {
+	PHP_FE(uv_default_loop, NULL)
 	PHP_FE(uv_run, arginfo_uv_run)
+	PHP_FE(uv_run_once, arginfo_uv_run_once)
 	PHP_FE(uv_idle_init, arginfo_uv_idle_init)
 	PHP_FE(uv_idle_start, arginfo_uv_idle_start)
 	PHP_FE(uv_idle_stop, arginfo_uv_idle_stop)
