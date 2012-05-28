@@ -43,6 +43,7 @@ typedef struct {
 	zval *close_cb;
 	zval *timer_cb;
 	zval *idle_cb;
+	zval *connect_cb;
 } php_uv_t;
 
 #define PHP_UV_RESOURCE_NAME "uv"

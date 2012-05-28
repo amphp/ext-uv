@@ -456,7 +456,7 @@ PHP_FUNCTION(uv_tcp_nodelay)
 	}
 	
 	ZEND_FETCH_RESOURCE(client, php_uv_t *, &z_cli, -1, PHP_UV_RESOURCE_NAME, uv_resource_handle);
-	uv_tcp_nodelay(client, bbal);
+	uv_tcp_nodelay(client, bval);
 }
 
 
@@ -708,23 +708,20 @@ PHP_FUNCTION(uv_listen)
 
 PHP_FUNCTION(uv_tcp_connect)
 {
-	zval *resource;
+	zval *resource, *callback;
 	php_uv_t *uv;
-	zend_fcall_info fci = {
-		0,NULL,NULL,NULL,NULL,0,NULL,NULL
-	};
-	zend_fcall_info_cache fci_cache;
 	
 	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
-		"zf",&resource,&fci,&fci_cache) == FAILURE) {
+		"zz",&resource,&callback) == FAILURE) {
 		return;
 	}
 	
 	ZEND_FETCH_RESOURCE(uv, php_uv_t *, &resource, -1, PHP_UV_RESOURCE_NAME, uv_resource_handle);
-	//uv->fci_connect = fci;
-	//uv->fcc_connect = fci_cache;
+	Z_ADDREF_P(callback);
 	
-	//uv_tcp_connect(uv->connect, uv->socket, uv->addr, php_uv_tcp_connect_cb);
+	uv->connect_cb = callback;
+	
+	//uv_tcp_connect(&uv->uv.tcp, &uv->uv.tcp, uv->addr, php_uv_tcp_connect_cb);
 }
 
 PHP_FUNCTION(uv_timer_init)
