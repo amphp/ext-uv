@@ -13,11 +13,10 @@ EOF;
         if ($stat == 0) {
             uv_read_start($client,function($buffer, $client){
                 var_dump($buffer);
-                uv_close($client,function(){
-                });
+                uv_close($client);
             });
         } else {
-            uv_close($client,function(){});
+            uv_close($client);
         }
     });
 });

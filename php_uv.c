@@ -393,39 +393,43 @@ static void php_uv_close_cb(uv_handle_t *handle)
 	char *is_callable_error = NULL;
 
 	php_uv_t *uv = (php_uv_t*)handle->data;
-	if(zend_fcall_info_init(uv->close_cb, 0, &fci, &fcc, NULL, &is_callable_error TSRMLS_CC) == SUCCESS) {
-		if (is_callable_error) {
-			php_error_docref(NULL TSRMLS_CC, E_ERROR, "to be a valid callback");
+	if (uv->close_cb != NULL) {
+		if(zend_fcall_info_init(uv->close_cb, 0, &fci, &fcc, NULL, &is_callable_error TSRMLS_CC) == SUCCESS) {
+			if (is_callable_error) {
+				php_error_docref(NULL TSRMLS_CC, E_ERROR, "to be a valid callback");
+			}
 		}
-	}
-	
-	// for now
-	fci.retval_ptr_ptr = &retval_ptr;
+		
+		// for now
+		fci.retval_ptr_ptr = &retval_ptr;
 
-	MAKE_STD_ZVAL(h);
-	ZVAL_RESOURCE(h, uv->resource_id);
+		MAKE_STD_ZVAL(h);
+		ZVAL_RESOURCE(h, uv->resource_id);
 
-	params[0] = &h;
-	
-	fci.params = params;
-	fci.param_count = 1;
-	
-	//zend_fcall_info_args(&fci, *params TSRMLS_CC);
-	zend_call_function(&fci, &fcc TSRMLS_CC);
-	//zend_fcall_info_args_clear(&fcc, 1);
-	zval_ptr_dtor(&retval_ptr);
-	/* for testing resource ref count.
-	{
-		zend_rsrc_list_entry *le;
-		if (zend_hash_index_find(&EG(regular_list), uv->resource_id, (void **) &le)==SUCCESS) {
-			printf("del(%d): %d->%d\n", uv->resource_id, le->refcount, le->refcount-1);
-			zend_list_delete(uv->resource_id);
-		} else {
-			printf("can't find");
+		params[0] = &h;
+		
+		fci.params = params;
+		fci.param_count = 1;
+		
+		//zend_fcall_info_args(&fci, *params TSRMLS_CC);
+		zend_call_function(&fci, &fcc TSRMLS_CC);
+		//zend_fcall_info_args_clear(&fcc, 1);
+		zval_ptr_dtor(&retval_ptr);
+		/* for testing resource ref count.
+		{
+			zend_rsrc_list_entry *le;
+			if (zend_hash_index_find(&EG(regular_list), uv->resource_id, (void **) &le)==SUCCESS) {
+				printf("del(%d): %d->%d\n", uv->resource_id, le->refcount, le->refcount-1);
+				zend_list_delete(uv->resource_id);
+			} else {
+				printf("can't find");
+			}
 		}
+		*/
+		zval_ptr_dtor(&h); /* call destruct_uv */
+	} else {
+		zend_list_delete(uv->resource_id);
 	}
-	*/
-	zval_ptr_dtor(&h); /* call destruct_uv */
 }
 
 
@@ -563,6 +567,10 @@ ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_last_error, 0, 0, 1)
 	ZEND_ARG_INFO(0, loop)
 ZEND_END_ARG_INFO()
 
+ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_strerror, 0, 0, 1)
+	ZEND_ARG_INFO(0, error)
+ZEND_END_ARG_INFO()
+
 ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_timer_init, 0, 0, 1)
 	ZEND_ARG_INFO(0, loop)
 ZEND_END_ARG_INFO()
@@ -658,6 +666,24 @@ PHP_FUNCTION(uv_last_error)
 	err = uv_last_error(loop);
 
 	RETVAL_LONG(err.code);
+}
+/* }}} */
+
+/* {{{ */
+PHP_FUNCTION(uv_strerror)
+{
+	uv_loop_t *loop;
+	long err;
+	char *error_msg;
+	
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
+		"l",&err) == FAILURE) {
+		return;
+	}
+	
+	// TODO: uv_err_t can't convert from long
+	//error_msg = uv_strerror((uv_err_t)err);
+	//RETVAL_STRING(error_msg,1);
 }
 /* }}} */
 
@@ -830,18 +856,19 @@ PHP_FUNCTION(uv_accept)
 /* {{{ */
 PHP_FUNCTION(uv_close)
 {
-	zval *client, *callback;
+	zval *client, *callback = NULL;
 	php_uv_t *uv;
 	
 	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
-		"rz",&client, &callback) == FAILURE) {
+		"r|z",&client, &callback) == FAILURE) {
 		return;
 	}
 
 	ZEND_FETCH_RESOURCE(uv, php_uv_t *, &client, -1, PHP_UV_RESOURCE_NAME, uv_resource_handle);
-	Z_ADDREF_P(callback);
-
-	uv->close_cb = callback;
+	if (callback != NULL) {
+		Z_ADDREF_P(callback);
+		uv->close_cb = callback;
+	}
 	uv_close((uv_stream_t*)&uv->uv.tcp, php_uv_close_cb);
 }
 /* }}} */
@@ -1140,6 +1167,7 @@ static zend_function_entry uv_functions[] = {
 	PHP_FE(uv_close, arginfo_uv_close)
 	PHP_FE(uv_read_start, arginfo_uv_read_start)
 	PHP_FE(uv_last_error, arginfo_uv_last_error)
+	PHP_FE(uv_strerror, arginfo_uv_strerror)
 	/* idle */
 	PHP_FE(uv_idle_init, arginfo_uv_idle_init)
 	PHP_FE(uv_idle_start, arginfo_uv_idle_start)
