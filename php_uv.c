@@ -1082,32 +1082,36 @@ PHP_FUNCTION(uv_default_loop)
 	ZEND_REGISTER_RESOURCE(return_value, php_uv_default_loop(), uv_loop_handle);
 }
 
-
 static zend_function_entry uv_functions[] = {
+	/* general */
 	PHP_FE(uv_ref, arginfo_uv_ref)
 	PHP_FE(uv_unref, arginfo_uv_unref)
 	PHP_FE(uv_default_loop, NULL)
 	PHP_FE(uv_run, arginfo_uv_run)
-	PHP_FE(uv_ip4_addr, arginfo_uv_ip4_addr)
 	PHP_FE(uv_run_once, arginfo_uv_run_once)
+	PHP_FE(uv_ip4_addr, arginfo_uv_ip4_addr)
+	PHP_FE(uv_write, arginfo_uv_write)
+	PHP_FE(uv_close, arginfo_uv_close)
+	PHP_FE(uv_read_start, arginfo_uv_read_start)
+	PHP_FE(uv_last_error, arginfo_uv_last_error)
+	/* idle */
 	PHP_FE(uv_idle_init, arginfo_uv_idle_init)
 	PHP_FE(uv_idle_start, arginfo_uv_idle_start)
 	PHP_FE(uv_idle_stop, arginfo_uv_idle_stop)
+	/* timer */
 	PHP_FE(uv_timer_init, arginfo_uv_timer_init)
 	PHP_FE(uv_timer_start, arginfo_uv_timer_start)
+	/* tcp */
 	PHP_FE(uv_tcp_init, arginfo_uv_tcp_init)
 	PHP_FE(uv_tcp_nodelay, arginfo_uv_tcp_nodelay)
 	PHP_FE(uv_tcp_bind, arginfo_uv_tcp_bind)
 	PHP_FE(uv_listen, arginfo_uv_listen)
 	PHP_FE(uv_accept, arginfo_uv_accept)
-	PHP_FE(uv_write, arginfo_uv_write)
-	PHP_FE(uv_close, arginfo_uv_close)
-	PHP_FE(uv_read_start, arginfo_uv_read_start)
 	PHP_FE(uv_tcp_connect, arginfo_uv_tcp_connect)
-	PHP_FE(uv_last_error, arginfo_uv_last_error)
+	/* for debug */
 	PHP_FE(uv_loop_refcount, arginfo_uv_loop_refcount)
-	PHP_FE(uv_getaddrinfo, arginfo_uv_tcp_connect)
 	/* c-ares */
+	PHP_FE(uv_getaddrinfo, arginfo_uv_tcp_connect)
 	/* PHP_FE(ares_gethostbyname, arginfo_ares_gethostbyname) */
 	{NULL, NULL, NULL}
 };
