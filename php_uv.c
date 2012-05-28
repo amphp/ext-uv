@@ -241,6 +241,65 @@ ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_idle_init, 0, 0, 0)
 	ZEND_ARG_INFO(0, loop)
 ZEND_END_ARG_INFO()
 
+ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_loop_refcount, 0, 0, 1)
+	ZEND_ARG_INFO(0, loop)
+ZEND_END_ARG_INFO()
+
+ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_ref, 0, 0, 1)
+	ZEND_ARG_INFO(0, loop)
+ZEND_END_ARG_INFO()
+
+ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_unref, 0, 0, 1)
+	ZEND_ARG_INFO(0, loop)
+ZEND_END_ARG_INFO()
+
+
+PHP_FUNCTION(uv_unref)
+{
+	zval *z_loop = NULL;
+	uv_loop_t *loop;
+	php_uv_t *uv;
+	
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
+		"z",&z_loop) == FAILURE) {
+		return;
+	}
+	ZEND_FETCH_RESOURCE(loop, uv_loop_t *, &z_loop, -1, PHP_UV_LOOP_RESOURCE_NAME, uv_loop_handle);
+	uv_unref(loop);
+}
+
+
+PHP_FUNCTION(uv_ref)
+{
+	zval *z_loop = NULL;
+	uv_loop_t *loop;
+	php_uv_t *uv;
+	
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
+		"z",&z_loop) == FAILURE) {
+		return;
+	}
+	ZEND_FETCH_RESOURCE(loop, uv_loop_t *, &z_loop, -1, PHP_UV_LOOP_RESOURCE_NAME, uv_loop_handle);
+	uv_ref(loop);
+}
+
+
+PHP_FUNCTION(uv_loop_refcount)
+{
+	zval *z_loop = NULL;
+	uv_loop_t *loop;
+	php_uv_t *uv;
+	
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
+		"z",&z_loop) == FAILURE) {
+		return;
+	}
+	ZEND_FETCH_RESOURCE(loop, uv_loop_t *, &z_loop, -1, PHP_UV_LOOP_RESOURCE_NAME, uv_loop_handle);
+	
+	RETURN_LONG(uv_loop_refcount(loop));
+}
+
+
 PHP_FUNCTION(uv_run)
 {
 	zval *z_loop = NULL;
@@ -890,6 +949,8 @@ PHP_FUNCTION(uv_default_loop)
 
 
 static zend_function_entry uv_functions[] = {
+	PHP_FE(uv_ref, arginfo_uv_ref)
+	PHP_FE(uv_unref, arginfo_uv_unref)
 	PHP_FE(uv_default_loop, NULL)
 	PHP_FE(uv_run, arginfo_uv_run)
 	PHP_FE(uv_run_once, arginfo_uv_run_once)
@@ -907,6 +968,7 @@ static zend_function_entry uv_functions[] = {
 	PHP_FE(uv_read_start, arginfo_uv_read_start)
 	PHP_FE(uv_tcp_connect, arginfo_uv_tcp_connect)
 	PHP_FE(uv_last_error, arginfo_uv_last_error)
+	PHP_FE(uv_loop_refcount, arginfo_uv_loop_refcount)
 	{NULL, NULL, NULL}
 };
 
