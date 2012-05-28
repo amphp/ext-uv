@@ -34,6 +34,17 @@ typedef struct {
 	uv_buf_t buf;
 } write_req_t;
 
+#define PHP_UV_INIT_CB(uv) \
+	{ \
+		uv->listen_cb   = NULL; \
+		uv->read_cb     = NULL; \
+		uv->write_cb    = NULL; \
+		uv->close_cb    = NULL; \
+		uv->timer_cb    = NULL; \
+		uv->idle_cb     = NULL; \
+	}
+
+
 void static destruct_uv(zend_rsrc_list_entry *rsrc TSRMLS_DC)
 {
 	int base_id = -1;
@@ -68,6 +79,12 @@ void static destruct_uv(zend_rsrc_list_entry *rsrc TSRMLS_DC)
 		zval_ptr_dtor(&obj->listen_cb);
 		obj->listen_cb = NULL;
 	}
+	if (obj->idle_cb) {
+		//fprintf(stderr, "listencb: %d\n", Z_REFCOUNT_P(obj->listen_cb));
+		zval_ptr_dtor(&obj->idle_cb);
+		obj->idle_cb = NULL;
+	}
+
 	if (obj->resource_id) {
 		base_id = obj->resource_id;
 		obj->resource_id = NULL;
@@ -146,6 +163,12 @@ ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_timer_start, 0, 0, 4)
 ZEND_END_ARG_INFO()
 
 
+ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_idle_start, 0, 0, 2)
+	ZEND_ARG_INFO(0, timer)
+	ZEND_ARG_INFO(0, callback)
+ZEND_END_ARG_INFO()
+
+
 ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_tcp_bind, 0, 0, 1)
 	ZEND_ARG_INFO(0, resource)
 	ZEND_ARG_INFO(0, address)
@@ -154,6 +177,10 @@ ZEND_END_ARG_INFO()
 
 ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_close, 0, 0, 1)
 	ZEND_ARG_INFO(0, stream)
+ZEND_END_ARG_INFO()
+
+ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_idle_init, 0, 0, 0)
+	ZEND_ARG_INFO(0, loop)
 ZEND_END_ARG_INFO()
 
 
@@ -557,11 +584,7 @@ PHP_FUNCTION(uv_timer_init)
 		return;
 	}
 	uv->uv.timer.data = uv;
-	uv->listen_cb   = NULL;
-	uv->read_cb     = NULL;
-	uv->write_cb    = NULL;
-	uv->close_cb    = NULL;
-	uv->timer_cb    = NULL;
+	PHP_UV_INIT_CB(uv)
 	
 	ZEND_REGISTER_RESOURCE(return_value, uv, uv_resource_handle);
 	uv->resource_id = Z_LVAL_P(return_value);
@@ -626,6 +649,59 @@ PHP_FUNCTION(uv_timer_start)
 }
 
 
+static void php_uv_idle_cb(uv_timer_t *handle, int status)
+{
+	TSRMLS_FETCH();
+	zval *retval_ptr, *stat = NULL;
+	zval **params[1];
+	zend_fcall_info fci;
+	zend_fcall_info_cache fcc;
+	char *is_callable_error = NULL;
+
+	php_uv_t *uv = (php_uv_t*)handle->data;
+	
+	if(zend_fcall_info_init(uv->idle_cb, 0, &fci,&fcc,NULL,&is_callable_error TSRMLS_CC) == SUCCESS) {
+		if (is_callable_error) {
+			fprintf(stderr,"to be a valid callback\n");
+		}
+	}
+	
+	/* for now */
+	fci.retval_ptr_ptr = &retval_ptr;
+
+	MAKE_STD_ZVAL(stat);
+	ZVAL_LONG(stat, status);
+
+	params[0] = &stat;
+	
+	fci.params = params;
+	fci.param_count = 1;
+	
+	zend_call_function(&fci, &fcc TSRMLS_CC);
+
+	zval_ptr_dtor(&retval_ptr);
+	zval_ptr_dtor(&stat);
+}
+
+PHP_FUNCTION(uv_idle_start)
+{
+//int uv_timer_start(uv_timer_t* handle, uv_timer_cb timer_cb, int64_t timeout,int64_t repeat) {
+	zval *timer, *callback;
+	php_uv_t *uv;
+	
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
+		"rz",&timer, &callback) == FAILURE) {
+		return;
+	}
+
+	ZEND_FETCH_RESOURCE(uv, php_uv_t *, &timer, -1, PHP_UV_RESOURCE_NAME, uv_resource_handle);
+	Z_ADDREF_P(callback);
+
+	uv->idle_cb = callback;
+	uv_idle_start((uv_timer_t*)&uv->uv.idle, php_uv_idle_cb);
+}
+
+
 PHP_FUNCTION(uv_tcp_init)
 {
 	int r;
@@ -651,11 +727,7 @@ PHP_FUNCTION(uv_tcp_init)
 	}
 	
 	uv->uv.tcp.data = uv;
-	uv->listen_cb   = NULL;
-	uv->read_cb     = NULL;
-	uv->write_cb    = NULL;
-	uv->close_cb    = NULL;
-	uv->timer_cb    = NULL;
+	PHP_UV_INIT_CB(uv)
 	
 	ZEND_REGISTER_RESOURCE(return_value, uv, uv_resource_handle);
 	uv->resource_id = Z_LVAL_P(return_value);
@@ -673,8 +745,38 @@ PHP_FUNCTION(uv_last_error)
 	RETVAL_LONG(err.code);
 }
 
+
+PHP_FUNCTION(uv_idle_init)
+{
+	int r;
+	/* TODO */
+	zval *loop;
+	php_uv_t *uv;
+	
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
+		"|z",&loop) == FAILURE) {
+		return;
+	}
+
+	uv = (php_uv_t *)emalloc(sizeof(php_uv_t));
+
+	r = uv_idle_init(uv_default_loop(), &uv->uv.idle);
+	if (r) {
+		fprintf(stderr, "Socket creation error\n");
+		return;
+	}
+	uv->uv.timer.data = uv;
+	PHP_UV_INIT_CB(uv)
+	
+	ZEND_REGISTER_RESOURCE(return_value, uv, uv_resource_handle);
+	uv->resource_id = Z_LVAL_P(return_value);
+}
+
+
 static zend_function_entry uv_functions[] = {
 	PHP_FE(uv_run, arginfo_uv_run)
+	PHP_FE(uv_idle_init, arginfo_uv_idle_init)
+	PHP_FE(uv_idle_start, arginfo_uv_idle_start)
 	PHP_FE(uv_timer_init, arginfo_uv_timer_init)
 	PHP_FE(uv_timer_start, arginfo_uv_timer_start)
 	PHP_FE(uv_tcp_init, arginfo_uv_tcp_init)
