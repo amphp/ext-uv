@@ -253,8 +253,9 @@ ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_unref, 0, 0, 1)
 	ZEND_ARG_INFO(0, loop)
 ZEND_END_ARG_INFO()
 
-ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_tcp_nodelay, 0, 0, 1)
+ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_tcp_nodelay, 0, 0, 2)
 	ZEND_ARG_INFO(0, tcp)
+	ZEND_ARG_INFO(0, enabled)
 ZEND_END_ARG_INFO()
 
 
