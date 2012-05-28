@@ -253,6 +253,10 @@ ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_unref, 0, 0, 1)
 	ZEND_ARG_INFO(0, loop)
 ZEND_END_ARG_INFO()
 
+ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_tcp_nodelay, 0, 0, 1)
+	ZEND_ARG_INFO(0, tcp)
+ZEND_END_ARG_INFO()
+
 
 PHP_FUNCTION(uv_unref)
 {
@@ -438,6 +442,22 @@ PHP_FUNCTION(uv_write)
 	w->buf = uv_buf_init(data, data_len);
 	uv_write(&w->req, &client->uv.tcp, &w->buf, 1, php_uv_write_cb);
 }
+
+PHP_FUNCTION(uv_tcp_nodelay)
+{
+	zval *z_cli;
+	php_uv_t *client;
+	long bval = 1;
+	
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
+		"zl",&z_cli, &bval) == FAILURE) {
+		return;
+	}
+	
+	ZEND_FETCH_RESOURCE(client, php_uv_t *, &z_cli, -1, PHP_UV_RESOURCE_NAME, uv_resource_handle);
+	uv_tcp_nodelay(client, bbal);
+}
+
 
 PHP_FUNCTION(uv_accept)
 {
@@ -951,6 +971,7 @@ static zend_function_entry uv_functions[] = {
 	PHP_FE(uv_timer_init, arginfo_uv_timer_init)
 	PHP_FE(uv_timer_start, arginfo_uv_timer_start)
 	PHP_FE(uv_tcp_init, arginfo_uv_tcp_init)
+	PHP_FE(uv_tcp_nodelay, arginfo_uv_tcp_nodelay)
 	PHP_FE(uv_tcp_bind, arginfo_uv_tcp_bind)
 	PHP_FE(uv_listen, arginfo_uv_listen)
 	PHP_FE(uv_accept, arginfo_uv_accept)
