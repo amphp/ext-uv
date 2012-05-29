@@ -27,6 +27,12 @@ typedef struct {
 	uv_buf_t buf;
 } write_req_t;
 
+typedef struct {
+	uv_udp_send_t req;
+	uv_buf_t buf;
+} send_req_t;
+
+
 #define PHP_UV_INIT_ZVALS(uv) \
 	{ \
 		uv->address     = NULL; \
@@ -37,7 +43,9 @@ typedef struct {
 		uv->timer_cb    = NULL; \
 		uv->idle_cb     = NULL; \
 		uv->connect_cb  = NULL; \
-		uv->getaddr_cb  = NULL; \ 
+		uv->getaddr_cb  = NULL; \
+		uv->udp_recv_cb  = NULL; \
+		uv->udp_send_cb  = NULL; \
 	}
 
 /* static variables */
@@ -170,6 +178,16 @@ void static destruct_uv(zend_rsrc_list_entry *rsrc TSRMLS_DC)
 		zval_ptr_dtor(&obj->connect_cb);
 		obj->connect_cb = NULL;
 	}
+	if (obj->udp_recv_cb) {
+		//fprintf(stderr, "listencb: %d\n", Z_REFCOUNT_P(obj->listen_cb));
+		zval_ptr_dtor(&obj->udp_recv_cb);
+		obj->udp_recv_cb = NULL;
+	}
+	if (obj->udp_send_cb) {
+		//fprintf(stderr, "listencb: %d\n", Z_REFCOUNT_P(obj->listen_cb));
+		zval_ptr_dtor(&obj->udp_send_cb);
+		obj->udp_send_cb = NULL;
+	}
 
 	if (obj->resource_id) {
 		base_id = obj->resource_id;
@@ -267,6 +285,39 @@ static void php_uv_write_cb(uv_write_t* req, int status)
 	efree(wr);
 }
 
+static void php_uv_udp_send_cb(uv_udp_send_t* req, int status)
+{
+	TSRMLS_FETCH();
+	send_req_t* wr;
+	zval *retval_ptr, *stat, *client= NULL;
+	zval **params[2];
+
+	wr = (send_req_t*) req;
+	php_uv_t *uv = (php_uv_t*)req->data;
+	
+	MAKE_STD_ZVAL(stat);
+	ZVAL_LONG(stat, status);
+	
+	MAKE_STD_ZVAL(client);
+	ZVAL_RESOURCE(client, uv->resource_id);
+	zend_list_addref(uv->resource_id);
+
+	params[0] = &stat;
+	params[1] = &client;
+	
+	php_uv_do_callback(&retval_ptr, uv->udp_send_cb, params, 2 TSRMLS_CC);
+
+	zval_ptr_dtor(&retval_ptr);
+	zval_ptr_dtor(&stat);
+	zval_ptr_dtor(&client);
+
+	if (wr->buf.base) {
+		efree(wr->buf.base);
+	}
+	efree(wr);
+}
+
+
 static void php_uv_listen_cb(uv_stream_t* server, int status)
 {
 	TSRMLS_FETCH();
@@ -341,6 +392,60 @@ static void php_uv_read_cb(uv_stream_t* handle, ssize_t nread, uv_buf_t buf)
 	params[1] = &rsc;
 	
 	php_uv_do_callback(&retval_ptr, uv->read_cb, params, 2 TSRMLS_CC);
+
+	zval_ptr_dtor(&buffer);
+	zval_ptr_dtor(&rsc);
+	zval_ptr_dtor(&retval_ptr);
+
+	if (buf.base) {
+		efree(buf.base);
+	}
+}
+
+
+static void php_uv_udp_recv_cb(uv_stream_t* handle, ssize_t nread, uv_buf_t buf)
+{
+	TSRMLS_FETCH();
+	zval *retval_ptr = NULL;
+	zval **params[2];
+	zval *buffer;
+	
+	if (nread < 0) {
+		/* does this should be in user-land ? */
+		uv_shutdown_t* req;
+		
+		/* Error or EOF */
+		assert(uv_last_error(uv_default_loop()).code == UV_EOF);
+		
+		if (buf.base) {
+			efree(buf.base);
+		}
+		
+		req = (uv_shutdown_t*) emalloc(sizeof *req);
+		uv_shutdown(req, handle, php_uv_shutdown_cb);
+		return;
+	}
+	
+	if (nread == 0) {
+		/* Everything OK, but nothing read. */
+		efree(buf.base);
+		return;
+	}
+	
+	php_uv_t *uv = (php_uv_t*)handle->data;
+
+	MAKE_STD_ZVAL(buffer);
+	ZVAL_STRINGL(buffer,buf.base,nread, 1);
+
+	zval *rsc;
+	MAKE_STD_ZVAL(rsc);
+	ZVAL_RESOURCE(rsc, uv->resource_id);
+	zend_list_addref(uv->resource_id);
+
+	params[0] = &buffer;
+	params[1] = &rsc;
+	
+	php_uv_do_callback(&retval_ptr, uv->udp_recv_cb, params, 2 TSRMLS_CC);
 
 	zval_ptr_dtor(&buffer);
 	zval_ptr_dtor(&rsc);
@@ -557,6 +662,47 @@ ZEND_BEGIN_ARG_INFO_EX(arginfo_ares_gethostbyname, 0, 0, 2)
 	ZEND_ARG_INFO(0, port)
 ZEND_END_ARG_INFO()
 
+ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_udp_init, 0, 0, 1)
+	ZEND_ARG_INFO(0, loop)
+ZEND_END_ARG_INFO()
+
+ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_udp_bind, 0, 0, 3)
+	ZEND_ARG_INFO(0, resource)
+	ZEND_ARG_INFO(0, address)
+	ZEND_ARG_INFO(0, port)
+	ZEND_ARG_INFO(0, flags)
+ZEND_END_ARG_INFO()
+
+ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_udp_recv_start, 0, 0, 2)
+	ZEND_ARG_INFO(0, server)
+	ZEND_ARG_INFO(0, callback)
+ZEND_END_ARG_INFO()
+
+ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_udp_recv_stop, 0, 0, 1)
+	ZEND_ARG_INFO(0, server)
+ZEND_END_ARG_INFO()
+
+ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_udp_set_multicast_loop, 0, 0, 2)
+	ZEND_ARG_INFO(0, server)
+	ZEND_ARG_INFO(0, enabled)
+ZEND_END_ARG_INFO()
+
+ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_udp_set_multicast_ttl, 0, 0, 2)
+	ZEND_ARG_INFO(0, server)
+	ZEND_ARG_INFO(0, ttl)
+ZEND_END_ARG_INFO()
+
+ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_udp_set_broadcast, 0, 0, 2)
+	ZEND_ARG_INFO(0, server)
+	ZEND_ARG_INFO(0, enabled)
+ZEND_END_ARG_INFO()
+
+ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_udp_send, 0, 0, 4)
+	ZEND_ARG_INFO(0, server)
+	ZEND_ARG_INFO(0, buffer)
+	ZEND_ARG_INFO(0, address)
+	ZEND_ARG_INFO(0, callback)
+ZEND_END_ARG_INFO()
 
 /* PHP Functions */
 
@@ -794,7 +940,11 @@ PHP_FUNCTION(uv_close)
 		Z_ADDREF_P(callback);
 		uv->close_cb = callback;
 	}
-	uv_close((uv_stream_t*)&uv->uv.tcp, php_uv_close_cb);
+	if (uv->type == IS_UV_TCP) {
+		uv_close((uv_stream_t*)&uv->uv.tcp, php_uv_close_cb);
+	} else if(uv->type == IS_UV_UDP) {
+		uv_close((uv_stream_t*)&uv->uv.udp, php_uv_close_cb);
+	}
 }
 /* }}} */
 
@@ -1035,6 +1185,7 @@ PHP_FUNCTION(uv_tcp_init)
 		return;
 	}
 
+	uv->type = IS_UV_TCP;
 	r = uv_tcp_init(uv_default_loop(), &uv->uv.tcp);
 	if (r) {
 		php_error_docref(NULL TSRMLS_CC, E_ERROR, "uv_tcp_init failed");
@@ -1084,6 +1235,207 @@ PHP_FUNCTION(uv_default_loop)
 }
 /* }}} */
 
+
+/* {{{ */
+PHP_FUNCTION(uv_udp_init)
+{
+	int r;
+	/* TODO */
+	zval *loop;
+	php_uv_t *uv;
+	
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
+		"|z",&loop) == FAILURE) {
+		return;
+	}
+
+	uv = (php_uv_t *)emalloc(sizeof(php_uv_t));
+	if (!uv) {
+		php_error_docref(NULL TSRMLS_CC, E_ERROR, "uv_udp_init emalloc failed");
+		return;
+	}
+
+	uv->type = IS_UV_UDP;
+	r = uv_udp_init(uv_default_loop(), &uv->uv.udp);
+	if (r) {
+		php_error_docref(NULL TSRMLS_CC, E_ERROR, "uv_udp_init failed");
+		return;
+	}
+	
+	uv->uv.udp.data = uv;
+	PHP_UV_INIT_ZVALS(uv)
+	
+	ZEND_REGISTER_RESOURCE(return_value, uv, uv_resource_handle);
+	uv->resource_id = Z_LVAL_P(return_value);
+}
+/* }}} */
+
+/* {{{ */
+PHP_FUNCTION(uv_udp_bind)
+{
+	zval *resource;
+	char *address;
+	int address_len;
+	long port = 0;
+	long flags = 0;
+	struct sockaddr_in addr;
+	php_uv_t *uv;
+	int r;
+	
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
+		"zsl|l",&resource, &address, &address_len, &port, &flags) == FAILURE) {
+		return;
+	}
+	
+	ZEND_FETCH_RESOURCE(uv, php_uv_t *, &resource, -1, PHP_UV_RESOURCE_NAME, uv_resource_handle);
+	addr = uv_ip4_addr(address, port);
+	
+	r = uv_udp_bind((uv_tcp_t*)&uv->uv.udp, addr, flags);
+	if (r) {
+		php_error_docref(NULL TSRMLS_CC, E_ERROR, "uv_udp_bind failed");
+	}
+}
+/* }}} */
+
+/* {{{ */
+PHP_FUNCTION(uv_udp_recv_start)
+{
+	zval *client, *callback;
+	php_uv_t *uv;
+	int r;
+	
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
+		"rz",&client, &callback) == FAILURE) {
+		return;
+	}
+
+	ZEND_FETCH_RESOURCE(uv, php_uv_t *, &client, -1, PHP_UV_RESOURCE_NAME, uv_resource_handle);
+	Z_ADDREF_P(callback);
+	zend_list_addref(uv->resource_id);
+
+	uv->udp_recv_cb = callback;
+	uv->uv.udp.data = uv;
+
+	r = uv_udp_recv_start((uv_stream_t*)&uv->uv.udp, php_uv_read_alloc, php_uv_udp_recv_cb);
+	if (r) {
+		php_error_docref(NULL TSRMLS_CC, E_NOTICE, "read failed");
+	}
+}
+/* }}} */
+
+/* {{{ */
+PHP_FUNCTION(uv_udp_recv_stop)
+{
+	zval *client;
+	php_uv_t *uv;
+	
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
+		"r", &client) == FAILURE) {
+		return;
+	}
+	ZEND_FETCH_RESOURCE(uv, php_uv_t *, &client, -1, PHP_UV_RESOURCE_NAME, uv_resource_handle);
+	zend_list_delete(uv->resource_id);
+	
+	uv_udp_recv_stop((uv_timer_t*)&uv->uv.udp);
+}
+/* }}} */
+
+/* {{{ */
+PHP_FUNCTION(uv_udp_set_multicast_loop)
+{
+	zval *client;
+	php_uv_t *uv;
+	long enabled = 0;
+	int r;
+	
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
+		"rl",&client, &enabled) == FAILURE) {
+		return;
+	}
+
+	ZEND_FETCH_RESOURCE(uv, php_uv_t *, &client, -1, PHP_UV_RESOURCE_NAME, uv_resource_handle);
+
+	r = uv_udp_set_multicast_loop((uv_stream_t*)&uv->uv.udp, enabled);
+	if (r) {
+		php_error_docref(NULL TSRMLS_CC, E_NOTICE, "uv_udp_set_muticast_loop failed");
+	}
+}
+/* }}} */
+
+/* {{{ */
+PHP_FUNCTION(uv_udp_set_multicast_ttl)
+{
+	zval *client;
+	php_uv_t *uv;
+	long ttl = 0; /* 1 through 255 */
+	int r;
+	
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
+		"rl",&client, &ttl) == FAILURE) {
+		return;
+	}
+
+	ZEND_FETCH_RESOURCE(uv, php_uv_t *, &client, -1, PHP_UV_RESOURCE_NAME, uv_resource_handle);
+
+	r = uv_udp_set_multicast_ttl((uv_stream_t*)&uv->uv.udp, ttl);
+	if (r) {
+		php_error_docref(NULL TSRMLS_CC, E_NOTICE, "uv_udp_set_muticast_ttl failed");
+	}
+}
+/* }}} */
+
+/* {{{ */
+PHP_FUNCTION(uv_udp_set_broadcast)
+{
+	zval *client;
+	php_uv_t *uv;
+	long enabled = 0;
+	int r;
+	
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
+		"rl",&client, &enabled) == FAILURE) {
+		return;
+	}
+
+	ZEND_FETCH_RESOURCE(uv, php_uv_t *, &client, -1, PHP_UV_RESOURCE_NAME, uv_resource_handle);
+
+	r = uv_udp_set_broadcast((uv_stream_t*)&uv->uv.udp, enabled);
+	if (r) {
+		php_error_docref(NULL TSRMLS_CC, E_NOTICE, "uv_udp_set_muticast_loop failed");
+	}
+}
+/* }}} */
+
+/* {{{ */
+PHP_FUNCTION(uv_udp_send)
+{
+	zval *z_cli,*z_addr, *callback;
+	char *data;
+	int data_len = 0;
+	php_uv_t *client;
+	send_req_t *w;
+	php_uv_sockaddr_t *addr;
+	
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
+		"zszz",&z_cli, &data, &data_len, &z_addr, &callback) == FAILURE) {
+		return;
+	}
+	
+	ZEND_FETCH_RESOURCE(client, php_uv_t *, &z_cli, -1, PHP_UV_RESOURCE_NAME, uv_resource_handle);
+	ZEND_FETCH_RESOURCE(addr, php_uv_sockaddr_t *, &z_addr, -1, PHP_UV_SOCKADDR_RESOURCE_NAME, uv_sockaddr_handle);
+
+	zend_list_addref(client->resource_id);
+	Z_ADDREF_P(callback);
+	client->udp_send_cb = callback;
+
+	w = emalloc(sizeof(send_req_t));
+	w->req.data = client;
+	w->buf = uv_buf_init(estrndup(data,data_len), data_len);
+	uv_udp_send(&w->req, &client->uv.udp, &w->buf, 1, addr->addr.ipv4, php_uv_udp_send_cb);
+}
+/* }}} */
+
+
 static zend_function_entry uv_functions[] = {
 	/* general */
 	PHP_FE(uv_ref, arginfo_uv_ref)
@@ -1111,6 +1463,14 @@ static zend_function_entry uv_functions[] = {
 	PHP_FE(uv_listen, arginfo_uv_listen)
 	PHP_FE(uv_accept, arginfo_uv_accept)
 	PHP_FE(uv_tcp_connect, arginfo_uv_tcp_connect)
+	/* udp */
+	PHP_FE(uv_udp_init, arginfo_uv_udp_init)
+	PHP_FE(uv_udp_bind, arginfo_uv_udp_bind)
+	PHP_FE(uv_udp_set_multicast_loop, arginfo_uv_udp_set_multicast_loop)
+	PHP_FE(uv_udp_set_multicast_ttl, arginfo_uv_udp_set_multicast_ttl)
+	PHP_FE(uv_udp_send, arginfo_uv_udp_send)
+	PHP_FE(uv_udp_recv_start, arginfo_uv_udp_recv_start)
+	PHP_FE(uv_udp_recv_stop, arginfo_uv_udp_recv_stop)
 	/* for debug */
 	PHP_FE(uv_loop_refcount, arginfo_uv_loop_refcount)
 	/* c-ares */

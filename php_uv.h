@@ -23,9 +23,24 @@ extern zend_module_entry uv_module_entry;
 
 extern zend_class_entry *uv_class_entry;
 
+enum php_uv_resource_type{
+	IS_UV_TCP = 0,
+	IS_UV_UDP = 1,
+	IS_UV_PIPE = 2,
+	IS_UV_IDLE = 3,
+	IS_UV_TIMER = 4,
+	IS_UV_ASYNC = 5,
+	IS_UV_LOOP = 6,
+	IS_UV_HANDLE = 7,
+	IS_UV_STREAM = 8,
+	IS_UV_ADDRINFO = 9,
+	IS_UV_MAX = 10
+};
+
 typedef struct {
 	int in_free;
 	int resource_id;
+	int type;
 	union {
 		uv_tcp_t tcp;
 		uv_udp_t udp;
@@ -47,6 +62,8 @@ typedef struct {
 	zval *idle_cb;
 	zval *connect_cb;
 	zval *getaddr_cb;
+	zval *udp_recv_cb;
+	zval *udp_send_cb;
 } php_uv_t;
 
 typedef struct {
