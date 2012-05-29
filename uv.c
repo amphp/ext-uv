@@ -21,7 +21,7 @@
 void php_uv_init(TSRMLS_D);
 zend_class_entry *uv_class_entry;
 
-
+/* TODO: will be add soon */
 static zend_function_entry php_uv_methods[] = {
 	{NULL, NULL, NULL}
 };
