@@ -963,6 +963,11 @@ PHP_FUNCTION(uv_idle_start)
 	ZEND_FETCH_RESOURCE(uv, php_uv_t *, &idle, -1, PHP_UV_RESOURCE_NAME, uv_resource_handle);
 	Z_ADDREF_P(callback);
 	zend_list_addref(uv->resource_id);
+	
+	if (uv->idle_cb) {
+		zval_ptr_dtor(&uv->idle_cb);
+		uv->idle_cb = NULL;
+	}
 
 	uv->idle_cb = callback;
 	uv_idle_start((uv_timer_t*)&uv->uv.idle, php_uv_idle_cb);
@@ -1004,8 +1009,7 @@ PHP_FUNCTION(uv_idle_stop)
 		"r", &idle) == FAILURE) {
 		return;
 	}
-	/* probably this doesn't need */ 
-	//zend_list_delete(uv->resource_id);
+	zend_list_delete(uv->resource_id);
 
 	ZEND_FETCH_RESOURCE(uv, php_uv_t *, &idle, -1, PHP_UV_RESOURCE_NAME, uv_resource_handle);
 	uv_idle_stop((uv_timer_t*)&uv->uv.idle);
