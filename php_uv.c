@@ -602,6 +602,10 @@ ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_strerror, 0, 0, 1)
 	ZEND_ARG_INFO(0, error)
 ZEND_END_ARG_INFO()
 
+ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_err_name, 0, 0, 1)
+	ZEND_ARG_INFO(0, error)
+ZEND_END_ARG_INFO()
+
 ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_timer_init, 0, 0, 1)
 	ZEND_ARG_INFO(0, loop)
 ZEND_END_ARG_INFO()
@@ -744,6 +748,26 @@ PHP_FUNCTION(uv_last_error)
 	RETVAL_LONG(err.code);
 }
 /* }}} */
+
+/* {{{ */
+PHP_FUNCTION(uv_err_name)
+{
+	uv_loop_t *loop;
+	long error_code;
+	char *error_msg;
+	uv_err_t error;
+	
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
+		"l",&error_code) == FAILURE) {
+		return;
+	}
+	error.code = error_code;
+	
+	error_msg = uv_err_name(error);
+	RETVAL_STRING(error_msg,1);
+}
+/* }}} */
+
 
 /* {{{ */
 PHP_FUNCTION(uv_strerror)
@@ -1471,6 +1495,7 @@ static zend_function_entry uv_functions[] = {
 	PHP_FE(uv_close, arginfo_uv_close)
 	PHP_FE(uv_read_start, arginfo_uv_read_start)
 	PHP_FE(uv_last_error, arginfo_uv_last_error)
+	PHP_FE(uv_err_name, arginfo_uv_err_name)
 	PHP_FE(uv_strerror, arginfo_uv_strerror)
 	/* idle */
 	PHP_FE(uv_idle_init, arginfo_uv_idle_init)
