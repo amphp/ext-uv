@@ -640,6 +640,10 @@ ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_loop_refcount, 0, 0, 1)
 	ZEND_ARG_INFO(0, loop)
 ZEND_END_ARG_INFO()
 
+ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_update_time, 0, 0, 1)
+	ZEND_ARG_INFO(0, loop)
+ZEND_END_ARG_INFO()
+	
 ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_ref, 0, 0, 1)
 	ZEND_ARG_INFO(0, loop)
 ZEND_END_ARG_INFO()
@@ -757,6 +761,22 @@ PHP_FUNCTION(uv_strerror)
 	
 	error_msg= uv_strerror(error);
 	RETVAL_STRING(error_msg,1);
+}
+/* }}} */
+
+/* {{{ */
+PHP_FUNCTION(uv_update_time)
+{
+	zval *z_loop = NULL;
+	uv_loop_t *loop;
+	php_uv_t *uv;
+	
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
+		"z",&z_loop) == FAILURE) {
+		return;
+	}
+	ZEND_FETCH_RESOURCE(loop, uv_loop_t *, &z_loop, -1, PHP_UV_LOOP_RESOURCE_NAME, uv_loop_handle);
+	uv_udpate_time(loop);
 }
 /* }}} */
 
@@ -1440,6 +1460,7 @@ PHP_FUNCTION(uv_udp_send)
 
 static zend_function_entry uv_functions[] = {
 	/* general */
+	PHP_FE(uv_update_time, arginfo_uv_update_time)
 	PHP_FE(uv_ref, arginfo_uv_ref)
 	PHP_FE(uv_unref, arginfo_uv_unref)
 	PHP_FE(uv_default_loop, NULL)
