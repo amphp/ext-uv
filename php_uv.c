@@ -77,7 +77,7 @@ void php_uv_init(TSRMLS_D);
  * @param int param_count
  * @return int (maybe..)
  */
-static int php_uv_do_callback(zval **retval_ptr, zval *callback, zval **params, int param_count TSRMLS_DC);
+static int php_uv_do_callback(zval **retval_ptr, zval *callback, zval ***params, int param_count TSRMLS_DC);
 
 
 static void php_uv_close_cb(uv_handle_t *handle);
@@ -208,7 +208,7 @@ void static destruct_uv(zend_rsrc_list_entry *rsrc TSRMLS_DC)
 
 /* callback */
 
-static int php_uv_do_callback(zval **retval_ptr, zval *callback, zval **params, int param_count TSRMLS_DC)
+static int php_uv_do_callback(zval **retval_ptr, zval *callback, zval ***params, int param_count TSRMLS_DC)
 {
 	zend_fcall_info fci;
 	zend_fcall_info_cache fcc;
