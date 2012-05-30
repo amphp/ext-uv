@@ -6,7 +6,6 @@
 
 * UV_EXTERN int uv_is_active(uv_handle_t* handle);
 * UV_EXTERN int uv_read2_start(uv_stream_t*, uv_alloc_cb alloc_cb,uv_read2_cb read_cb);
-* UV_EXTERN int uv_read_stop(uv_stream_t*);
 * UV_EXTERN int uv_write2(uv_write_t* req, uv_stream_t* handle, uv_buf_t bufs[],int bufcnt, uv_stream_t* send_handle, uv_write_cb cb);
 * UV_EXTERN int uv_is_readable(uv_stream_t* handle);
 * UV_EXTERN int uv_is_writable(uv_stream_t* handle);

@@ -597,6 +597,10 @@ ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_read_start, 0, 0, 2)
 	ZEND_ARG_INFO(0, callback)
 ZEND_END_ARG_INFO()
 
+ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_read_stop, 0, 0, 1)
+	ZEND_ARG_INFO(0, server)
+ZEND_END_ARG_INFO()
+
 ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_write, 0, 0, 2)
 	ZEND_ARG_INFO(0, client)
 	ZEND_ARG_INFO(0, data)
@@ -1057,6 +1061,24 @@ PHP_FUNCTION(uv_read_start)
 	}
 }
 /* }}} */
+
+/* {{{ */
+PHP_FUNCTION(uv_read_stop)
+{
+	zval *server;
+	php_uv_t *uv;
+	
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
+		"r", &server) == FAILURE) {
+		return;
+	}
+
+	ZEND_FETCH_RESOURCE(uv, php_uv_t *, &server, -1, PHP_UV_RESOURCE_NAME, uv_resource_handle);
+	uv_read_stop((uv_stream_t*)&uv->uv.tcp);
+	zend_list_delete(uv->resource_id);
+}
+/* }}} */
+
 
 /* {{{ */
 PHP_FUNCTION(uv_ip4_addr)
@@ -1534,6 +1556,7 @@ static zend_function_entry uv_functions[] = {
 	PHP_FE(uv_now, arginfo_uv_now)
 	PHP_FE(uv_loop_delete, arginfo_uv_loop_delete)
 	PHP_FE(uv_read_start, arginfo_uv_read_start)
+	PHP_FE(uv_read_stop, arginfo_uv_read_stop)
 	PHP_FE(uv_last_error, arginfo_uv_last_error)
 	PHP_FE(uv_err_name, arginfo_uv_err_name)
 	PHP_FE(uv_strerror, arginfo_uv_strerror)
