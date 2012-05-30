@@ -745,17 +745,18 @@ PHP_FUNCTION(uv_last_error)
 PHP_FUNCTION(uv_strerror)
 {
 	uv_loop_t *loop;
-	long err;
+	long error_code;
 	char *error_msg;
+	uv_err_t error;
 	
 	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
-		"l",&err) == FAILURE) {
+		"l",&error_code) == FAILURE) {
 		return;
 	}
+	error.code = error_code;
 	
-	// TODO: uv_err_t can't convert from long
-	//error_msg = uv_strerror((uv_err_t)err);
-	//RETVAL_STRING(error_msg,1);
+	error_msg= uv_strerror(error);
+	RETVAL_STRING(error_msg,1);
 }
 /* }}} */
 
