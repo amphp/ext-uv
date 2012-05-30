@@ -4,11 +4,8 @@
 
 # functions
 
-* UV_EXTERN int uv_is_active(uv_handle_t* handle);
 * UV_EXTERN int uv_read2_start(uv_stream_t*, uv_alloc_cb alloc_cb,uv_read2_cb read_cb);
 * UV_EXTERN int uv_write2(uv_write_t* req, uv_stream_t* handle, uv_buf_t bufs[],int bufcnt, uv_stream_t* send_handle, uv_write_cb cb);
-* UV_EXTERN int uv_is_readable(uv_stream_t* handle);
-* UV_EXTERN int uv_is_writable(uv_stream_t* handle);
 * UV_EXTERN int uv_tcp_simultaneous_accepts(uv_tcp_t* handle, int enable);
 * UV_EXTERN int uv_tcp_bind6(uv_tcp_t* handle, struct sockaddr_in6);
 * UV_EXTERN int uv_tcp_getsockname(uv_tcp_t* handle, struct sockaddr* name,int* namelen);

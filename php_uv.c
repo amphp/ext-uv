@@ -52,7 +52,6 @@ typedef struct {
 
 static uv_loop_t *_php_uv_default_loop;
 
-
 /* resources */
 
 static int uv_resource_handle;
@@ -67,6 +66,8 @@ static int uv_sockaddr_handle;
 /* declarations */
 
 void php_uv_init(TSRMLS_D);
+
+static inline uv_stream_t* php_uv_get_current_stream(php_uv_t *uv);
 
 /**
  * execute callback
@@ -544,6 +545,43 @@ static void php_uv_timer_cb(uv_timer_t *handle, int status)
 	zval_ptr_dtor(&client);
 }
 
+static inline uv_stream_t* php_uv_get_current_stream(php_uv_t *uv)
+{
+	uv_stream_t *stream;
+	switch(uv->type) {
+		case IS_UV_TCP:
+			stream = (uv_stream_t*)&uv->uv.tcp;
+		break;
+		case IS_UV_UDP:
+			stream = (uv_stream_t*)&uv->uv.udp;
+		break;
+		case IS_UV_PIPE:
+			stream = (uv_stream_t*)&uv->uv.pipe;
+		break;
+		case IS_UV_IDLE:
+			stream = (uv_stream_t*)&uv->uv.idle;
+		break;
+		case IS_UV_TIMER:
+			stream = (uv_stream_t*)&uv->uv.timer;
+		break;
+		case IS_UV_ASYNC:
+			stream = (uv_stream_t*)&uv->uv.async;
+		break;
+		case IS_UV_LOOP:
+			stream = (uv_stream_t*)&uv->uv.loop;
+		break;
+		case IS_UV_HANDLE:
+			stream = (uv_stream_t*)&uv->uv.handle;
+		break;
+		case IS_UV_STREAM:
+			stream = (uv_stream_t*)&uv->uv.stream;
+		break;
+	}
+	
+	return stream;
+}
+
+
 /* zend */
 
 PHP_MINIT_FUNCTION(uv) {
@@ -659,7 +697,19 @@ ZEND_END_ARG_INFO()
 ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_update_time, 0, 0, 1)
 	ZEND_ARG_INFO(0, loop)
 ZEND_END_ARG_INFO()
-	
+
+ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_is_active, 0, 0, 1)
+	ZEND_ARG_INFO(0, handle)
+ZEND_END_ARG_INFO()
+
+ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_is_readable, 0, 0, 1)
+	ZEND_ARG_INFO(0, handle)
+ZEND_END_ARG_INFO()
+
+ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_is_writable, 0, 0, 1)
+	ZEND_ARG_INFO(0, handle)
+ZEND_END_ARG_INFO()
+
 ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_ref, 0, 0, 1)
 	ZEND_ARG_INFO(0, loop)
 ZEND_END_ARG_INFO()
@@ -1541,6 +1591,62 @@ PHP_FUNCTION(uv_udp_send)
 }
 /* }}} */
 
+/* {{{ */
+PHP_FUNCTION(uv_is_active)
+{
+	zval *handle;
+	php_uv_t *uv;
+	int r;
+	
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
+		"r",&handle) == FAILURE) {
+		return;
+	}
+
+	ZEND_FETCH_RESOURCE(uv, php_uv_t *, &handle, -1, PHP_UV_RESOURCE_NAME, uv_resource_handle);
+
+	r = uv_is_active((uv_handle_t*)php_uv_get_current_stream(uv));
+	RETURN_BOOL(r);
+}
+/* }}} */
+
+/* {{{ */
+PHP_FUNCTION(uv_is_readable)
+{
+	zval *handle;
+	php_uv_t *uv;
+	int r;
+	
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
+		"r",&handle) == FAILURE) {
+		return;
+	}
+
+	ZEND_FETCH_RESOURCE(uv, php_uv_t *, &handle, -1, PHP_UV_RESOURCE_NAME, uv_resource_handle);
+
+	r = uv_is_readable((uv_stream_t*)php_uv_get_current_stream(uv));
+	RETURN_BOOL(r);
+}
+/* }}} */
+	
+/* {{{ */
+PHP_FUNCTION(uv_is_writable)
+{
+	zval *handle;
+	php_uv_t *uv;
+	int r;
+	
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
+		"r",&handle) == FAILURE) {
+		return;
+	}
+
+	ZEND_FETCH_RESOURCE(uv, php_uv_t *, &handle, -1, PHP_UV_RESOURCE_NAME, uv_resource_handle);
+
+	r = uv_is_writable((uv_stream_t*)php_uv_get_current_stream(uv));
+	RETURN_BOOL(r);
+}
+/* }}} */
 
 static zend_function_entry uv_functions[] = {
 	/* general */
@@ -1560,6 +1666,9 @@ static zend_function_entry uv_functions[] = {
 	PHP_FE(uv_last_error, arginfo_uv_last_error)
 	PHP_FE(uv_err_name, arginfo_uv_err_name)
 	PHP_FE(uv_strerror, arginfo_uv_strerror)
+	PHP_FE(uv_is_active, arginfo_uv_is_active)
+	PHP_FE(uv_is_readable, arginfo_uv_is_readable)
+	PHP_FE(uv_is_writable, arginfo_uv_is_writable)
 	/* idle */
 	PHP_FE(uv_idle_init, arginfo_uv_idle_init)
 	PHP_FE(uv_idle_start, arginfo_uv_idle_start)
