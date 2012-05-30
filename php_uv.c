@@ -144,7 +144,7 @@ void static destruct_uv(zend_rsrc_list_entry *rsrc TSRMLS_DC)
 	
 	obj->in_free = 1;
 	if (obj->address) {
-		//fprintf(stderr, "readcb: %d\n", Z_REFCOUNT_P(obj->read_cb));
+		//fprintf(stderr, "address: %d\n", Z_REFCOUNT_P(obj->read_cb));
 		zval_ptr_dtor(&obj->address);
 		obj->address = NULL;
 	}
@@ -164,27 +164,27 @@ void static destruct_uv(zend_rsrc_list_entry *rsrc TSRMLS_DC)
 		obj->close_cb = NULL;
 	}
 	if (obj->listen_cb) {
-		//fprintf(stderr, "listencb: %d\n", Z_REFCOUNT_P(obj->listen_cb));
+		//fprintf(stderr, "listen_cb: %d\n", Z_REFCOUNT_P(obj->listen_cb));
 		zval_ptr_dtor(&obj->listen_cb);
 		obj->listen_cb = NULL;
 	}
 	if (obj->idle_cb) {
-		//fprintf(stderr, "listencb: %d\n", Z_REFCOUNT_P(obj->listen_cb));
+		//fprintf(stderr, "idle_cb: %d\n", Z_REFCOUNT_P(obj->listen_cb));
 		zval_ptr_dtor(&obj->idle_cb);
 		obj->idle_cb = NULL;
 	}
 	if (obj->connect_cb) {
-		//fprintf(stderr, "listencb: %d\n", Z_REFCOUNT_P(obj->listen_cb));
+		//fprintf(stderr, "connect_cb: %d\n", Z_REFCOUNT_P(obj->listen_cb));
 		zval_ptr_dtor(&obj->connect_cb);
 		obj->connect_cb = NULL;
 	}
 	if (obj->udp_recv_cb) {
-		//fprintf(stderr, "listencb: %d\n", Z_REFCOUNT_P(obj->listen_cb));
+		//fprintf(stderr, "udp_recv_cb: %d\n", Z_REFCOUNT_P(obj->listen_cb));
 		zval_ptr_dtor(&obj->udp_recv_cb);
 		obj->udp_recv_cb = NULL;
 	}
 	if (obj->udp_send_cb) {
-		//fprintf(stderr, "listencb: %d\n", Z_REFCOUNT_P(obj->listen_cb));
+		//fprintf(stderr, "udp_send_cb: %d\n", Z_REFCOUNT_P(obj->listen_cb));
 		zval_ptr_dtor(&obj->udp_send_cb);
 		obj->udp_send_cb = NULL;
 	}
