@@ -1197,10 +1197,10 @@ PHP_FUNCTION(uv_idle_stop)
 		"r", &idle) == FAILURE) {
 		return;
 	}
-	zend_list_delete(uv->resource_id);
 
 	ZEND_FETCH_RESOURCE(uv, php_uv_t *, &idle, -1, PHP_UV_RESOURCE_NAME, uv_resource_handle);
 	uv_idle_stop((uv_idle_t*)&uv->uv.idle);
+	zend_list_delete(uv->resource_id);
 }
 /* }}} */
 
