@@ -720,7 +720,6 @@ PHP_FUNCTION(uv_unref)
 {
 	zval *z_loop = NULL;
 	uv_loop_t *loop;
-	php_uv_t *uv;
 	
 	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
 		"z",&z_loop) == FAILURE) {
@@ -752,7 +751,6 @@ PHP_FUNCTION(uv_last_error)
 /* {{{ */
 PHP_FUNCTION(uv_err_name)
 {
-	uv_loop_t *loop;
 	long error_code;
 	char *error_msg;
 	uv_err_t error;
@@ -772,7 +770,6 @@ PHP_FUNCTION(uv_err_name)
 /* {{{ */
 PHP_FUNCTION(uv_strerror)
 {
-	uv_loop_t *loop;
 	long error_code;
 	char *error_msg;
 	uv_err_t error;
@@ -793,7 +790,6 @@ PHP_FUNCTION(uv_update_time)
 {
 	zval *z_loop = NULL;
 	uv_loop_t *loop;
-	php_uv_t *uv;
 	
 	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
 		"z",&z_loop) == FAILURE) {
@@ -809,7 +805,6 @@ PHP_FUNCTION(uv_ref)
 {
 	zval *z_loop = NULL;
 	uv_loop_t *loop;
-	php_uv_t *uv;
 	
 	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
 		"z",&z_loop) == FAILURE) {
@@ -825,7 +820,6 @@ PHP_FUNCTION(uv_loop_refcount)
 {
 	zval *z_loop = NULL;
 	uv_loop_t *loop;
-	php_uv_t *uv;
 	
 	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
 		"z",&z_loop) == FAILURE) {
@@ -842,7 +836,6 @@ PHP_FUNCTION(uv_run)
 {
 	zval *z_loop = NULL;
 	uv_loop_t *loop;
-	php_uv_t *uv;
 	
 	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
 		"|z",&z_loop) == FAILURE) {
@@ -863,7 +856,6 @@ PHP_FUNCTION(uv_run_once)
 {
 	zval *z_loop = NULL;
 	uv_loop_t *loop;
-	php_uv_t *uv;
 	
 	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
 		"|z",&z_loop) == FAILURE) {
