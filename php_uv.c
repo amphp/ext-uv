@@ -108,7 +108,7 @@ static void php_uv_idle_cb(uv_timer_t *handle, int status);
 
 void static destruct_uv_loop(zend_rsrc_list_entry *rsrc TSRMLS_DC)
 {
-	uv_loop_t *loop = (php_uv_t *)rsrc->ptr;
+	uv_loop_t *loop = (uv_loop_t *)rsrc->ptr;
 	if (loop != _php_uv_default_loop) {
 		uv_loop_delete(loop);
 	}
@@ -191,7 +191,7 @@ void static destruct_uv(zend_rsrc_list_entry *rsrc TSRMLS_DC)
 
 	if (obj->resource_id) {
 		base_id = obj->resource_id;
-		obj->resource_id = NULL;
+		obj->resource_id = 0;
 	}
 
 	if (obj != NULL) {
@@ -403,7 +403,7 @@ static void php_uv_read_cb(uv_stream_t* handle, ssize_t nread, uv_buf_t buf)
 }
 
 
-static void php_uv_udp_recv_cb(uv_stream_t* handle, ssize_t nread, uv_buf_t buf)
+static void php_uv_udp_recv_cb(uv_udp_t* handle, ssize_t nread, uv_buf_t buf, struct sockaddr* addr, unsigned flags)
 {
 	/* TODO: is this implment correct? */
 	TSRMLS_FETCH();
@@ -423,7 +423,7 @@ static void php_uv_udp_recv_cb(uv_stream_t* handle, ssize_t nread, uv_buf_t buf)
 		}
 		
 		req = (uv_shutdown_t*) emalloc(sizeof *req);
-		uv_shutdown(req, handle, php_uv_shutdown_cb);
+		uv_shutdown(req, (uv_stream_t*)handle, php_uv_shutdown_cb);
 		return;
 	}
 	
@@ -752,7 +752,7 @@ PHP_FUNCTION(uv_last_error)
 PHP_FUNCTION(uv_err_name)
 {
 	long error_code;
-	char *error_msg;
+	const char *error_msg;
 	uv_err_t error;
 	
 	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
@@ -771,7 +771,7 @@ PHP_FUNCTION(uv_err_name)
 PHP_FUNCTION(uv_strerror)
 {
 	long error_code;
-	char *error_msg;
+	const char *error_msg;
 	uv_err_t error;
 	
 	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
@@ -780,7 +780,7 @@ PHP_FUNCTION(uv_strerror)
 	}
 	error.code = error_code;
 	
-	error_msg= uv_strerror(error);
+	error_msg = uv_strerror(error);
 	RETVAL_STRING(error_msg,1);
 }
 /* }}} */
@@ -796,7 +796,7 @@ PHP_FUNCTION(uv_update_time)
 		return;
 	}
 	ZEND_FETCH_RESOURCE(loop, uv_loop_t *, &z_loop, -1, PHP_UV_LOOP_RESOURCE_NAME, uv_loop_handle);
-	uv_udpate_time(loop);
+	uv_update_time(loop);
 }
 /* }}} */
 
@@ -919,7 +919,7 @@ PHP_FUNCTION(uv_write)
 	w = emalloc(sizeof(write_req_t));
 	w->req.data = client;
 	w->buf = uv_buf_init(data, data_len);
-	uv_write(&w->req, &client->uv.tcp, &w->buf, 1, php_uv_write_cb);
+	uv_write(&w->req, (uv_stream_t*)&client->uv.tcp, &w->buf, 1, php_uv_write_cb);
 }
 /* }}} */
 
@@ -936,7 +936,7 @@ PHP_FUNCTION(uv_tcp_nodelay)
 	}
 	
 	ZEND_FETCH_RESOURCE(client, php_uv_t *, &z_cli, -1, PHP_UV_RESOURCE_NAME, uv_resource_handle);
-	uv_tcp_nodelay(client, bval);
+	uv_tcp_nodelay(&client->uv.tcp, bval);
 }
 /* }}} */
 
@@ -979,9 +979,9 @@ PHP_FUNCTION(uv_close)
 		uv->close_cb = callback;
 	}
 	if (uv->type == IS_UV_TCP) {
-		uv_close((uv_stream_t*)&uv->uv.tcp, php_uv_close_cb);
+		uv_close((uv_handle_t*)&uv->uv.tcp, (uv_close_cb)php_uv_close_cb);
 	} else if(uv->type == IS_UV_UDP) {
-		uv_close((uv_stream_t*)&uv->uv.udp, php_uv_close_cb);
+		uv_close((uv_handle_t*)&uv->uv.udp, (uv_close_cb)php_uv_close_cb);
 	}
 }
 /* }}} */
@@ -1158,7 +1158,7 @@ PHP_FUNCTION(uv_idle_start)
 	}
 
 	uv->idle_cb = callback;
-	uv_idle_start((uv_timer_t*)&uv->uv.idle, php_uv_idle_cb);
+	uv_idle_start((uv_idle_t*)&uv->uv.idle, (uv_idle_cb)php_uv_idle_cb);
 }
 /* }}} */
 
@@ -1200,7 +1200,7 @@ PHP_FUNCTION(uv_idle_stop)
 	zend_list_delete(uv->resource_id);
 
 	ZEND_FETCH_RESOURCE(uv, php_uv_t *, &idle, -1, PHP_UV_RESOURCE_NAME, uv_resource_handle);
-	uv_idle_stop((uv_timer_t*)&uv->uv.idle);
+	uv_idle_stop((uv_idle_t*)&uv->uv.idle);
 }
 /* }}} */
 
@@ -1328,7 +1328,7 @@ PHP_FUNCTION(uv_udp_bind)
 	ZEND_FETCH_RESOURCE(uv, php_uv_t *, &resource, -1, PHP_UV_RESOURCE_NAME, uv_resource_handle);
 	addr = uv_ip4_addr(address, port);
 	
-	r = uv_udp_bind((uv_tcp_t*)&uv->uv.udp, addr, flags);
+	r = uv_udp_bind((uv_udp_t*)&uv->uv.udp, addr, flags);
 	if (r) {
 		php_error_docref(NULL TSRMLS_CC, E_ERROR, "uv_udp_bind failed");
 	}
@@ -1354,7 +1354,7 @@ PHP_FUNCTION(uv_udp_recv_start)
 	uv->udp_recv_cb = callback;
 	uv->uv.udp.data = uv;
 
-	r = uv_udp_recv_start((uv_stream_t*)&uv->uv.udp, php_uv_read_alloc, php_uv_udp_recv_cb);
+	r = uv_udp_recv_start((uv_udp_t*)&uv->uv.udp, php_uv_read_alloc, php_uv_udp_recv_cb);
 	if (r) {
 		php_error_docref(NULL TSRMLS_CC, E_NOTICE, "read failed");
 	}
@@ -1374,7 +1374,7 @@ PHP_FUNCTION(uv_udp_recv_stop)
 	ZEND_FETCH_RESOURCE(uv, php_uv_t *, &client, -1, PHP_UV_RESOURCE_NAME, uv_resource_handle);
 	zend_list_delete(uv->resource_id);
 	
-	uv_udp_recv_stop((uv_timer_t*)&uv->uv.udp);
+	uv_udp_recv_stop((uv_udp_t*)&uv->uv.udp);
 }
 /* }}} */
 
@@ -1393,7 +1393,7 @@ PHP_FUNCTION(uv_udp_set_multicast_loop)
 
 	ZEND_FETCH_RESOURCE(uv, php_uv_t *, &client, -1, PHP_UV_RESOURCE_NAME, uv_resource_handle);
 
-	r = uv_udp_set_multicast_loop((uv_stream_t*)&uv->uv.udp, enabled);
+	r = uv_udp_set_multicast_loop((uv_udp_t*)&uv->uv.udp, enabled);
 	if (r) {
 		php_error_docref(NULL TSRMLS_CC, E_NOTICE, "uv_udp_set_muticast_loop failed");
 	}
@@ -1415,7 +1415,7 @@ PHP_FUNCTION(uv_udp_set_multicast_ttl)
 
 	ZEND_FETCH_RESOURCE(uv, php_uv_t *, &client, -1, PHP_UV_RESOURCE_NAME, uv_resource_handle);
 
-	r = uv_udp_set_multicast_ttl((uv_stream_t*)&uv->uv.udp, ttl);
+	r = uv_udp_set_multicast_ttl((uv_udp_t*)&uv->uv.udp, ttl);
 	if (r) {
 		php_error_docref(NULL TSRMLS_CC, E_NOTICE, "uv_udp_set_muticast_ttl failed");
 	}
@@ -1437,7 +1437,7 @@ PHP_FUNCTION(uv_udp_set_broadcast)
 
 	ZEND_FETCH_RESOURCE(uv, php_uv_t *, &client, -1, PHP_UV_RESOURCE_NAME, uv_resource_handle);
 
-	r = uv_udp_set_broadcast((uv_stream_t*)&uv->uv.udp, enabled);
+	r = uv_udp_set_broadcast((uv_udp_t*)&uv->uv.udp, enabled);
 	if (r) {
 		php_error_docref(NULL TSRMLS_CC, E_NOTICE, "uv_udp_set_muticast_loop failed");
 	}
