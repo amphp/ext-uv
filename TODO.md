@@ -4,7 +4,6 @@
 
 # functions
 
-* UV_EXTERN int64_t uv_now(uv_loop_t*);
 * UV_EXTERN int uv_is_active(uv_handle_t* handle);
 * UV_EXTERN int uv_read2_start(uv_stream_t*, uv_alloc_cb alloc_cb,uv_read2_cb read_cb);
 * UV_EXTERN int uv_read_stop(uv_stream_t*);
