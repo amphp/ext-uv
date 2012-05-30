@@ -39,10 +39,6 @@
 * UV_EXTERN int uv_async_init(uv_loop_t*, uv_async_t* async,uv_async_cb async_cb);
 * UV_EXTERN int uv_async_send(uv_async_t* async);
 
-* UV_EXTERN int uv_timer_again(uv_timer_t* timer);
-* UV_EXTERN void uv_timer_set_repeat(uv_timer_t* timer, int64_t repeat);
-* UV_EXTERN int64_t uv_timer_get_repeat(uv_timer_t* timer);
-
 * UV_EXTERN  int uv_ares_init_options(uv_loop_t*,ares_channel *channelptr, struct ares_options *options, int optmask);
 * UV_EXTERN void uv_ares_destroy(uv_loop_t*, ares_channel channel);
 

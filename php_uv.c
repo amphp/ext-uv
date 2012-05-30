@@ -664,11 +664,32 @@ ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_idle_stop, 0, 0, 1)
 	ZEND_ARG_INFO(0, idle)
 ZEND_END_ARG_INFO()
 
+ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_again, 0, 0, 1)
+	ZEND_ARG_INFO(0, idle)
+ZEND_END_ARG_INFO()
+
 ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_timer_start, 0, 0, 4)
 	ZEND_ARG_INFO(0, timer)
 	ZEND_ARG_INFO(0, timeout)
 	ZEND_ARG_INFO(0, repeat)
 	ZEND_ARG_INFO(0, callback)
+ZEND_END_ARG_INFO()
+
+ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_timer_stop, 0, 0, 1)
+	ZEND_ARG_INFO(0, timer)
+ZEND_END_ARG_INFO()
+
+ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_timer_again, 0, 0, 1)
+	ZEND_ARG_INFO(0, timer)
+ZEND_END_ARG_INFO()
+
+ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_timer_set_repeat, 0, 0, 2)
+	ZEND_ARG_INFO(0, timer)
+	ZEND_ARG_INFO(0, timeout)
+ZEND_END_ARG_INFO()
+
+ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_timer_get_repeat, 0, 0, 2)
+	ZEND_ARG_INFO(0, timer)
 ZEND_END_ARG_INFO()
 
 ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_idle_start, 0, 0, 2)
@@ -1256,6 +1277,76 @@ PHP_FUNCTION(uv_timer_start)
 /* }}} */
 
 /* {{{ */
+PHP_FUNCTION(uv_timer_stop)
+{
+	zval *timer;
+	php_uv_t *uv;
+	
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
+		"r",&timer) == FAILURE) {
+		return;
+	}
+
+	ZEND_FETCH_RESOURCE(uv, php_uv_t *, &timer, -1, PHP_UV_RESOURCE_NAME, uv_resource_handle);
+
+	uv_timer_stop((uv_timer_t*)&uv->uv.timer);
+}
+/* }}} */
+
+/* {{{ */
+PHP_FUNCTION(uv_timer_again)
+{
+	zval *timer;
+	php_uv_t *uv;
+	
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
+		"r",&timer) == FAILURE) {
+		return;
+	}
+
+	ZEND_FETCH_RESOURCE(uv, php_uv_t *, &timer, -1, PHP_UV_RESOURCE_NAME, uv_resource_handle);
+
+	uv_timer_again((uv_timer_t*)&uv->uv.timer);
+}
+/* }}} */
+
+/* {{{ */
+PHP_FUNCTION(uv_timer_set_repeat)
+{
+	zval *timer;
+	php_uv_t *uv;
+	long repeat;
+	
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
+		"rl",&timer,&repeat) == FAILURE) {
+		return;
+	}
+
+	ZEND_FETCH_RESOURCE(uv, php_uv_t *, &timer, -1, PHP_UV_RESOURCE_NAME, uv_resource_handle);
+
+	uv_timer_set_repeat((uv_timer_t*)&uv->uv.timer,repeat);
+}
+/* }}} */
+
+/* {{{ */
+PHP_FUNCTION(uv_timer_get_repeat)
+{
+	zval *timer;
+	php_uv_t *uv;
+	int64_t repeat;
+	
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
+		"r",&timer) == FAILURE) {
+		return;
+	}
+
+	ZEND_FETCH_RESOURCE(uv, php_uv_t *, &timer, -1, PHP_UV_RESOURCE_NAME, uv_resource_handle);
+
+	repeat = uv_timer_get_repeat((uv_timer_t*)&uv->uv.timer);
+}
+/* }}} */
+
+/* {{{ */
 PHP_FUNCTION(uv_idle_start)
 {
 	zval *idle, *callback;
@@ -1676,6 +1767,10 @@ static zend_function_entry uv_functions[] = {
 	/* timer */
 	PHP_FE(uv_timer_init, arginfo_uv_timer_init)
 	PHP_FE(uv_timer_start, arginfo_uv_timer_start)
+	PHP_FE(uv_timer_stop, arginfo_uv_timer_stop)
+	PHP_FE(uv_timer_again, arginfo_uv_timer_again)
+	PHP_FE(uv_timer_set_repeat, arginfo_uv_timer_set_repeat)
+	PHP_FE(uv_timer_get_repeat, arginfo_uv_timer_get_repeat)
 	/* tcp */
 	PHP_FE(uv_tcp_init, arginfo_uv_tcp_init)
 	PHP_FE(uv_tcp_nodelay, arginfo_uv_tcp_nodelay)
