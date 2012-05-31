@@ -64,6 +64,7 @@ typedef struct {
 	zval *getaddr_cb;
 	zval *udp_recv_cb;
 	zval *udp_send_cb;
+	zval *pipe_connect_cb;
 } php_uv_t;
 
 typedef struct {
