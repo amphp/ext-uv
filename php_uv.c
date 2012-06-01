@@ -135,8 +135,8 @@ static uv_loop_t *php_uv_default_loop()
 void static destruct_uv(zend_rsrc_list_entry *rsrc TSRMLS_DC)
 {
 	int base_id = -1;
-	//fprintf(stderr, "will be free\n");
 	php_uv_t *obj = (php_uv_t *)rsrc->ptr;
+	//fprintf(stderr,"will be free");
 	
 	if (obj->in_free) {
 		/* TODO: why other php_uv_t has already set this? */
@@ -207,9 +207,8 @@ void static destruct_uv(zend_rsrc_list_entry *rsrc TSRMLS_DC)
 	}
 	
 	if (base_id) {
-		//fprintf(stderr,"hohe:%d\n",rsrc->refcount);///
+		//fprintf(stderr,"resource_refcount:%d\n",rsrc->refcount);
 		zend_list_delete(base_id);
-		//fprintf(stderr,"hohe:%d\n",rsrc->refcount);///
 	}
 
 }
@@ -248,7 +247,6 @@ static void php_uv_tcp_connect_cb(uv_connect_t *req, int status)
 	ZVAL_LONG(stat, status);
 	MAKE_STD_ZVAL(client);
 	ZVAL_RESOURCE(client, uv->resource_id);
-	zend_list_addref(uv->resource_id);
 
 	params[0] = &stat;
 	params[1] = &client;
@@ -273,7 +271,6 @@ static void php_uv_pipe_connect_cb
 	ZVAL_LONG(stat, status);
 	MAKE_STD_ZVAL(client);
 	ZVAL_RESOURCE(client, uv->resource_id);
-	zend_list_addref(uv->resource_id);
 
 	params[0] = &stat;
 	params[1] = &client;
@@ -302,7 +299,7 @@ static void php_uv_write_cb(uv_write_t* req, int status)
 	
 	MAKE_STD_ZVAL(client);
 	ZVAL_RESOURCE(client, uv->resource_id);
-	//zend_list_addref(uv->resource_id);
+	zend_list_addref(uv->resource_id);
 
 	params[0] = &stat;
 	params[1] = &client;
@@ -334,7 +331,6 @@ static void php_uv_udp_send_cb(uv_udp_send_t* req, int status)
 	
 	MAKE_STD_ZVAL(client);
 	ZVAL_RESOURCE(client, uv->resource_id);
-	zend_list_addref(uv->resource_id);
 
 	params[0] = &stat;
 	params[1] = &client;
@@ -420,7 +416,6 @@ static void php_uv_read_cb(uv_stream_t* handle, ssize_t nread, uv_buf_t buf)
 	zval *rsc;
 	MAKE_STD_ZVAL(rsc);
 	ZVAL_RESOURCE(rsc, uv->resource_id);
-	zend_list_addref(uv->resource_id);
 
 	params[0] = &buffer;
 	params[1] = &rsc;
@@ -475,7 +470,6 @@ static void php_uv_udp_recv_cb(uv_udp_t* handle, ssize_t nread, uv_buf_t buf, st
 	zval *rsc;
 	MAKE_STD_ZVAL(rsc);
 	ZVAL_RESOURCE(rsc, uv->resource_id);
-	zend_list_addref(uv->resource_id);
 
 	params[0] = &buffer;
 	params[1] = &rsc;
@@ -509,7 +503,6 @@ static void php_uv_close_cb(uv_handle_t *handle)
 		MAKE_STD_ZVAL(h);
 		ZVAL_RESOURCE(h, uv->resource_id);
 		params[0] = &h;
-		zend_list_addref(uv->resource_id);
 		
 		php_uv_do_callback(&retval_ptr, uv->close_cb, params, 1 TSRMLS_CC);
 		zval_ptr_dtor(&retval_ptr);
@@ -518,7 +511,6 @@ static void php_uv_close_cb(uv_handle_t *handle)
 			zend_rsrc_list_entry *le;
 			if (zend_hash_index_find(&EG(regular_list), uv->resource_id, (void **) &le)==SUCCESS) {
 				printf("del(%d): %d->%d\n", uv->resource_id, le->refcount, le->refcount-1);
-				zend_list_delete(uv->resource_id);
 			} else {
 				printf("can't find");
 			}
@@ -1087,6 +1079,7 @@ PHP_FUNCTION(uv_write)
 	ZEND_FETCH_RESOURCE(client, php_uv_t *, &z_cli, -1, PHP_UV_RESOURCE_NAME, uv_resource_handle);
 	Z_ADDREF_P(callback);
 	client->write_cb = callback;
+	zend_list_addref(client->resource_id);
 
 	w = emalloc(sizeof(write_req_t));
 	w->req.data = client;
@@ -1202,7 +1195,6 @@ PHP_FUNCTION(uv_read_stop)
 
 	ZEND_FETCH_RESOURCE(uv, php_uv_t *, &server, -1, PHP_UV_RESOURCE_NAME, uv_resource_handle);
 	uv_read_stop((uv_stream_t*)&uv->uv.tcp);
-	zend_list_delete(uv->resource_id);
 }
 /* }}} */
 
@@ -1246,7 +1238,6 @@ PHP_FUNCTION(uv_listen)
 	ZEND_FETCH_RESOURCE(uv, php_uv_t *, &resource, -1, PHP_UV_RESOURCE_NAME, uv_resource_handle);
 	Z_ADDREF_P(callback);
 	uv->listen_cb = callback;
-	zend_list_addref(uv->resource_id);
 
 	r = uv_listen((uv_stream_t*)php_uv_get_current_stream(uv), backlog, php_uv_listen_cb);
 	if (r) {
@@ -1271,6 +1262,7 @@ PHP_FUNCTION(uv_tcp_connect)
 	
 	ZEND_FETCH_RESOURCE(uv, php_uv_t *, &resource, -1, PHP_UV_RESOURCE_NAME, uv_resource_handle);
 	ZEND_FETCH_RESOURCE(addr, php_uv_sockaddr_t *, &address, -1, PHP_UV_SOCKADDR_RESOURCE_NAME, uv_sockaddr_handle);
+	zend_list_addref(uv->resource_id);
 	Z_ADDREF_P(callback);
 	Z_ADDREF_P(address);
 	
@@ -1326,6 +1318,7 @@ PHP_FUNCTION(uv_timer_start)
 
 	ZEND_FETCH_RESOURCE(uv, php_uv_t *, &timer, -1, PHP_UV_RESOURCE_NAME, uv_resource_handle);
 	Z_ADDREF_P(callback);
+	zend_list_addref(uv->resource_id);
 
 	uv->timer_cb = callback;
 	uv_timer_start((uv_timer_t*)&uv->uv.timer, php_uv_timer_cb, timeout, repeat);
@@ -1415,7 +1408,6 @@ PHP_FUNCTION(uv_idle_start)
 
 	ZEND_FETCH_RESOURCE(uv, php_uv_t *, &idle, -1, PHP_UV_RESOURCE_NAME, uv_resource_handle);
 	Z_ADDREF_P(callback);
-	zend_list_addref(uv->resource_id);
 	
 	if (uv->idle_cb) {
 		zval_ptr_dtor(&uv->idle_cb);
@@ -1465,7 +1457,6 @@ PHP_FUNCTION(uv_idle_stop)
 
 	ZEND_FETCH_RESOURCE(uv, php_uv_t *, &idle, -1, PHP_UV_RESOURCE_NAME, uv_resource_handle);
 	uv_idle_stop((uv_idle_t*)&uv->uv.idle);
-	zend_list_delete(uv->resource_id);
 }
 /* }}} */
 
@@ -1637,7 +1628,6 @@ PHP_FUNCTION(uv_udp_recv_stop)
 		return;
 	}
 	ZEND_FETCH_RESOURCE(uv, php_uv_t *, &client, -1, PHP_UV_RESOURCE_NAME, uv_resource_handle);
-	zend_list_delete(uv->resource_id);
 	
 	uv_udp_recv_stop((uv_udp_t*)&uv->uv.udp);
 }
@@ -1727,9 +1717,9 @@ PHP_FUNCTION(uv_udp_send)
 	ZEND_FETCH_RESOURCE(client, php_uv_t *, &z_cli, -1, PHP_UV_RESOURCE_NAME, uv_resource_handle);
 	ZEND_FETCH_RESOURCE(addr, php_uv_sockaddr_t *, &z_addr, -1, PHP_UV_SOCKADDR_RESOURCE_NAME, uv_sockaddr_handle);
 
-	zend_list_addref(client->resource_id);
 	Z_ADDREF_P(callback);
 	client->udp_send_cb = callback;
+	zend_list_addref(client->resource_id);
 
 	w = emalloc(sizeof(send_req_t));
 	w->req.data = client;
@@ -1880,7 +1870,6 @@ PHP_FUNCTION(uv_pipe_connect)
 	}
 	
 	ZEND_FETCH_RESOURCE(uv, php_uv_t *, &resource, -1, PHP_UV_RESOURCE_NAME, uv_resource_handle);
-	zend_list_addref(uv->resource_id);
 	Z_ADDREF_P(callback);
 	
 	req = (uv_connect_t*)emalloc(sizeof(uv_connect_t));
@@ -1889,7 +1878,6 @@ PHP_FUNCTION(uv_pipe_connect)
 	uv->address = address;
 	uv->pipe_connect_cb = callback;
 	uv_pipe_connect(req, (uv_pipe_t*)php_uv_get_current_stream(uv), name, php_uv_pipe_connect_cb);
-	zend_list_delete(uv->resource_id);
 }
 /* }}} */
 
