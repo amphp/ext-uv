@@ -19,6 +19,10 @@
 
 #include "php_uv.h"
 
+#ifndef PHP_UV_DEBUG
+#define PHP_UV_DEBUG 0
+#endif
+
 extern void php_uv_init(TSRMLS_D);
 extern zend_class_entry *uv_class_entry;
 
@@ -136,8 +140,10 @@ void static destruct_uv(zend_rsrc_list_entry *rsrc TSRMLS_DC)
 {
 	int base_id = -1;
 	php_uv_t *obj = (php_uv_t *)rsrc->ptr;
-	//fprintf(stderr,"will be free");
-	
+#ifdef PHP_UV_DEBUG>=1
+	fprintf(stderr,"# will be free: (resource_id: %d)", obj->resource_id);
+#endif
+
 	if (obj->in_free) {
 		/* TODO: why other php_uv_t has already set this? */
 		//fprintf(stderr, "resource_id: %d is freeing", obj->resource_id);
@@ -259,8 +265,7 @@ static void php_uv_tcp_connect_cb(uv_connect_t *req, int status)
 	efree(req);
 }
 
-static void php_uv_pipe_connect_cb
-	(uv_connect_t *req, int status)
+static void php_uv_pipe_connect_cb(uv_connect_t *req, int status)
 {
 	TSRMLS_FETCH();
 	zval *retval_ptr, *stat, *client= NULL;
@@ -314,6 +319,17 @@ static void php_uv_write_cb(uv_write_t* req, int status)
 		//free(wr->buf.base);
 	}
 	efree(wr);
+	zend_list_delete(uv->resource_id);
+#ifdef PHP_UV_DEBUG>=1
+	{
+		zend_rsrc_list_entry *le;
+		if (zend_hash_index_find(&EG(regular_list), uv->resource_id, (void **) &le)==SUCCESS) {
+			printf("# uv_write_cb del(%d): %d->%d\n", uv->resource_id, le->refcount, le->refcount-1);
+		} else {
+			printf("# can't find");
+		}
+	}
+#endif
 }
 
 static void php_uv_udp_send_cb(uv_udp_send_t* req, int status)
@@ -416,6 +432,7 @@ static void php_uv_read_cb(uv_stream_t* handle, ssize_t nread, uv_buf_t buf)
 	zval *rsc;
 	MAKE_STD_ZVAL(rsc);
 	ZVAL_RESOURCE(rsc, uv->resource_id);
+	//zend_list_addref(uv->resource_id)
 
 	params[0] = &buffer;
 	params[1] = &rsc;
@@ -499,25 +516,25 @@ static void php_uv_close_cb(uv_handle_t *handle)
 	zval *h;
 
 	php_uv_t *uv = (php_uv_t*)handle->data;
+	MAKE_STD_ZVAL(h);
+	ZVAL_RESOURCE(h, uv->resource_id);
+
 	if (uv->close_cb != NULL) {
-		MAKE_STD_ZVAL(h);
-		ZVAL_RESOURCE(h, uv->resource_id);
 		params[0] = &h;
-		
 		php_uv_do_callback(&retval_ptr, uv->close_cb, params, 1 TSRMLS_CC);
 		zval_ptr_dtor(&retval_ptr);
-		/* for testing resource ref count.
-		{
-			zend_rsrc_list_entry *le;
-			if (zend_hash_index_find(&EG(regular_list), uv->resource_id, (void **) &le)==SUCCESS) {
-				printf("del(%d): %d->%d\n", uv->resource_id, le->refcount, le->refcount-1);
-			} else {
-				printf("can't find");
-			}
-		}
-		*/
-		zval_ptr_dtor(&h); /* call destruct_uv */
 	}
+#ifdef PHP_UV_DEBUG>=1
+	{
+		zend_rsrc_list_entry *le;
+		if (zend_hash_index_find(&EG(regular_list), uv->resource_id, (void **) &le)==SUCCESS) {
+			printf("# uv_close_cb del(%d): %d->%d\n", uv->resource_id, le->refcount, le->refcount-1);
+		} else {
+			printf("# can't find");
+		}
+	}
+#endif
+	zval_ptr_dtor(&h); /* call destruct_uv */
 }
 
 
@@ -1086,6 +1103,16 @@ PHP_FUNCTION(uv_write)
 	w->buf = uv_buf_init(data, data_len);
 
 	uv_write(&w->req, (uv_stream_t*)php_uv_get_current_stream(client), &w->buf, 1, php_uv_write_cb);
+#ifdef PHP_UV_DEBUG>=1
+	{
+		zend_rsrc_list_entry *le;
+		if (zend_hash_index_find(&EG(regular_list), client->resource_id, (void **) &le)==SUCCESS) {
+			printf("# uv_write del(%d): %d->%d\n", client->resource_id, le->refcount, le->refcount-1);
+		} else {
+			printf("# can't find");
+		}
+	}
+#endif
 }
 /* }}} */
 
@@ -1144,7 +1171,7 @@ PHP_FUNCTION(uv_close)
 		Z_ADDREF_P(callback);
 		uv->close_cb = callback;
 	}
-	//zend_list_addref(uv->resource_id);
+	zend_list_addref(uv->resource_id);
 	uv_close((uv_handle_t*)php_uv_get_current_stream(uv), (uv_close_cb)php_uv_close_cb);
 }
 /* }}} */
@@ -1163,6 +1190,7 @@ PHP_FUNCTION(uv_read_start)
 
 	ZEND_FETCH_RESOURCE(uv, php_uv_t *, &client, -1, PHP_UV_RESOURCE_NAME, uv_resource_handle);
 	Z_ADDREF_P(callback);
+	Z_ADDREF_P(client);
 	zend_list_addref(uv->resource_id);
 
 	uv->read_cb = callback;
@@ -1178,7 +1206,7 @@ PHP_FUNCTION(uv_read_start)
 	if (r) {
 		php_error_docref(NULL TSRMLS_CC, E_NOTICE, "read failed");
 	}
-	//zend_list_delete(uv->resource_id);
+	zval_ptr_dtor(&client);
 }
 /* }}} */
 
@@ -1871,6 +1899,7 @@ PHP_FUNCTION(uv_pipe_connect)
 	
 	ZEND_FETCH_RESOURCE(uv, php_uv_t *, &resource, -1, PHP_UV_RESOURCE_NAME, uv_resource_handle);
 	Z_ADDREF_P(callback);
+	zend_list_addref(uv->resource_id);
 	
 	req = (uv_connect_t*)emalloc(sizeof(uv_connect_t));
 	
