@@ -802,7 +802,6 @@ ZEND_END_ARG_INFO()
 ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_udp_bind, 0, 0, 3)
 	ZEND_ARG_INFO(0, resource)
 	ZEND_ARG_INFO(0, address)
-	ZEND_ARG_INFO(0, port)
 	ZEND_ARG_INFO(0, flags)
 ZEND_END_ARG_INFO()
 
@@ -1061,23 +1060,21 @@ PHP_FUNCTION(uv_now)
 /* {{{ */
 PHP_FUNCTION(uv_tcp_bind)
 {
-	zval *resource;
-	char *address;
-	int address_len;
-	long port = 8080;
-	struct sockaddr_in addr;
+	zval *resource, *address;
+	php_uv_sockaddr_t *addr;
 	php_uv_t *uv;
 	int r;
 	
 	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
-		"zsl",&resource, &address, &address_len, &port) == FAILURE) {
+		"zz",&resource, &address) == FAILURE) {
 		return;
 	}
 	
 	ZEND_FETCH_RESOURCE(uv, php_uv_t *, &resource, -1, PHP_UV_RESOURCE_NAME, uv_resource_handle);
-	addr = uv_ip4_addr(address, port);
+	ZEND_FETCH_RESOURCE(addr, php_uv_sockaddr_t *, &address, -1, PHP_UV_SOCKADDR_RESOURCE_NAME, uv_sockaddr_handle);
+	Z_ADDREF_P(resource);
 	
-	r = uv_tcp_bind((uv_tcp_t*)&uv->uv.tcp, addr);
+	r = uv_tcp_bind((uv_tcp_t*)&uv->uv.tcp, addr->addr.ipv4);
 	if (r) {
 		php_error_docref(NULL TSRMLS_CC, E_ERROR, "bind failed");
 	}
@@ -1631,24 +1628,21 @@ PHP_FUNCTION(uv_udp_init)
 /* {{{ */
 PHP_FUNCTION(uv_udp_bind)
 {
-	zval *resource;
-	char *address;
-	int address_len;
-	long port = 0;
+	zval *resource, *address;
 	long flags = 0;
-	struct sockaddr_in addr;
+	php_uv_sockaddr_t *addr;
 	php_uv_t *uv;
 	int r;
 	
 	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
-		"zsl|l",&resource, &address, &address_len, &port, &flags) == FAILURE) {
+		"zz|l",&resource, &address, &flags) == FAILURE) {
 		return;
 	}
 	
 	ZEND_FETCH_RESOURCE(uv, php_uv_t *, &resource, -1, PHP_UV_RESOURCE_NAME, uv_resource_handle);
-	addr = uv_ip4_addr(address, port);
+	ZEND_FETCH_RESOURCE(addr, php_uv_sockaddr_t *, &address, -1, PHP_UV_SOCKADDR_RESOURCE_NAME, uv_sockaddr_handle);
 	
-	r = uv_udp_bind((uv_udp_t*)&uv->uv.udp, addr, flags);
+	r = uv_udp_bind((uv_udp_t*)&uv->uv.udp, addr->addr.ipv4, flags);
 	if (r) {
 		php_error_docref(NULL TSRMLS_CC, E_ERROR, "uv_udp_bind failed");
 	}
