@@ -1222,7 +1222,18 @@ PHP_FUNCTION(uv_read_stop)
 	}
 
 	ZEND_FETCH_RESOURCE(uv, php_uv_t *, &server, -1, PHP_UV_RESOURCE_NAME, uv_resource_handle);
-	uv_read_stop((uv_stream_t*)&uv->uv.tcp);
+	uv_read_stop((uv_stream_t*)php_uv_get_current_stream(uv));
+#ifdef PHP_UV_DEBUG>=1
+	{
+		zend_rsrc_list_entry *le;
+		if (zend_hash_index_find(&EG(regular_list), uv->resource_id, (void **) &le)==SUCCESS) {
+			printf("# uv_read_stop del(%d): %d->%d\n", uv->resource_id, le->refcount, le->refcount-1);
+		} else {
+			printf("# can't find");
+		}
+	}
+#endif
+
 }
 /* }}} */
 
