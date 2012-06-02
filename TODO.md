@@ -21,10 +21,6 @@
 * UV_EXTERN void uv_tty_reset_mode(void);
 * UV_EXTERN int uv_tty_get_winsize(uv_tty_t*, int* width, int* height);
 * UV_EXTERN uv_handle_type uv_guess_handle(uv_file file);
-* UV_EXTERN int uv_pipe_init(uv_loop_t*, uv_pipe_t* handle, int ipc);
-
-* UV_EXTERN void uv_pipe_connect(uv_connect_t* req, uv_pipe_t* handle,const char* name, uv_connect_cb cb);
-* UV_EXTERN void uv_pipe_pending_instances(uv_pipe_t* handle, int count);
 
 * UV_EXTERN int uv_prepare_init(uv_loop_t*, uv_prepare_t* prepare);
 * UV_EXTERN int uv_prepare_start(uv_prepare_t* prepare, uv_prepare_cb cb);

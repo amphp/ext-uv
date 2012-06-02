@@ -857,6 +857,11 @@ ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_pipe_connect, 0, 0, 3)
 	ZEND_ARG_INFO(0, callback)
 ZEND_END_ARG_INFO()
 
+ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_pipe_pending_instances, 0, 0, 2)
+	ZEND_ARG_INFO(0, handle)
+	ZEND_ARG_INFO(0, count)
+ZEND_END_ARG_INFO()
+
 /* PHP Functions */
 
 /* {{{ */
@@ -1941,6 +1946,23 @@ PHP_FUNCTION(uv_pipe_connect)
 }
 /* }}} */
 
+/* {{{ */
+PHP_FUNCTION(uv_pipe_pending_instances)
+{
+	php_uv_t *uv;
+	zval *handle;
+	long count;
+
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
+		"zl",&handle, &count) == FAILURE) {
+		return;
+	}
+	ZEND_FETCH_RESOURCE(uv, php_uv_t *, &handle, -1, PHP_UV_RESOURCE_NAME, uv_resource_handle);
+	uv_pipe_pending_instances(&uv->uv.pipe, count);
+}
+/* }}} */
+
+
 
 static zend_function_entry uv_functions[] = {
 	/* general */
@@ -1994,6 +2016,7 @@ static zend_function_entry uv_functions[] = {
 	PHP_FE(uv_pipe_bind, arginfo_uv_pipe_bind)
 	PHP_FE(uv_pipe_open, arginfo_uv_pipe_open)
 	PHP_FE(uv_pipe_connect, arginfo_uv_pipe_connect)
+	PHP_FE(uv_pipe_pending_instances, arginfo_uv_pipe_pending_instances)
 	/* for debug */
 	PHP_FE(uv_loop_refcount, arginfo_uv_loop_refcount)
 	/* c-ares */
