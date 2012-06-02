@@ -1318,18 +1318,23 @@ PHP_FUNCTION(uv_tcp_connect)
 PHP_FUNCTION(uv_timer_init)
 {
 	int r;
-	/* TODO */
-	zval *loop;
+	zval *zloop;
+	uv_loop_t *loop;
 	php_uv_t *uv;
 	
 	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
-		"|z",&loop) == FAILURE) {
+		"|z",&zloop) == FAILURE) {
 		return;
+	}
+	if (loop) {
+		ZEND_FETCH_RESOURCE(loop, uv_loop_t*, &zloop, -1, PHP_UV_LOOP_RESOURCE_NAME, uv_loop_handle);
+	} else {
+		loop = uv_default_loop();
 	}
 
 	uv = (php_uv_t *)emalloc(sizeof(php_uv_t));
 
-	r = uv_timer_init(uv_default_loop(), &uv->uv.timer);
+	r = uv_timer_init(loop, &uv->uv.timer);
 	if (r) {
 		php_error_docref(NULL TSRMLS_CC, E_ERROR, "uv_timer_init failed");
 		return;
@@ -1503,8 +1508,8 @@ PHP_FUNCTION(uv_idle_stop)
 PHP_FUNCTION(uv_tcp_init)
 {
 	int r;
-	/* TODO */
-	zval *loop;
+	zval *zloop;
+	uv_loop_t *loop;
 	php_uv_t *uv;
 	
 	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
@@ -1517,9 +1522,14 @@ PHP_FUNCTION(uv_tcp_init)
 		php_error_docref(NULL TSRMLS_CC, E_ERROR, "uv_tcp_init emalloc failed");
 		return;
 	}
+	if (loop) {
+		ZEND_FETCH_RESOURCE(loop, uv_loop_t*, &zloop, -1, PHP_UV_LOOP_RESOURCE_NAME, uv_loop_handle);
+	} else {
+		loop = uv_default_loop();
+	}
 
 	uv->type = IS_UV_TCP;
-	r = uv_tcp_init(uv_default_loop(), &uv->uv.tcp);
+	r = uv_tcp_init(loop, &uv->uv.tcp);
 	if (r) {
 		php_error_docref(NULL TSRMLS_CC, E_ERROR, "uv_tcp_init failed");
 		return;
@@ -1537,18 +1547,23 @@ PHP_FUNCTION(uv_tcp_init)
 PHP_FUNCTION(uv_idle_init)
 {
 	int r;
-	/* TODO */
-	zval *loop;
+	zval *zloop;
+	uv_loop_t *loop;
 	php_uv_t *uv;
 	
 	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
 		"|z",&loop) == FAILURE) {
 		return;
 	}
+	if (loop) {
+		ZEND_FETCH_RESOURCE(loop, uv_loop_t*, &zloop, -1, PHP_UV_LOOP_RESOURCE_NAME, uv_loop_handle);
+	} else {
+		loop = uv_default_loop();
+	}
 
 	uv = (php_uv_t *)emalloc(sizeof(php_uv_t));
 
-	r = uv_idle_init(uv_default_loop(), &uv->uv.idle);
+	r = uv_idle_init(loop, &uv->uv.idle);
 	if (r) {
 		php_error_docref(NULL TSRMLS_CC, E_ERROR, "uv_idle_init failed");
 		return;
@@ -1573,13 +1588,18 @@ PHP_FUNCTION(uv_default_loop)
 PHP_FUNCTION(uv_udp_init)
 {
 	int r;
-	/* TODO */
-	zval *loop;
+	zval *zloop;
+	uv_loop_t *loop;
 	php_uv_t *uv;
 	
 	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
-		"|z",&loop) == FAILURE) {
+		"|z",&zloop) == FAILURE) {
 		return;
+	}
+	if (loop) {
+		ZEND_FETCH_RESOURCE(loop, uv_loop_t*, &zloop, -1, PHP_UV_LOOP_RESOURCE_NAME, uv_loop_handle);
+	} else {
+		loop = uv_default_loop();
 	}
 
 	uv = (php_uv_t *)emalloc(sizeof(php_uv_t));
@@ -1589,7 +1609,7 @@ PHP_FUNCTION(uv_udp_init)
 	}
 
 	uv->type = IS_UV_UDP;
-	r = uv_udp_init(uv_default_loop(), &uv->uv.udp);
+	r = uv_udp_init(loop, &uv->uv.udp);
 	if (r) {
 		php_error_docref(NULL TSRMLS_CC, E_ERROR, "uv_udp_init failed");
 		return;
