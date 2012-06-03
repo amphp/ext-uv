@@ -413,7 +413,7 @@ static void php_uv_read_cb(uv_stream_t* handle, ssize_t nread, uv_buf_t buf)
 		
 		/* Error or EOF */
 		assert(uv_last_error(uv_default_loop()).code == UV_EOF);
-		
+
 		if (buf.base) {
 			efree(buf.base);
 		}
@@ -445,6 +445,7 @@ static void php_uv_read_cb(uv_stream_t* handle, ssize_t nread, uv_buf_t buf)
 	php_uv_do_callback(&retval_ptr, uv->read_cb, params, 2 TSRMLS_CC);
 
 	zval_ptr_dtor(&buffer);
+	Z_TYPE_P(rsc) = IS_NULL;
 	zval_ptr_dtor(&rsc);
 	zval_ptr_dtor(&retval_ptr);
 

@@ -1,23 +1,40 @@
 <?php
-$tcp = uv_tcp_init();
-$address = uv_ip4_addr("173.194.38.65","80");
 
-uv_tcp_connect($tcp, $address, function($stat, $client){
+$url = "http://yahoo.co.jp/";
+
+$parts = parse_url($url);
+$domain = $parts['host'];
+$path = $parts['path'] . '?' . $parts['query'];
+
+$uv = uv_ares_init_options(uv_default_loop(), array(
+    "servers" => array(
+        "8.8.8.8"
+    ),
+    "port"=>53
+),null);
+
+ares_gethostbyname($uv,$domain, AF_INET, function($name, $addr) use ($path, $host){
+    $a = array_shift($addr);
+    $address = uv_ip4_addr($a,"80");
+    $tcp = uv_tcp_init();
+
+    uv_tcp_connect($tcp, $address, function($stat, $client) use ($path, $host){
     $request = <<<EOF
-GET / HTTP/1.0
-Host: google.com
+GET {$path} HTTP/1.0
+Host: {$host}
 
 
 EOF;
-    uv_write($client,$request,function($stat, $client){
-        if ($stat == 0) {
-            uv_read_start($client,function($buffer, $client){
-                var_dump($buffer);
+        uv_write($client,$request,function($stat, $client){
+            if ($stat == 0) {
+                uv_read_start($client,function($buffer, $client){
+                    var_dump($buffer);
+                    //uv_close($client);
+                });
+            } else {
                 uv_close($client);
-            });
-        } else {
-            uv_close($client);
-        }
+            }
+        });
     });
 });
 
