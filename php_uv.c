@@ -201,6 +201,11 @@ void static destruct_uv(zend_rsrc_list_entry *rsrc TSRMLS_DC)
 		zval_ptr_dtor(&obj->pipe_connect_cb);
 		obj->pipe_connect_cb = NULL;
 	}
+	if (obj->gethostbyname_cb) {
+		//fprintf(stderr, "udp_send_cb: %d\n", Z_REFCOUNT_P(obj->listen_cb));
+		zval_ptr_dtor(&obj->gethostbyname_cb);
+		obj->gethostbyname_cb = NULL;
+	}
 
 	if (obj->resource_id) {
 		base_id = obj->resource_id;
@@ -626,11 +631,19 @@ static inline uv_stream_t* php_uv_get_current_stream(php_uv_t *uv)
 /* zend */
 
 PHP_MINIT_FUNCTION(uv) {
+	int rc;
+
 	php_uv_init(TSRMLS_C);
 	uv_resource_handle = zend_register_list_destructors_ex(destruct_uv, NULL, PHP_UV_RESOURCE_NAME, module_number);
 	uv_connect_handle  = zend_register_list_destructors_ex(destruct_uv, NULL, PHP_UV_CONNECT_RESOURCE_NAME, module_number);
 	uv_loop_handle = zend_register_list_destructors_ex(destruct_uv_loop, NULL, PHP_UV_LOOP_RESOURCE_NAME, module_number);
 	uv_sockaddr_handle = zend_register_list_destructors_ex(destruct_uv_sockaddr, NULL, PHP_UV_SOCKADDR_RESOURCE_NAME, module_number);
+
+	rc = ares_library_init(ARES_LIB_INIT_ALL);
+	if (rc != 0) {
+		printf("ares library init fails %d\n", rc);
+		return;
+	}
 
 	return SUCCESS;
 }
@@ -1957,6 +1970,231 @@ PHP_FUNCTION(uv_pipe_pending_instances)
 /* }}} */
 
 
+static void php_ares_gethostbyname_cb( void *arg, int status, int timeouts, struct hostent *hostent)
+{
+	TSRMLS_FETCH();
+	zval *retval_ptr, *hostname, *addresses = NULL;
+	zval **params[2];
+	php_uv_t *uv = (php_uv_t*)arg;
+	struct in_addr **ptr;
+
+	MAKE_STD_ZVAL(hostname);
+	ZVAL_STRING(hostname, hostent->h_name, 1);
+	MAKE_STD_ZVAL(addresses);
+
+	array_init(addresses);
+	ptr = (struct in_addr **)hostent->h_addr_list;
+	while(*ptr != NULL) {
+		add_next_index_string(addresses, inet_ntoa(**(ptr++)), 1);
+	}
+
+	params[0] = &hostname;
+	params[1] = &addresses;
+	
+	php_uv_do_callback(&retval_ptr, uv->gethostbyname_cb, params, 2 TSRMLS_CC);
+
+	zval_ptr_dtor(&retval_ptr);
+	zval_ptr_dtor(&hostname);
+	zval_ptr_dtor(&addresses);
+}
+
+static void aresbyaddrcallback( void *arg,
+                          int status,
+                          int timeouts,
+                          struct hostent *hostent) {
+	int * iargs;
+	iargs = (int*)arg;
+	printf("aresbyaddrcallback %d\n",1);
+}
+
+
+/* {{{ */
+PHP_FUNCTION(uv_ares_init_options)
+{
+	int rc, length;
+	int optmask = ARES_OPT_SERVERS | ARES_OPT_TCP_PORT | ARES_OPT_LOOKUPS | ARES_OPT_FLAGS;
+	struct ares_options options;
+	zval **data, *zoptions, *zloop = NULL;
+	uv_loop_t *loop = NULL;
+	php_uv_t *uv;
+	HashTable *h;
+	struct sockaddr_in test_server = uv_ip4_addr("8.8.8.8", 53);
+	struct in_addr *addresses;
+
+	/*
+		$channel = uv_ares_init_options($loop,
+			$options = array(
+				"servers" => array(
+					"8.8.8.8" // required
+				),
+				"port" => 53, // optional.
+				"lookups" => "b" or "f", // optional. b is default
+				"flags"   => ARES_FLAG_USEVC // optional
+			)
+			$mask = ARES_OPT_SERVER | ARES_OPT_TCP_PORT | ARES_OPT_LOOKUPS | ARES_OPT_FLAGS
+		);
+		
+	*/
+
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
+		"zal",&zloop,&zoptions, &optmask) == FAILURE) {
+		return;
+	}
+	
+	if (Z_TYPE_P(zloop) == IS_RESOURCE) {
+		ZEND_FETCH_RESOURCE(loop, uv_loop_t *, &zloop, -1, PHP_UV_LOOP_RESOURCE_NAME, uv_loop_handle);
+	} else {
+		loop = php_uv_default_loop();
+	}
+	
+	h = Z_ARRVAL_P(zoptions);
+	if (zend_hash_find(h, "servers", sizeof("servers"), (void **)&data) == SUCCESS) {
+		HashTable *servers = Z_ARRVAL_P(*data);
+		HashPosition pos;
+		char *key;
+		int key_type;
+		uint key_len;
+		ulong key_index;
+		int i = 0;
+		
+		length = zend_hash_num_elements(servers);
+		addresses = (struct in_addr*)ecalloc(length, sizeof(struct in_addr));
+		for (zend_hash_internal_pointer_reset_ex(servers, &pos);
+			(key_type = zend_hash_get_current_key_ex(servers, &key, &key_len, &key_index, 0, &pos)) != HASH_KEY_NON_EXISTANT;
+			zend_hash_move_forward_ex(servers, &pos)) {
+			struct sockaddr_in address;
+			zval **value;
+			
+			zend_hash_get_current_data_ex(servers, (void *) &value, &pos);
+			if (Z_TYPE_PP(value) != IS_STRING) {
+				fprintf(stderr,"damepo");
+			}
+
+			address = uv_ip4_addr(Z_STRVAL_PP(value),0);
+			addresses[i] = address.sin_addr;
+		}
+		
+	}
+	if (zend_hash_find(h, "port", sizeof("port"), (void **)&data) == SUCCESS) {
+		options.tcp_port = htonl(Z_LVAL_PP(data));
+	}
+	if (zend_hash_find(h, "lookups", sizeof("lookups"), (void **)&data) == SUCCESS) {
+		options.lookups = Z_STRVAL_PP(data);
+	}
+
+	uv = (php_uv_t*)emalloc(sizeof(php_uv_t));
+
+	options.servers  = addresses;
+	options.nservers = length;
+	options.flags = ARES_FLAG_USEVC;
+
+	rc = uv_ares_init_options(loop, &uv->uv.channel, &options, optmask);
+	if (rc) {
+		php_error_docref(NULL TSRMLS_CC, E_ERROR, "uv_ares_init_options failed");
+	}
+	efree(addresses);
+
+	ZEND_REGISTER_RESOURCE(return_value, uv, uv_resource_handle);
+	uv->resource_id = Z_LVAL_P(return_value);
+}
+
+
+/* {{{ */
+PHP_FUNCTION(ares_gethostbyname)
+{
+	int rc;
+	zval *handle, *byname_cb;
+	long flag = AF_INET;
+	char *name;
+	int name_len;
+	ares_channel channel;
+	struct ares_options options;
+	int optmask;
+	int bynamecallbacksig;
+	bynamecallbacksig = 7;
+	php_uv_t *uv;
+
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
+		"zslz",&handle, &name, &name_len, &flag, &byname_cb) == FAILURE) {
+		return;
+	}
+
+	ZEND_FETCH_RESOURCE(uv, php_uv_t *, &handle, -1, PHP_UV_RESOURCE_NAME, uv_resource_handle);
+	Z_ADDREF_P(byname_cb);
+	uv->gethostbyname_cb = byname_cb;
+	
+	ares_gethostbyname(uv->uv.channel,
+		name,
+		flag,
+		&php_ares_gethostbyname_cb,
+		uv
+	);
+}
+/* }}} */
+
+
+/* {{{ */
+PHP_FUNCTION(ares_test)
+{
+/*
+struct ares_options {
+  int flags;
+  int timeout; // in seconds or milliseconds, depending on options
+  int tries;
+  int ndots;
+  unsigned short udp_port;
+  unsigned short tcp_port;
+  int socket_send_buffer_size;
+  int socket_receive_buffer_size;
+  struct in_addr *servers;
+  int nservers;
+  char **domains;
+  int ndomains;
+  char *lookups;
+  ares_sock_state_cb sock_state_cb;
+  void *sock_state_cb_data;
+  struct apattern *sortlist;
+  int nsort;
+};
+*/
+	int rc;
+	ares_channel channel;
+	struct ares_options options;
+	int optmask;
+//char *domains[1] = {"/ets/hosts"};
+	int bynamecallbacksig;
+
+/*
+struct sockaddr_in {
+    short   sin_family;
+    u_short sin_port;
+    struct  in_addr sin_addr;
+    char    sin_zero[8];
+};
+*/
+
+	struct sockaddr_in test_server = uv_ip4_addr("8.8.8.8", 53);
+	optmask = ARES_OPT_SERVERS | ARES_OPT_TCP_PORT | ARES_OPT_LOOKUPS | ARES_OPT_FLAGS;
+
+	options.servers = &test_server.sin_addr;
+	options.nservers = 1;
+	options.tcp_port = test_server.sin_port;
+	options.lookups = "b";
+	options.flags = ARES_FLAG_USEVC;
+	rc = uv_ares_init_options(uv_default_loop(), &channel, &options, optmask);
+	bynamecallbacksig = 7;
+
+	ares_gethostbyname(channel,
+		"chobie.net",
+		AF_INET,
+		&php_ares_gethostbyname_cb,
+		&bynamecallbacksig
+	);
+	uv_run(uv_default_loop());
+
+}
+/* }}} */
+
 
 static zend_function_entry uv_functions[] = {
 	/* general */
@@ -2015,6 +2253,9 @@ static zend_function_entry uv_functions[] = {
 	PHP_FE(uv_loop_refcount, arginfo_uv_loop_refcount)
 	/* c-ares */
 	PHP_FE(uv_getaddrinfo, arginfo_uv_tcp_connect)
+	PHP_FE(uv_ares_init_options, NULL)
+	PHP_FE(ares_gethostbyname, NULL)
+	PHP_FE(ares_test, NULL)
 	/* PHP_FE(ares_gethostbyname, arginfo_ares_gethostbyname) */
 	{NULL, NULL, NULL}
 };

@@ -52,6 +52,7 @@ typedef struct {
 		uv_handle_t handle;
 		uv_stream_t stream;
 		uv_getaddrinfo_t addrinfo;
+		ares_channel channel;
 	} uv;
 	zval *address;
 	zval *listen_cb;
@@ -65,6 +66,8 @@ typedef struct {
 	zval *udp_recv_cb;
 	zval *udp_send_cb;
 	zval *pipe_connect_cb;
+	zval *gethostbyname_cb;
+	zval *gethostbyaddr_cb;
 } php_uv_t;
 
 typedef struct {
