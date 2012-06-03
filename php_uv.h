@@ -52,7 +52,6 @@ typedef struct {
 		uv_handle_t handle;
 		uv_stream_t stream;
 		uv_getaddrinfo_t addrinfo;
-		ares_channel channel;
 	} uv;
 	zval *address;
 	zval *listen_cb;
@@ -66,9 +65,15 @@ typedef struct {
 	zval *udp_recv_cb;
 	zval *udp_send_cb;
 	zval *pipe_connect_cb;
+} php_uv_t;
+
+typedef struct {
+	ares_channel channel;
+	struct ares_options options;
 	zval *gethostbyname_cb;
 	zval *gethostbyaddr_cb;
-} php_uv_t;
+	int resource_id;
+} php_uv_ares_t;
 
 typedef struct {
 	int is_ipv4;
@@ -82,6 +87,6 @@ typedef struct {
 #define PHP_UV_RESOURCE_NAME "uv"
 #define PHP_UV_SOCKADDR_RESOURCE_NAME "uv_sockaddr"
 #define PHP_UV_LOOP_RESOURCE_NAME "uv_loop"
-#define PHP_UV_CONNECT_RESOURCE_NAME "uv_connect"
+#define PHP_UV_ARES_RESOURCE_NAME "uv_ares"
 
 #endif /* PHP_UV_H */
