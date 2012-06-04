@@ -33,7 +33,6 @@
 * UV_EXTERN int uv_async_init(uv_loop_t*, uv_async_t* async,uv_async_cb async_cb);
 * UV_EXTERN int uv_async_send(uv_async_t* async);
 
-* UV_EXTERN  int uv_ares_init_options(uv_loop_t*,ares_channel *channelptr, struct ares_options *options, int optmask);
 * UV_EXTERN void uv_ares_destroy(uv_loop_t*, ares_channel channel);
 
 * UV_EXTERN int uv_getaddrinfo(uv_loop_t*, uv_getaddrinfo_t* handle,uv_getaddrinfo_cb getaddrinfo_cb, const char* node, const char* service,const struct addrinfo* hints);
@@ -45,16 +44,8 @@
 
 * UV_EXTERN int uv_queue_work(uv_loop_t* loop, uv_work_t* req,uv_work_cb work_cb, uv_after_work_cb after_work_cb);
 * UV_EXTERN char** uv_setup_args(int argc, char** argv);
-* UV_EXTERN uv_err_t uv_get_process_title(char* buffer, size_t size);
 * UV_EXTERN uv_err_t uv_set_process_title(const char* title);
 * UV_EXTERN uv_err_t uv_resident_set_memory(size_t* rss);
-* UV_EXTERN uv_err_t uv_uptime(double* uptime);
-
-* UV_EXTERN uv_err_t uv_cpu_info(uv_cpu_info_t** cpu_infos, int* count);
-* UV_EXTERN void uv_free_cpu_info(uv_cpu_info_t* cpu_infos, int count);
-
-* UV_EXTERN uv_err_t uv_interface_addresses(uv_interface_address_t** addresses,int* count);
-* UV_EXTERN void uv_free_interface_addresses(uv_interface_address_t* addresses,int count);
 
 * UV_EXTERN void uv_fs_req_cleanup(uv_fs_t* req);
 * UV_EXTERN int uv_fs_close(uv_loop_t* loop, uv_fs_t* req, uv_file file,uv_fs_cb cb);
@@ -82,8 +73,6 @@
 * UV_EXTERN int uv_fs_fchmod(uv_loop_t* loop, uv_fs_t* req, uv_file file,int mode, uv_fs_cb cb);
 * UV_EXTERN int uv_fs_chown(uv_loop_t* loop, uv_fs_t* req, const char* path,int uid, int gid, uv_fs_cb cb);
 * UV_EXTERN int uv_fs_fchown(uv_loop_t* loop, uv_fs_t* req, uv_file file,int uid, int gid, uv_fs_cb cb);
-
-* UV_EXTERN void uv_loadavg(double avg[3]);
 
 * UV_EXTERN int uv_fs_event_init(uv_loop_t* loop, uv_fs_event_t* handle,const char* filename, uv_fs_event_cb cb, int flags);
 

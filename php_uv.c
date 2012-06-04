@@ -2198,6 +2198,129 @@ struct sockaddr_in {
 }
 /* }}} */
 
+/* {{{ */
+PHP_FUNCTION(uv_loadavg)
+{
+	zval *retval;
+	double average[3];
+
+	uv_loadavg(average);
+	
+	MAKE_STD_ZVAL(retval);
+	array_init(retval);
+	add_next_index_double(retval, average[0]);
+	add_next_index_double(retval, average[1]);
+	add_next_index_double(retval, average[2]);
+	
+	RETURN_ZVAL(retval,0,1);
+}
+/* }}} */
+
+/* {{{ */
+PHP_FUNCTION(uv_uptime)
+{
+	zval *retval;
+	uv_err_t error;
+	double uptime;
+
+	error = uv_uptime(&uptime);
+	
+	MAKE_STD_ZVAL(retval);
+	ZVAL_DOUBLE(retval, uptime);
+
+	RETURN_ZVAL(retval,0,1);
+}
+/* }}} */
+
+/* {{{ */
+PHP_FUNCTION(uv_get_process_title)
+{
+	char buffer[512] = {0};
+	size_t size;
+	uv_err_t error;
+
+	/* TODO: check behavior */
+	error = uv_get_process_title(buffer,sizeof(buffer));
+	if (UV_OK == error.code) {
+		RETURN_STRING(buffer,1);
+	}
+}
+/* }}} */
+	
+/* {{{ */
+PHP_FUNCTION(uv_cpu_info)
+{
+	zval *retval;
+	uv_cpu_info_t *cpus;
+	uv_err_t error;
+	int i, count;
+
+	error = uv_cpu_info(&cpus, &count);
+	if (UV_OK == error.code) {
+		MAKE_STD_ZVAL(retval);
+		array_init(retval);
+		
+		for (i = 0; i < count; i++) {
+			zval *tmp, *times;
+			MAKE_STD_ZVAL(tmp);
+			array_init(tmp);
+			MAKE_STD_ZVAL(times);
+			array_init(times);
+
+			add_assoc_string_ex(tmp, "model", sizeof("model"), cpus[i].model, 1);
+			add_assoc_long_ex(tmp,   "speed", sizeof("speed"), cpus[i].speed);
+
+			add_assoc_long_ex(times, "sys", sizeof("sys"), (size_t)cpus[i].cpu_times.sys);
+			add_assoc_long_ex(times, "user", sizeof("user"), (size_t)cpus[i].cpu_times.user);
+			add_assoc_long_ex(times, "idle", sizeof("idle"), (size_t)cpus[i].cpu_times.idle);
+			add_assoc_long_ex(times, "irq", sizeof("irq"), (size_t)cpus[i].cpu_times.irq);
+			add_assoc_long_ex(times, "nice", sizeof("nice"), (size_t)cpus[i].cpu_times.nice);
+			add_assoc_zval_ex(tmp,"times", sizeof("times"), times);
+
+			add_next_index_zval(retval,tmp);
+		}
+		uv_free_cpu_info(cpus, count);
+		RETURN_ZVAL(retval,0,1);
+	}
+}
+/* }}} */
+
+
+/* {{{ */
+PHP_FUNCTION(uv_interface_addresses)
+{
+	zval *retval;
+	uv_interface_address_t *interfaces;
+	uv_err_t error;
+	char buffer[512];
+	int i, count;
+
+	error = uv_interface_addresses(&interfaces, &count);
+	if (UV_OK == error.code) {
+		MAKE_STD_ZVAL(retval);
+		array_init(retval);
+		
+		for (i = 0; i < count; i++) {
+			zval *tmp, *times;
+			MAKE_STD_ZVAL(tmp);
+			array_init(tmp);
+			add_assoc_string_ex(tmp, "name", sizeof("name"), interfaces[i].name , 1);
+			add_assoc_bool_ex(tmp, "is_internal", sizeof("is_internal"), interfaces[i].is_internal);
+
+			if (interfaces[i].address.address4.sin_family == AF_INET) {
+				uv_ip4_name(&interfaces[i].address.address4, buffer, sizeof(buffer));
+			} else if (interfaces[i].address.address4.sin_family == AF_INET6) {
+				uv_ip6_name(&interfaces[i].address.address6, buffer, sizeof(buffer));
+			}
+			add_assoc_string_ex(tmp, "address", sizeof("address"), buffer, 1);
+
+			add_next_index_zval(retval,tmp);
+		}
+		uv_free_interface_addresses(interfaces, count);
+		RETURN_ZVAL(retval,0,1);
+	}
+}
+/* }}} */
 
 static zend_function_entry uv_functions[] = {
 	/* general */
@@ -2260,6 +2383,12 @@ static zend_function_entry uv_functions[] = {
 	PHP_FE(ares_gethostbyname, NULL)
 	PHP_FE(ares_test, NULL)
 	/* PHP_FE(ares_gethostbyname, arginfo_ares_gethostbyname) */
+	/* info */
+	PHP_FE(uv_loadavg, NULL)
+	PHP_FE(uv_uptime, NULL)
+	PHP_FE(uv_get_process_title, NULL)
+	PHP_FE(uv_cpu_info, NULL)
+	PHP_FE(uv_interface_addresses, NULL)
 	{NULL, NULL, NULL}
 };
 
