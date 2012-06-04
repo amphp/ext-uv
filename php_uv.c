@@ -663,7 +663,7 @@ PHP_MINIT_FUNCTION(uv) {
 	rc = ares_library_init(ARES_LIB_INIT_ALL);
 	if (rc != 0) {
 		printf("ares library init fails %d\n", rc);
-		return;
+		return FAILURE;
 	}
 
 	return SUCCESS;
