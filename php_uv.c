@@ -329,7 +329,7 @@ static void php_uv_write_cb(uv_write_t* req, int status)
 	
 	MAKE_STD_ZVAL(client);
 	ZVAL_RESOURCE(client, uv->resource_id);
-	zend_list_addref(uv->resource_id);
+	//zend_list_addref(uv->resource_id);
 
 	params[0] = &stat;
 	params[1] = &client;
@@ -427,13 +427,15 @@ static void php_uv_read_cb(uv_stream_t* handle, ssize_t nread, uv_buf_t buf)
 	zval **params[2];
 	zval *buffer;
 	
+	php_uv_t *uv = (php_uv_t*)handle->data;
+
 	if (nread < 0) {
 		/* does this should be in user-land ? */
 		uv_shutdown_t* req;
 		
 		/* Error or EOF */
 		assert(uv_last_error(uv_default_loop()).code == UV_EOF);
-
+		zend_list_delete(uv->resource_id);
 		if (buf.base) {
 			efree(buf.base);
 		}
@@ -449,7 +451,6 @@ static void php_uv_read_cb(uv_stream_t* handle, ssize_t nread, uv_buf_t buf)
 		return;
 	}
 	
-	php_uv_t *uv = (php_uv_t*)handle->data;
 
 	MAKE_STD_ZVAL(buffer);
 	ZVAL_STRINGL(buffer,buf.base,nread, 1);
@@ -457,7 +458,7 @@ static void php_uv_read_cb(uv_stream_t* handle, ssize_t nread, uv_buf_t buf)
 	zval *rsc;
 	MAKE_STD_ZVAL(rsc);
 	ZVAL_RESOURCE(rsc, uv->resource_id);
-	//zend_list_addref(uv->resource_id)
+	//zend_list_addref(uv->resource_id);
 
 	params[0] = &buffer;
 	params[1] = &rsc;

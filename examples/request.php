@@ -25,6 +25,8 @@ Host: {$host}
 
 
 EOF;
+        echo $request;
+        var_dump($client);
         uv_write($client,$request,function($stat, $client){
             if ($stat == 0) {
                 uv_read_start($client,function($buffer, $client){
