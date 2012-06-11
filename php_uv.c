@@ -1355,7 +1355,7 @@ PHP_FUNCTION(uv_tcp_connect)
 PHP_FUNCTION(uv_timer_init)
 {
 	int r;
-	zval *zloop;
+	zval *zloop = NULL;
 	uv_loop_t *loop;
 	php_uv_t *uv;
 	
@@ -1363,7 +1363,7 @@ PHP_FUNCTION(uv_timer_init)
 		"|z",&zloop) == FAILURE) {
 		return;
 	}
-	if (loop) {
+	if (zloop != NULL) {
 		ZEND_FETCH_RESOURCE(loop, uv_loop_t*, &zloop, -1, PHP_UV_LOOP_RESOURCE_NAME, uv_loop_handle);
 	} else {
 		loop = uv_default_loop();
