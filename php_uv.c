@@ -324,6 +324,7 @@ static void php_uv_write_cb(uv_write_t* req, int status)
 	wr = (write_req_t*) req;
 	php_uv_t *uv = (php_uv_t*)req->data;
 	
+	fprintf(stderr,"status: %d\n", status);
 	MAKE_STD_ZVAL(stat);
 	ZVAL_LONG(stat, status);
 	
@@ -336,9 +337,13 @@ static void php_uv_write_cb(uv_write_t* req, int status)
 	
 	php_uv_do_callback(&retval_ptr, uv->write_cb, params, 2 TSRMLS_CC);
 
+	params[0] = NULL;
+	params[1] = NULL;
+	
 	zval_ptr_dtor(&retval_ptr);
 	zval_ptr_dtor(&stat);
 	zval_ptr_dtor(&client);
+	
 
 	if (wr->buf.base) {
 		//free(wr->buf.base);
@@ -411,7 +416,10 @@ static void php_uv_listen_cb(uv_stream_t* server, int status)
 
 static void php_uv_close_cb2(uv_handle_t *handle)
 {
-	/* what should I do here? */
+	TSRMLS_FETCH();
+	php_uv_t *uv = (php_uv_t*)handle->data;
+	fprintf(stderr,"closecb2");
+	zend_list_delete(uv->resource_id);
 }
 
 static void php_uv_shutdown_cb(uv_shutdown_t* req, int status)
@@ -431,17 +439,18 @@ static void php_uv_read_cb(uv_stream_t* handle, ssize_t nread, uv_buf_t buf)
 
 	if (nread < 0) {
 		/* does this should be in user-land ? */
-		uv_shutdown_t* req;
+		//uv_shutdown_t* req;
 		
 		/* Error or EOF */
 		assert(uv_last_error(uv_default_loop()).code == UV_EOF);
-		zend_list_delete(uv->resource_id);
+		//zend_list_delete(uv->resource_id);
 		if (buf.base) {
 			efree(buf.base);
 		}
 		
-		req = (uv_shutdown_t*) emalloc(sizeof *req);
-		uv_shutdown(req, handle, php_uv_shutdown_cb);
+		//req = (uv_shutdown_t*) emalloc(sizeof *req);
+		fprintf(stderr,"read close");
+		uv_close(handle, php_uv_close_cb2);
 		return;
 	}
 	
@@ -1131,6 +1140,7 @@ PHP_FUNCTION(uv_write)
 	}
 	
 	ZEND_FETCH_RESOURCE(client, php_uv_t *, &z_cli, -1, PHP_UV_RESOURCE_NAME, uv_resource_handle);
+	Z_ADDREF_P(z_cli);
 	Z_ADDREF_P(callback);
 	client->write_cb = callback;
 	zend_list_addref(client->resource_id);
@@ -1216,6 +1226,7 @@ PHP_FUNCTION(uv_close)
 /* {{{ */
 PHP_FUNCTION(uv_read_start)
 {
+	fprintf(stderr,"uv_read_start");
 	zval *client, *callback;
 	php_uv_t *uv;
 	int r;
@@ -1243,7 +1254,6 @@ PHP_FUNCTION(uv_read_start)
 	if (r) {
 		php_error_docref(NULL TSRMLS_CC, E_NOTICE, "read failed");
 	}
-	zval_ptr_dtor(&client);
 }
 /* }}} */
 
