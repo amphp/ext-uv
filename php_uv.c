@@ -1545,12 +1545,12 @@ PHP_FUNCTION(uv_idle_stop)
 PHP_FUNCTION(uv_tcp_init)
 {
 	int r;
-	zval *zloop;
+	zval *zloop = NULL;
 	uv_loop_t *loop;
 	php_uv_t *uv;
 	
 	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
-		"|z",&loop) == FAILURE) {
+		"|z",&zloop) == FAILURE) {
 		return;
 	}
 
@@ -1559,7 +1559,7 @@ PHP_FUNCTION(uv_tcp_init)
 		php_error_docref(NULL TSRMLS_CC, E_ERROR, "uv_tcp_init emalloc failed");
 		return;
 	}
-	if (loop) {
+	if (zloop != NULL) {
 		ZEND_FETCH_RESOURCE(loop, uv_loop_t*, &zloop, -1, PHP_UV_LOOP_RESOURCE_NAME, uv_loop_handle);
 	} else {
 		loop = uv_default_loop();
