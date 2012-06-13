@@ -2350,6 +2350,54 @@ PHP_FUNCTION(uv_interface_addresses)
 }
 /* }}} */
 
+
+
+static void exit_cb(uv_process_t* process, int exit_status, int term_signal) {
+  printf("exit_cb status:%d term_signal:%d\n", exit_status, term_signal);
+  //uv_close((uv_handle_t*)process, close_cb);
+}
+
+/* {{{ */
+PHP_FUNCTION(uv_spawn)
+{
+	int r;
+	zval *zloop = NULL;
+	uv_loop_t *loop;
+	uv_process_t *process;
+	uv_process_options_t options;
+	uv_pipe_t in;
+	uv_pipe_t out;
+	uv_pipe_t err;
+
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
+		"|z", &zloop) == FAILURE) {
+		return;
+	}
+	if (zloop) {
+		ZEND_FETCH_RESOURCE(loop, uv_loop_t*, &zloop, -1, PHP_UV_LOOP_RESOURCE_NAME, uv_loop_handle);
+	} else {
+		loop = uv_default_loop();
+	}
+
+	process = (uv_process_t *)emalloc(sizeof(uv_process_t));
+	uv_pipe_init(loop, &in, 0);
+	uv_pipe_init(loop, &out, 0);
+	uv_pipe_init(loop, &err, 0);
+	
+	options.file          = "ps";
+	options.cwd           = "/bin/";
+	options.args          = NULL;
+	options.stdin_stream  = &in;
+	options.stdout_stream = &out;
+	options.stderr_stream = &err;
+	options.exit_cb       = exit_cb;
+	
+	uv_spawn(loop, process, options);
+	uv_run(loop);
+}
+/* }}} */
+
+
 static zend_function_entry uv_functions[] = {
 	/* general */
 	PHP_FE(uv_update_time, arginfo_uv_update_time)
@@ -2403,6 +2451,8 @@ static zend_function_entry uv_functions[] = {
 	PHP_FE(uv_pipe_open, arginfo_uv_pipe_open)
 	PHP_FE(uv_pipe_connect, arginfo_uv_pipe_connect)
 	PHP_FE(uv_pipe_pending_instances, arginfo_uv_pipe_pending_instances)
+	/* spawn */
+	PHP_FE(uv_spawn, NULL)
 	/* for debug */
 	PHP_FE(uv_loop_refcount, arginfo_uv_loop_refcount)
 	/* c-ares */
