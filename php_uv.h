@@ -40,6 +40,9 @@ enum php_uv_resource_type{
 
 typedef struct {
 	int in_free;
+#ifdef ZTS
+	void ***thread_ctx;
+#endif
 	int resource_id;
 	int type;
 	union {
