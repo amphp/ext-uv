@@ -34,7 +34,8 @@ enum php_uv_resource_type{
 	IS_UV_HANDLE = 7,
 	IS_UV_STREAM = 8,
 	IS_UV_ADDRINFO = 9,
-	IS_UV_MAX = 10
+	IS_UV_PROCESS = 10,
+	IS_UV_MAX = 11
 };
 
 typedef struct {
@@ -52,6 +53,7 @@ typedef struct {
 		uv_handle_t handle;
 		uv_stream_t stream;
 		uv_getaddrinfo_t addrinfo;
+		uv_process_t process;
 	} uv;
 	zval *address;
 	zval *listen_cb;
@@ -65,6 +67,7 @@ typedef struct {
 	zval *udp_recv_cb;
 	zval *udp_send_cb;
 	zval *pipe_connect_cb;
+	zval *proc_close_cb;
 } php_uv_t;
 
 typedef struct {
