@@ -662,6 +662,7 @@ static void php_uv_timer_cb(uv_timer_t *handle, int status)
 
 static inline uv_stream_t* php_uv_get_current_stream(php_uv_t *uv)
 {
+	TSRMLS_FETCH();
 	uv_stream_t *stream;
 	switch(uv->type) {
 		case IS_UV_TCP:
@@ -695,7 +696,7 @@ static inline uv_stream_t* php_uv_get_current_stream(php_uv_t *uv)
 			stream = (uv_stream_t*)&uv->uv.process;
 		break;
 		default:
-			fprintf(stderr,"damepo");
+			php_error_docref(NULL TSRMLS_CC, E_ERROR, "unexpected type found");
 			break;
 	}
 	
@@ -2397,12 +2398,11 @@ PHP_FUNCTION(uv_spawn)
 	uv_loop_t *loop;
 	uv_process_t *process;
 	uv_process_options_t options = {0};
-	uv_pipe_t in;
-	uv_pipe_t err;
 	php_uv_t *proc;
 
 	zval *args, *context, *callback;
 	char *command;
+	char **command_args;
 	int command_len = 0;
 
 	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
@@ -2415,11 +2415,15 @@ PHP_FUNCTION(uv_spawn)
 	} else {
 		loop = uv_default_loop();
 	}
-	
+
 	{
 		HashTable *h;
 		h = Z_ARRVAL_P(context);
 		zval **data;
+
+		if (zend_hash_find(h, "cwd", sizeof("cwd"), (void **)&data) == SUCCESS) {
+			options.cwd = Z_STRVAL_PP(data);
+		}
 		
 		if (zend_hash_find(h, "pipes", sizeof("pipes"), (void **)&data) == SUCCESS) {
 			HashTable *pipes;
@@ -2441,32 +2445,61 @@ PHP_FUNCTION(uv_spawn)
 				
 				zend_hash_get_current_data_ex(pipes, (void *) &value, &pos);
 				if (Z_TYPE_PP(value) != IS_RESOURCE) {
-					fprintf(stderr,"damepo");
+					php_error_docref(NULL TSRMLS_CC, E_ERROR, "must be uv_pipe resource");
 				}
+				
 				ZEND_FETCH_RESOURCE(pipe, php_uv_t *, value, -1, PHP_UV_RESOURCE_NAME, uv_resource_handle);
 
 				if (pos->h == 0) {
 					options.stdout_stream = &pipe->uv.pipe;
+				} else if (pos->h == 1) {
+					options.stdin_stream = &pipe->uv.pipe;
+				} else if (pos->h == 2) {
+					options.stderr_stream = &pipe->uv.pipe;
 				}
 			}
 			
 		}
 	}
 
+	{
+		HashTable *h;
+		h = Z_ARRVAL_P(args);
+		zval **data;
+		HashPosition pos;
+		char *key;
+		int key_type;
+		uint key_len;
+		ulong key_index;
+		int i, hash_len = 0;
+		
+		hash_len = zend_hash_num_elements(h)+1;
+		command_args = ecalloc(hash_len+1, sizeof(char**));
+		command_args[0] = options.cwd;
+		for (zend_hash_internal_pointer_reset_ex(h, &pos);
+			(key_type = zend_hash_get_current_key_ex(h, &key, &key_len, &key_index, 0, &pos)) != HASH_KEY_NON_EXISTANT;
+			zend_hash_move_forward_ex(h, &pos)) {
+
+			zval **value;
+			php_uv_t *pipe;
+			
+			zend_hash_get_current_data_ex(h, (void *) &value, &pos);
+			command_args[pos->h+1] = Z_STRVAL_PP(value);
+		}
+		command_args[hash_len] = NULL;
+		
+	}
+
+
 	proc  = (php_uv_t *)emalloc(sizeof(php_uv_t));
 	PHP_UV_INIT_ZVALS(proc);
 	proc->proc_close_cb = callback;
 	Z_ADDREF_P(callback);
-
-	uv_pipe_init(loop, &in, 0);
-	uv_pipe_init(loop, &err, 0);
 	
 	options.file          = command;
-	options.cwd           = "/bin/";
-	options.args          = NULL;
-	options.stdin_stream  = &in;
-	options.stderr_stream = &err;
-	
+	if (command_args) {
+		options.args = command_args;
+	}
 	options.exit_cb       = php_uv_process_close_cb;
 
 	ZEND_REGISTER_RESOURCE(return_value, proc, uv_resource_handle);
@@ -2476,6 +2509,10 @@ PHP_FUNCTION(uv_spawn)
 	zval_copy_ctor(return_value);
 	
 	uv_spawn(loop, &proc->uv.process, options);
+	if (command_args) {
+		efree(command_args);
+	}
+
 }
 /* }}} */
 
