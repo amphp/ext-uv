@@ -38,7 +38,6 @@
 * UV_EXTERN int uv_getaddrinfo(uv_loop_t*, uv_getaddrinfo_t* handle,uv_getaddrinfo_cb getaddrinfo_cb, const char* node, const char* service,const struct addrinfo* hints);
 * UV_EXTERN void uv_freeaddrinfo(struct addrinfo* ai);
 
-* UV_EXTERN int uv_spawn(uv_loop_t*, uv_process_t*,uv_process_options_t options);
 * UV_EXTERN int uv_process_kill(uv_process_t*, int signum);
 * UV_EXTERN uv_err_t uv_kill(int pid, int signum);
 
