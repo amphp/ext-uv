@@ -6,7 +6,7 @@ if test $PHP_UV != "no"; then
 
     PHP_CHECK_LIBRARY(uv, uv_run, [
         AC_MSG_RESULT(found)
-        PHP_ADD_LIBRARY_WITH_PATH(uv, libuv, MRUBY_SHARED_LIBADD)
+        PHP_ADD_LIBRARY_WITH_PATH(uv, libuv, UV_SHARED_LIBADD)
         PHP_ADD_INCLUDE([$ext_srcdir/libuv/include])
     ],[
         AC_MSG_RESULT([not found])
