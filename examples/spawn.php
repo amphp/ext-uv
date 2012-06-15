@@ -1,10 +1,14 @@
 <?php
 
 $out = uv_pipe_init(uv_default_loop,0);
-uv_spawn(uv_default_loop(), "php", array("--version"), array(
+uv_spawn(uv_default_loop(), "php", array('-r','var_dump($_ENV);'), array(
     "cwd" => "/usr/bin/",
     "pipes" => array(
         $out,
+    ),
+    "env" => array(
+        "KEY" => "VALUE",
+        "HELLO" => "WORLD",
     )
 ),function($process, $stat, $signal){
     echo "spawn_close_cb\n";

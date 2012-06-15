@@ -2406,6 +2406,7 @@ PHP_FUNCTION(uv_spawn)
 	php_uv_t *proc;
 
 	zval *args, *context, *callback;
+	char **zenv;
 	char *command;
 	char **command_args;
 	int command_len = 0;
@@ -2428,6 +2429,36 @@ PHP_FUNCTION(uv_spawn)
 
 		if (zend_hash_find(h, "cwd", sizeof("cwd"), (void **)&data) == SUCCESS) {
 			options.cwd = Z_STRVAL_PP(data);
+		}
+		
+		if (zend_hash_find(h, "env", sizeof("env"), (void **)&data) == SUCCESS) {
+			HashTable *env;
+			HashPosition pos;
+			char *key;
+			int key_type;
+			uint key_len;
+			ulong key_index;
+			int i = 0;
+			
+			env = Z_ARRVAL_P(*data);
+
+			zenv = emalloc(sizeof(char*) * (zend_hash_num_elements(env)+1));
+			for (zend_hash_internal_pointer_reset_ex(env, &pos);
+				(key_type = zend_hash_get_current_key_ex(env, &key, &key_len, &key_index, 0, &pos)) != HASH_KEY_NON_EXISTANT;
+				zend_hash_move_forward_ex(env, &pos)) {
+
+				zval **value;
+				char *hoge;
+				zend_hash_get_current_data_ex(env, (void *) &value, &pos);
+				
+				hoge = emalloc(sizeof(char)*key_len+1+Z_STRLEN_PP(value));
+				slprintf(hoge,key_len+1+Z_STRLEN_PP(value),"%s=%s",key, Z_STRVAL_PP(value));
+				zenv[i] = estrdup(hoge);
+				efree(hoge);
+				i++;
+			}
+			zenv[i] = NULL;
+			options.env = zenv;
 		}
 		
 		if (zend_hash_find(h, "pipes", sizeof("pipes"), (void **)&data) == SUCCESS) {
@@ -2515,6 +2546,14 @@ PHP_FUNCTION(uv_spawn)
 	zval_copy_ctor(return_value);
 	
 	uv_spawn(loop, &proc->uv.process, options);
+	if (zenv!=NULL) {
+		char **p = zenv;
+		while(*p != NULL) {
+			efree(*p);
+			p++;
+		}
+		efree(zenv);
+	}
 	if (command_args) {
 		efree(command_args);
 	}
