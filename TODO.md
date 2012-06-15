@@ -39,7 +39,6 @@
 * UV_EXTERN void uv_freeaddrinfo(struct addrinfo* ai);
 
 * UV_EXTERN int uv_process_kill(uv_process_t*, int signum);
-* UV_EXTERN uv_err_t uv_kill(int pid, int signum);
 
 * UV_EXTERN int uv_queue_work(uv_loop_t* loop, uv_work_t* req,uv_work_cb work_cb, uv_after_work_cb after_work_cb);
 * UV_EXTERN char** uv_setup_args(int argc, char** argv);

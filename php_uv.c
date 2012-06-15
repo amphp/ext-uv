@@ -2453,8 +2453,7 @@ PHP_FUNCTION(uv_spawn)
 				
 				hoge = emalloc(sizeof(char)*key_len+1+Z_STRLEN_PP(value));
 				slprintf(hoge,key_len+1+Z_STRLEN_PP(value),"%s=%s",key, Z_STRVAL_PP(value));
-				zenv[i] = estrdup(hoge);
-				efree(hoge);
+				zenv[i] = hoge;
 				i++;
 			}
 			zenv[i] = NULL;
@@ -2523,7 +2522,6 @@ PHP_FUNCTION(uv_spawn)
 			command_args[pos->h+1] = Z_STRVAL_PP(value);
 		}
 		command_args[hash_len] = NULL;
-		
 	}
 
 
@@ -2539,10 +2537,11 @@ PHP_FUNCTION(uv_spawn)
 	}
 	options.exit_cb       = php_uv_process_close_cb;
 
-	ZEND_REGISTER_RESOURCE(return_value, proc, uv_resource_handle);
-	proc->resource_id = Z_LVAL_P(return_value);
 	proc->type = IS_UV_PROCESS;
 	proc->uv.process.data = proc;
+
+	ZEND_REGISTER_RESOURCE(return_value, proc, uv_resource_handle);
+	proc->resource_id = Z_LVAL_P(return_value);
 	zval_copy_ctor(return_value);
 	
 	uv_spawn(loop, &proc->uv.process, options);
@@ -2561,6 +2560,36 @@ PHP_FUNCTION(uv_spawn)
 }
 /* }}} */
 
+
+/* {{{ TODO: */
+PHP_FUNCTION(uv_process_kill)
+{
+	php_uv_t *uv;
+	zval *handle;
+	int signal;
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
+		"zl", &handle, &signal) == FAILURE) {
+		return;
+	}
+
+	ZEND_FETCH_RESOURCE(uv, php_uv_t *, &handle, -1, PHP_UV_RESOURCE_NAME, uv_resource_handle);
+	uv_process_kill(&uv->uv.process, signal);
+}
+/* }}} */
+
+/* {{{ */
+PHP_FUNCTION(uv_kill)
+{
+	uv_err_t error;
+	long pid, signal;
+
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
+		"ll", &pid, &signal) == FAILURE) {
+		return;
+	}
+	uv_kill(pid, signal);
+}
+/* }}} */
 
 static zend_function_entry uv_functions[] = {
 	/* general */
@@ -2617,6 +2646,8 @@ static zend_function_entry uv_functions[] = {
 	PHP_FE(uv_pipe_pending_instances, arginfo_uv_pipe_pending_instances)
 	/* spawn */
 	PHP_FE(uv_spawn, NULL)
+	PHP_FE(uv_process_kill, NULL)
+	PHP_FE(uv_kill, NULL)
 	/* for debug */
 	PHP_FE(uv_loop_refcount, arginfo_uv_loop_refcount)
 	/* c-ares */

@@ -1,7 +1,7 @@
 <?php
 
 $out = uv_pipe_init(uv_default_loop,0);
-uv_spawn(uv_default_loop(), "php", array('-r','var_dump($_ENV);'), array(
+$process = uv_spawn(uv_default_loop(), "php", array('-r','var_dump($_ENV);'), array(
     "cwd" => "/usr/bin/",
     "pipes" => array(
         $out,
