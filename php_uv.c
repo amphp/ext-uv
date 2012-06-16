@@ -970,6 +970,11 @@ ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_process_kill, 0, 0, 2)
 	ZEND_ARG_INFO(0, signal)
 ZEND_END_ARG_INFO()
 
+
+ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_chdir, 0, 0, 1)
+	ZEND_ARG_INFO(0, dir)
+ZEND_END_ARG_INFO()
+
 /* PHP Functions */
 
 /* {{{ */
@@ -2660,6 +2665,28 @@ PHP_FUNCTION(uv_kill)
 }
 /* }}} */
 
+/* {{{ */
+PHP_FUNCTION(uv_chdir)
+{
+	uv_err_t error;
+	char *directory;
+	int directory_len;
+	
+
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
+		"s", &directory, &directory_len) == FAILURE) {
+		return;
+	}
+	error = uv_chdir(directory);
+	if (error.code == UV_OK) {
+		RETURN_TRUE;
+	} else {
+		RETURN_FALSE;
+	}
+}
+/* }}} */
+
+
 static zend_function_entry uv_functions[] = {
 	/* general */
 	PHP_FE(uv_update_time, arginfo_uv_update_time)
@@ -2736,6 +2763,7 @@ static zend_function_entry uv_functions[] = {
 	PHP_FE(uv_hrtime, NULL)
 	PHP_FE(uv_exepath, NULL)
 	PHP_FE(uv_cwd, NULL)
+	PHP_FE(uv_chdir, arginfo_uv_chdir)
 	{NULL, NULL, NULL}
 };
 
