@@ -951,6 +951,16 @@ ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_pipe_pending_instances, 0, 0, 2)
 	ZEND_ARG_INFO(0, count)
 ZEND_END_ARG_INFO()
 
+ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_kill, 0, 0, 2)
+	ZEND_ARG_INFO(0, pid)
+	ZEND_ARG_INFO(0, signal)
+ZEND_END_ARG_INFO()
+
+ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_process_kill, 0, 0, 2)
+	ZEND_ARG_INFO(0, process)
+	ZEND_ARG_INFO(0, signal)
+ZEND_END_ARG_INFO()
+
 /* PHP Functions */
 
 /* {{{ */
@@ -2646,8 +2656,8 @@ static zend_function_entry uv_functions[] = {
 	PHP_FE(uv_pipe_pending_instances, arginfo_uv_pipe_pending_instances)
 	/* spawn */
 	PHP_FE(uv_spawn, NULL)
-	PHP_FE(uv_process_kill, NULL)
-	PHP_FE(uv_kill, NULL)
+	PHP_FE(uv_process_kill, arginfo_uv_process_kill)
+	PHP_FE(uv_kill, arginfo_uv_kill)
 	/* for debug */
 	PHP_FE(uv_loop_refcount, arginfo_uv_loop_refcount)
 	/* c-ares */
