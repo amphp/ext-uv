@@ -951,6 +951,15 @@ ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_pipe_pending_instances, 0, 0, 2)
 	ZEND_ARG_INFO(0, count)
 ZEND_END_ARG_INFO()
 
+ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_spawn, 0, 0, 5)
+	ZEND_ARG_INFO(0, loop)
+	ZEND_ARG_INFO(0, command)
+	ZEND_ARG_INFO(0, args)
+	ZEND_ARG_INFO(0, options)
+	ZEND_ARG_INFO(0, callback)
+ZEND_END_ARG_INFO()
+
+
 ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_kill, 0, 0, 2)
 	ZEND_ARG_INFO(0, pid)
 	ZEND_ARG_INFO(0, signal)
@@ -2655,7 +2664,7 @@ static zend_function_entry uv_functions[] = {
 	PHP_FE(uv_pipe_connect, arginfo_uv_pipe_connect)
 	PHP_FE(uv_pipe_pending_instances, arginfo_uv_pipe_pending_instances)
 	/* spawn */
-	PHP_FE(uv_spawn, NULL)
+	PHP_FE(uv_spawn, arginfo_uv_spawn)
 	PHP_FE(uv_process_kill, arginfo_uv_process_kill)
 	PHP_FE(uv_kill, arginfo_uv_kill)
 	/* for debug */
