@@ -68,6 +68,8 @@ static int uv_loop_handle;
 
 static int uv_sockaddr_handle;
 
+static int uv_rwlock_handle;
+
 
 /* declarations */
 
@@ -112,6 +114,14 @@ static void php_uv_timer_cb(uv_timer_t *handle, int status);
 static void php_uv_idle_cb(uv_timer_t *handle, int status);
 
 /* destructor */
+
+void static destruct_uv_rwlock(zend_rsrc_list_entry *rsrc TSRMLS_DC)
+{
+	uv_rwlock_t *rwlock = (uv_rwlock_t *)rsrc->ptr;
+	uv_rwlock_destroy(rwlock);
+	efree(rwlock);
+}
+
 
 void static destruct_uv_loop(zend_rsrc_list_entry *rsrc TSRMLS_DC)
 {
@@ -715,6 +725,7 @@ PHP_MINIT_FUNCTION(uv) {
 	uv_ares_handle  = zend_register_list_destructors_ex(destruct_uv_ares, NULL, PHP_UV_ARES_RESOURCE_NAME, module_number);
 	uv_loop_handle = zend_register_list_destructors_ex(destruct_uv_loop, NULL, PHP_UV_LOOP_RESOURCE_NAME, module_number);
 	uv_sockaddr_handle = zend_register_list_destructors_ex(destruct_uv_sockaddr, NULL, PHP_UV_SOCKADDR_RESOURCE_NAME, module_number);
+	uv_rwlock_handle = zend_register_list_destructors_ex(destruct_uv_rwlock, NULL, PHP_UV_RWLOCK_RESOURCE_NAME, module_number);
 
 	rc = ares_library_init(ARES_LIB_INIT_ALL);
 	if (rc != 0) {
@@ -2687,6 +2698,22 @@ PHP_FUNCTION(uv_chdir)
 /* }}} */
 
 
+/* {{{ */
+PHP_FUNCTION(uv_rwlock_init)
+{
+	uv_rwlock_t *lock;
+	int error;
+	
+	lock = emalloc(sizeof(uv_rwlock_t));
+	error = uv_rwlock_init(lock);
+	if (error == 0) {
+		ZEND_REGISTER_RESOURCE(return_value, lock, uv_rwlock_handle);
+	} else {
+		RETURN_FALSE;
+	}
+}
+/* }}} */
+
 static zend_function_entry uv_functions[] = {
 	/* general */
 	PHP_FE(uv_update_time, arginfo_uv_update_time)
@@ -2752,6 +2779,8 @@ static zend_function_entry uv_functions[] = {
 	PHP_FE(ares_gethostbyname, NULL)
 	PHP_FE(ares_test, NULL)
 	/* PHP_FE(ares_gethostbyname, arginfo_ares_gethostbyname) */
+	/* rwlock */
+	PHP_FE(uv_rwlock_init, NULL)
 	/* info */
 	PHP_FE(uv_loadavg, NULL)
 	PHP_FE(uv_uptime, NULL)

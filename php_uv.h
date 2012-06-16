@@ -94,5 +94,6 @@ typedef struct {
 #define PHP_UV_SOCKADDR_RESOURCE_NAME "uv_sockaddr"
 #define PHP_UV_LOOP_RESOURCE_NAME "uv_loop"
 #define PHP_UV_ARES_RESOURCE_NAME "uv_ares"
+#define PHP_UV_RWLOCK_RESOURCE_NAME "uv_rwlock"
 
 #endif /* PHP_UV_H */
