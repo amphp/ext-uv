@@ -2338,7 +2338,30 @@ PHP_FUNCTION(uv_get_process_title)
 	}
 }
 /* }}} */
-	
+
+/* {{{ */
+PHP_FUNCTION(uv_get_free_memory)
+{
+	RETURN_LONG(uv_get_free_memory());
+}
+/* }}} */
+
+/* {{{ */
+PHP_FUNCTION(uv_get_total_memory)
+{
+	RETURN_LONG(uv_get_total_memory());
+}
+/* }}} */
+
+/* {{{ */
+PHP_FUNCTION(uv_hrtime)
+{
+	/* TODO: check behavior */
+	RETURN_LONG(uv_hrtime());
+}
+/* }}} */
+
+
 /* {{{ */
 PHP_FUNCTION(uv_cpu_info)
 {
@@ -2681,6 +2704,9 @@ static zend_function_entry uv_functions[] = {
 	PHP_FE(uv_get_process_title, NULL)
 	PHP_FE(uv_cpu_info, NULL)
 	PHP_FE(uv_interface_addresses, NULL)
+	PHP_FE(uv_get_free_memory, NULL)
+	PHP_FE(uv_get_total_memory, NULL)
+	PHP_FE(uv_hrtime, NULL)
 	{NULL, NULL, NULL}
 };
 

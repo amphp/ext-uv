@@ -81,9 +81,6 @@
 * UV_EXTERN int uv_exepath(char* buffer, size_t* size);
 * UV_EXTERN uv_err_t uv_cwd(char* buffer, size_t size);
 * UV_EXTERN uv_err_t uv_chdir(const char* dir);
-* UV_EXTERN uint64_t uv_get_free_memory(void);
-* UV_EXTERN uint64_t uv_get_total_memory(void);
-* UV_EXTERN extern uint64_t uv_hrtime(void);
 
 * UV_EXTERN int uv_mutex_init(uv_mutex_t* handle);
 * UV_EXTERN void uv_mutex_destroy(uv_mutex_t* handle);
