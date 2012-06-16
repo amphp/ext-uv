@@ -78,8 +78,6 @@
 * UV_EXTERN int uv_ip4_name(struct sockaddr_in* src, char* dst, size_t size);
 * UV_EXTERN int uv_ip6_name(struct sockaddr_in6* src, char* dst, size_t size);
 
-* UV_EXTERN int uv_exepath(char* buffer, size_t* size);
-* UV_EXTERN uv_err_t uv_cwd(char* buffer, size_t size);
 * UV_EXTERN uv_err_t uv_chdir(const char* dir);
 
 * UV_EXTERN int uv_mutex_init(uv_mutex_t* handle);

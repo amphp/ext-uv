@@ -2376,6 +2376,20 @@ PHP_FUNCTION(uv_exepath)
 /* }}} */
 
 /* {{{ */
+PHP_FUNCTION(uv_cwd)
+{
+	char buffer[1024] = {0};
+	size_t buffer_sz = sizeof(buffer);
+	
+	/* TODO: check behavior */
+	uv_cwd(buffer, &buffer_sz);
+	buffer[buffer_sz] = '\0';
+	
+	RETURN_STRINGL(buffer, buffer_sz, 1);
+}
+/* }}} */
+
+/* {{{ */
 PHP_FUNCTION(uv_cpu_info)
 {
 	zval *retval;
@@ -2721,6 +2735,7 @@ static zend_function_entry uv_functions[] = {
 	PHP_FE(uv_get_total_memory, NULL)
 	PHP_FE(uv_hrtime, NULL)
 	PHP_FE(uv_exepath, NULL)
+	PHP_FE(uv_cwd, NULL)
 	{NULL, NULL, NULL}
 };
 
