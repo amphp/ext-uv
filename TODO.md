@@ -88,8 +88,6 @@
 * UV_EXTERN int uv_mutex_trylock(uv_mutex_t* handle);
 * UV_EXTERN void uv_mutex_unlock(uv_mutex_t* handle);
 
-* UV_EXTERN int uv_rwlock_init(uv_rwlock_t* rwlock);
-* UV_EXTERN void uv_rwlock_destroy(uv_rwlock_t* rwlock);
 * UV_EXTERN void uv_rwlock_rdlock(uv_rwlock_t* rwlock);
 * UV_EXTERN int uv_rwlock_tryrdlock(uv_rwlock_t* rwlock);
 * UV_EXTERN void uv_rwlock_rdunlock(uv_rwlock_t* rwlock);

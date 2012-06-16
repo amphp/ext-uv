@@ -2714,6 +2714,72 @@ PHP_FUNCTION(uv_rwlock_init)
 }
 /* }}} */
 
+/* {{{ */
+PHP_FUNCTION(uv_rwlock_rdlock)
+{
+	uv_rwlock_t *lock;
+	zval *handle;
+	int error;
+	
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
+		"z", &handle) == FAILURE) {
+		return;
+	}
+
+	ZEND_FETCH_RESOURCE(lock, uv_rwlock_t *, &handle, -1, PHP_UV_RWLOCK_RESOURCE_NAME, uv_rwlock_handle);
+	uv_rwlock_rdlock(lock);
+}
+/* }}} */
+
+/* {{{ */
+PHP_FUNCTION(uv_rwlock_tryrdlock)
+{
+	uv_rwlock_t *lock;
+	zval *handle;
+	
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
+		"z", &handle) == FAILURE) {
+		return;
+	}
+
+	ZEND_FETCH_RESOURCE(lock, uv_rwlock_t *, &handle, -1, PHP_UV_RWLOCK_RESOURCE_NAME, uv_rwlock_handle);
+	RETURN_LONG(uv_rwlock_tryrdlock(lock));
+}
+/* }}} */
+
+/* {{{ */
+PHP_FUNCTION(uv_rwlock_rdunlock)
+{
+	uv_rwlock_t *lock;
+	zval *handle;
+	
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
+		"z", &handle) == FAILURE) {
+		return;
+	}
+
+	ZEND_FETCH_RESOURCE(lock, uv_rwlock_t *, &handle, -1, PHP_UV_RWLOCK_RESOURCE_NAME, uv_rwlock_handle);
+	uv_rwlock_rdunlock(lock);
+}
+/* }}} */
+
+/* {{{ */
+PHP_FUNCTION(uv_rwlock_wrlock)
+{
+	uv_rwlock_t *lock;
+	zval *handle;
+	
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
+		"z", &handle) == FAILURE) {
+		return;
+	}
+
+	ZEND_FETCH_RESOURCE(lock, uv_rwlock_t *, &handle, -1, PHP_UV_RWLOCK_RESOURCE_NAME, uv_rwlock_handle);
+	uv_rwlock_wrlock(lock);
+}
+/* }}} */
+
+
 static zend_function_entry uv_functions[] = {
 	/* general */
 	PHP_FE(uv_update_time, arginfo_uv_update_time)
@@ -2781,6 +2847,10 @@ static zend_function_entry uv_functions[] = {
 	/* PHP_FE(ares_gethostbyname, arginfo_ares_gethostbyname) */
 	/* rwlock */
 	PHP_FE(uv_rwlock_init, NULL)
+	PHP_FE(uv_rwlock_rdlock, NULL)
+	PHP_FE(uv_rwlock_tryrdlock, NULL)
+	PHP_FE(uv_rwlock_rdunlock, NULL)
+	PHP_FE(uv_rwlock_wrlock, NULL)
 	/* info */
 	PHP_FE(uv_loadavg, NULL)
 	PHP_FE(uv_uptime, NULL)
