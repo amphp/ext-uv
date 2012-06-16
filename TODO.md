@@ -2,6 +2,12 @@
 
 * resource ref counting.
 
+# Not tested
+
+* UV_EXTERN int uv_process_kill(uv_process_t*, int signum);
+* UV_EXTERN uv_err_t uv_set_process_title(const char* title);
+
+
 # functions
 
 * UV_EXTERN int uv_read2_start(uv_stream_t*, uv_alloc_cb alloc_cb,uv_read2_cb read_cb);
@@ -38,11 +44,9 @@
 * UV_EXTERN int uv_getaddrinfo(uv_loop_t*, uv_getaddrinfo_t* handle,uv_getaddrinfo_cb getaddrinfo_cb, const char* node, const char* service,const struct addrinfo* hints);
 * UV_EXTERN void uv_freeaddrinfo(struct addrinfo* ai);
 
-* UV_EXTERN int uv_process_kill(uv_process_t*, int signum);
 
 * UV_EXTERN int uv_queue_work(uv_loop_t* loop, uv_work_t* req,uv_work_cb work_cb, uv_after_work_cb after_work_cb);
 * UV_EXTERN char** uv_setup_args(int argc, char** argv);
-* UV_EXTERN uv_err_t uv_set_process_title(const char* title);
 * UV_EXTERN uv_err_t uv_resident_set_memory(size_t* rss);
 
 * UV_EXTERN void uv_fs_req_cleanup(uv_fs_t* req);
