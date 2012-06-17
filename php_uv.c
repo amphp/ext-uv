@@ -2779,6 +2779,38 @@ PHP_FUNCTION(uv_rwlock_wrlock)
 }
 /* }}} */
 
+/* {{{ */
+PHP_FUNCTION(uv_rwlock_trywrlock)
+{
+	uv_rwlock_t *lock;
+	zval *handle;
+	
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
+		"z", &handle) == FAILURE) {
+		return;
+	}
+
+	ZEND_FETCH_RESOURCE(lock, uv_rwlock_t *, &handle, -1, PHP_UV_RWLOCK_RESOURCE_NAME, uv_rwlock_handle);
+	RETURN_LONG(uv_rwlock_trywrlock(lock));
+}
+/* }}} */
+
+/* {{{ */
+PHP_FUNCTION(uv_rwlock_wrunlock)
+{
+	uv_rwlock_t *lock;
+	zval *handle;
+	
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
+		"z", &handle) == FAILURE) {
+		return;
+	}
+
+	ZEND_FETCH_RESOURCE(lock, uv_rwlock_t *, &handle, -1, PHP_UV_RWLOCK_RESOURCE_NAME, uv_rwlock_handle);
+	uv_rwlock_wrunlock(lock);
+}
+/* }}} */
+
 
 static zend_function_entry uv_functions[] = {
 	/* general */
@@ -2851,6 +2883,8 @@ static zend_function_entry uv_functions[] = {
 	PHP_FE(uv_rwlock_tryrdlock, NULL)
 	PHP_FE(uv_rwlock_rdunlock, NULL)
 	PHP_FE(uv_rwlock_wrlock, NULL)
+	PHP_FE(uv_rwlock_trywrlock, NULL)
+	PHP_FE(uv_rwlock_wrunlock, NULL)
 	/* info */
 	PHP_FE(uv_loadavg, NULL)
 	PHP_FE(uv_uptime, NULL)

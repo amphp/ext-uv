@@ -88,13 +88,6 @@
 * UV_EXTERN int uv_mutex_trylock(uv_mutex_t* handle);
 * UV_EXTERN void uv_mutex_unlock(uv_mutex_t* handle);
 
-* UV_EXTERN void uv_rwlock_rdlock(uv_rwlock_t* rwlock);
-* UV_EXTERN int uv_rwlock_tryrdlock(uv_rwlock_t* rwlock);
-* UV_EXTERN void uv_rwlock_rdunlock(uv_rwlock_t* rwlock);
-* UV_EXTERN void uv_rwlock_wrlock(uv_rwlock_t* rwlock);
-* UV_EXTERN int uv_rwlock_trywrlock(uv_rwlock_t* rwlock);
-* UV_EXTERN void uv_rwlock_wrunlock(uv_rwlock_t* rwlock);
-
 * UV_EXTERN void uv_once(uv_once_t* guard, void (*callback)(void));
 * UV_EXTERN int uv_thread_create(uv_thread_t *tid,void (*entry)(void *arg), void *arg);
 * UV_EXTERN int uv_thread_join(uv_thread_t *tid);
