@@ -70,6 +70,7 @@ static int uv_sockaddr_handle;
 
 static int uv_rwlock_handle;
 
+static int uv_mutex_handle;
 
 /* declarations */
 
@@ -114,6 +115,14 @@ static void php_uv_timer_cb(uv_timer_t *handle, int status);
 static void php_uv_idle_cb(uv_timer_t *handle, int status);
 
 /* destructor */
+
+void static destruct_uv_mutex(zend_rsrc_list_entry *rsrc TSRMLS_DC)
+{
+	uv_mutex_t *mutex = (uv_mutex_t *)rsrc->ptr;
+	uv_mutex_destroy(mutex);
+	efree(mutex);
+}
+
 
 void static destruct_uv_rwlock(zend_rsrc_list_entry *rsrc TSRMLS_DC)
 {
@@ -726,6 +735,7 @@ PHP_MINIT_FUNCTION(uv) {
 	uv_loop_handle = zend_register_list_destructors_ex(destruct_uv_loop, NULL, PHP_UV_LOOP_RESOURCE_NAME, module_number);
 	uv_sockaddr_handle = zend_register_list_destructors_ex(destruct_uv_sockaddr, NULL, PHP_UV_SOCKADDR_RESOURCE_NAME, module_number);
 	uv_rwlock_handle = zend_register_list_destructors_ex(destruct_uv_rwlock, NULL, PHP_UV_RWLOCK_RESOURCE_NAME, module_number);
+	uv_mutex_handle = zend_register_list_destructors_ex(destruct_uv_mutex, NULL, PHP_UV_MUTEX_RESOURCE_NAME, module_number);
 
 	rc = ares_library_init(ARES_LIB_INIT_ALL);
 	if (rc != 0) {
@@ -2812,6 +2822,71 @@ PHP_FUNCTION(uv_rwlock_wrunlock)
 /* }}} */
 
 
+
+/* {{{ */
+PHP_FUNCTION(uv_mutex_init)
+{
+	uv_mutex_t *mutex;
+	int error;
+	
+	mutex = emalloc(sizeof(uv_mutex_t));
+	error = uv_mutex_init(mutex);
+	if (error == 0) {
+		ZEND_REGISTER_RESOURCE(return_value, mutex, uv_mutex_handle);
+	} else {
+		RETURN_FALSE;
+	}
+}
+/* }}} */
+
+/* {{{ */
+PHP_FUNCTION(uv_mutex_lock)
+{
+	uv_mutex_t *mutex;
+	zval *handle;
+	
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
+		"z", &handle) == FAILURE) {
+		return;
+	}
+
+	ZEND_FETCH_RESOURCE(mutex, uv_mutex_t *, &handle, -1, PHP_UV_MUTEX_RESOURCE_NAME, uv_mutex_handle);
+	uv_mutex_lock(mutex);
+}
+/* }}} */
+
+/* {{{ */
+PHP_FUNCTION(uv_mutex_trylock)
+{
+	uv_mutex_t *mutex;
+	zval *handle;
+	
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
+		"z", &handle) == FAILURE) {
+		return;
+	}
+
+	ZEND_FETCH_RESOURCE(mutex, uv_mutex_t *, &handle, -1, PHP_UV_MUTEX_RESOURCE_NAME, uv_mutex_handle);
+	RETURN_LONG(uv_mutex_trylock(mutex));
+}
+/* }}} */
+
+/* {{{ */
+PHP_FUNCTION(uv_mutex_unlock)
+{
+	uv_mutex_t *mutex;
+	zval *handle;
+	
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
+		"z", &handle) == FAILURE) {
+		return;
+	}
+
+	ZEND_FETCH_RESOURCE(mutex, uv_mutex_t *, &handle, -1, PHP_UV_MUTEX_RESOURCE_NAME, uv_mutex_handle);
+	uv_mutex_unlock(mutex);
+}
+/* }}} */
+
 static zend_function_entry uv_functions[] = {
 	/* general */
 	PHP_FE(uv_update_time, arginfo_uv_update_time)
@@ -2885,6 +2960,11 @@ static zend_function_entry uv_functions[] = {
 	PHP_FE(uv_rwlock_wrlock, NULL)
 	PHP_FE(uv_rwlock_trywrlock, NULL)
 	PHP_FE(uv_rwlock_wrunlock, NULL)
+	/* mutex */
+	PHP_FE(uv_mutex_init, NULL)
+	PHP_FE(uv_mutex_lock, NULL)
+	PHP_FE(uv_mutex_trylock, NULL)
+	PHP_FE(uv_mutex_unlock, NULL)
 	/* info */
 	PHP_FE(uv_loadavg, NULL)
 	PHP_FE(uv_uptime, NULL)

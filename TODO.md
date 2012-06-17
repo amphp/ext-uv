@@ -82,12 +82,6 @@
 * UV_EXTERN int uv_ip4_name(struct sockaddr_in* src, char* dst, size_t size);
 * UV_EXTERN int uv_ip6_name(struct sockaddr_in6* src, char* dst, size_t size);
 
-* UV_EXTERN int uv_mutex_init(uv_mutex_t* handle);
-* UV_EXTERN void uv_mutex_destroy(uv_mutex_t* handle);
-* UV_EXTERN void uv_mutex_lock(uv_mutex_t* handle);
-* UV_EXTERN int uv_mutex_trylock(uv_mutex_t* handle);
-* UV_EXTERN void uv_mutex_unlock(uv_mutex_t* handle);
-
 * UV_EXTERN void uv_once(uv_once_t* guard, void (*callback)(void));
 * UV_EXTERN int uv_thread_create(uv_thread_t *tid,void (*entry)(void *arg), void *arg);
 * UV_EXTERN int uv_thread_join(uv_thread_t *tid);
