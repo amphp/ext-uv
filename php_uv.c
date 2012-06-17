@@ -54,6 +54,9 @@ typedef struct {
 		uv->proc_close_cb = NULL; \
 		uv->prepare_cb = NULL; \
 		uv->check_cb = NULL; \
+		uv->work_cb = NULL; \
+		uv->async_cb = NULL; \
+		uv->after_work_cb = NULL; \
 	}
 
 /* static variables */
@@ -268,6 +271,16 @@ void static destruct_uv(zend_rsrc_list_entry *rsrc TSRMLS_DC)
 		zval_ptr_dtor(&obj->async_cb);
 		obj->async_cb = NULL;
 	}
+	if (obj->work_cb) {
+		//fprintf(stderr, "uv_async: %d\n", Z_REFCOUNT_P(obj->async_cb));
+		zval_ptr_dtor(&obj->work_cb);
+		obj->work_cb = NULL;
+	}
+	if (obj->after_work_cb) {
+		//fprintf(stderr, "uv_async: %d\n", Z_REFCOUNT_P(obj->async_cb));
+		zval_ptr_dtor(&obj->after_work_cb);
+		obj->after_work_cb = NULL;
+	}
 
 	if (obj->resource_id) {
 		base_id = obj->resource_id;
@@ -288,13 +301,12 @@ static int php_uv_do_callback(zval **retval_ptr, zval *callback, zval ***params,
 	zend_fcall_info_cache fcc;
 	char *is_callable_error = NULL;
 	int error;
-
+	
 	if(zend_fcall_info_init(callback, 0, &fci, &fcc, NULL, &is_callable_error TSRMLS_CC) == SUCCESS) {
 		if (is_callable_error) {
 			php_error_docref(NULL TSRMLS_CC, E_ERROR, "to be a valid callback");
 		}
 	}
-	
 	fci.retval_ptr_ptr = retval_ptr;
 	fci.params = params;
 	fci.param_count = param_count;
@@ -659,6 +671,54 @@ static void php_uv_async_cb(uv_stream_t* handle, int status)
 #endif
 }
 
+
+static void php_uv_work_cb(uv_work_t* req)
+{
+	zval *retval_ptr = NULL;
+#if PHP_UV_DEBUG>=1
+	fprintf(stderr,"work_cb");
+#endif
+	php_uv_t *uv = (uv_work_t*)req->data;
+	TSRMLS_FETCH_FROM_CTX(uv->thread_ctx);
+
+	php_uv_do_callback(&retval_ptr, uv->work_cb, NULL, 0 TSRMLS_CC);
+	zval_ptr_dtor(&retval_ptr);
+
+#if PHP_UV_DEBUG>=1
+	{
+		zend_rsrc_list_entry *le;
+		if (zend_hash_index_find(&EG(regular_list), uv->resource_id, (void **) &le)==SUCCESS) {
+			printf("# uv_work_cb del(%d): %d->%d\n", uv->resource_id, le->refcount, le->refcount-1);
+		} else {
+			printf("# can't find (work_cb)");
+		}
+	}
+#endif
+}
+
+static void php_uv_after_work_cb(uv_work_t* req)
+{
+	zval *retval_ptr = NULL;
+#if PHP_UV_DEBUG>=1
+	fprintf(stderr,"after_work_cb");
+#endif
+	php_uv_t *uv = (php_uv_t*)req->data;
+	TSRMLS_FETCH_FROM_CTX(uv->thread_ctx);
+
+	php_uv_do_callback(&retval_ptr, uv->after_work_cb, NULL, 0 TSRMLS_CC);
+	zval_ptr_dtor(&retval_ptr);
+
+#if PHP_UV_DEBUG>=1
+	{
+		zend_rsrc_list_entry *le;
+		if (zend_hash_index_find(&EG(regular_list), uv->resource_id, (void **) &le)==SUCCESS) {
+			printf("# uv_after_work_cb del(%d): %d->%d\n", uv->resource_id, le->refcount, le->refcount-1);
+		} else {
+			printf("# can't find (work_cb)");
+		}
+	}
+#endif
+}
 
 static void php_uv_udp_recv_cb(uv_udp_t* handle, ssize_t nread, uv_buf_t buf, struct sockaddr* addr, unsigned flags)
 {
@@ -3302,6 +3362,51 @@ PHP_FUNCTION(uv_async_send)
 }
 /* }}} */
 
+/* {{{ */
+PHP_FUNCTION(uv_queue_work)
+{
+	int r;
+	zval *zloop = NULL;
+	uv_loop_t *loop;
+	php_uv_t *uv, *callback, *after_callback;
+	
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
+		"zzz",&zloop, &callback, &after_callback) == FAILURE) {
+		return;
+	}
+
+	uv = (php_uv_t *)emalloc(sizeof(php_uv_t));
+	if (!uv) {
+		php_error_docref(NULL TSRMLS_CC, E_ERROR, "uv_queue_work emalloc failed");
+		return;
+	}
+	if (zloop != NULL) {
+		ZEND_FETCH_RESOURCE(loop, uv_loop_t*, &zloop, -1, PHP_UV_LOOP_RESOURCE_NAME, uv_loop_handle);
+	} else {
+		loop = uv_default_loop();
+	}
+
+	uv->type = IS_UV_WORK;
+	PHP_UV_INIT_ZVALS(uv)
+
+	uv->work_cb = callback;
+	uv->after_work_cb = after_callback;
+	Z_ADDREF_P(callback);
+	Z_ADDREF_P(after_callback);
+	uv->uv.work.data = uv;
+	
+	r = uv_queue_work(loop, (uv_work_t*)&uv->uv.work, php_uv_work_cb, php_uv_after_work_cb);
+
+	if (r) {
+		php_error_docref(NULL TSRMLS_CC, E_ERROR, "uv_async_init failed");
+		return;
+	}
+	
+	TSRMLS_SET_CTX(uv->thread_ctx);
+	ZEND_REGISTER_RESOURCE(return_value, uv, uv_resource_handle);
+	uv->resource_id = Z_LVAL_P(return_value);
+}
+/* }}} */
 
 static zend_function_entry uv_functions[] = {
 	/* general */
@@ -3392,6 +3497,8 @@ static zend_function_entry uv_functions[] = {
 	/* async */
 	PHP_FE(uv_async_init, NULL)
 	PHP_FE(uv_async_send, NULL)
+	/* queue */
+	PHP_FE(uv_queue_work, NULL)
 	/* info */
 	PHP_FE(uv_loadavg, NULL)
 	PHP_FE(uv_uptime, NULL)
