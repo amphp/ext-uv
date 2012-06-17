@@ -36,7 +36,8 @@ enum php_uv_resource_type{
 	IS_UV_ADDRINFO = 9,
 	IS_UV_PROCESS = 10,
 	IS_UV_PREPARE = 11,
-	IS_UV_MAX = 12
+	IS_UV_CHECK = 12,
+	IS_UV_MAX = 13
 };
 
 typedef struct {
@@ -58,6 +59,7 @@ typedef struct {
 		uv_stream_t stream;
 		uv_getaddrinfo_t addrinfo;
 		uv_prepare_t prepare;
+		uv_check_t check;
 		uv_process_t process;
 	} uv;
 	zval *address;
@@ -74,6 +76,7 @@ typedef struct {
 	zval *pipe_connect_cb;
 	zval *proc_close_cb;
 	zval *prepare_cb;
+	zval *check_cb;
 } php_uv_t;
 
 typedef struct {

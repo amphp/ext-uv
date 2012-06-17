@@ -53,6 +53,7 @@ typedef struct {
 		uv->pipe_connect_cb = NULL; \
 		uv->proc_close_cb = NULL; \
 		uv->prepare_cb = NULL; \
+		uv->check_cb = NULL; \
 	}
 
 /* static variables */
@@ -256,6 +257,11 @@ void static destruct_uv(zend_rsrc_list_entry *rsrc TSRMLS_DC)
 		//fprintf(stderr, "uv_prepare: %d\n", Z_REFCOUNT_P(obj->prepare_cb));
 		zval_ptr_dtor(&obj->prepare_cb);
 		obj->prepare_cb = NULL;
+	}
+	if (obj->check_cb) {
+		//fprintf(stderr, "uv_prepare: %d\n", Z_REFCOUNT_P(obj->prepare_cb));
+		zval_ptr_dtor(&obj->check_cb);
+		obj->check_cb = NULL;
 	}
 
 	if (obj->resource_id) {
@@ -548,7 +554,6 @@ static void php_uv_read_cb(uv_stream_t* handle, ssize_t nread, uv_buf_t buf)
 #endif
 }
 
-
 static void php_uv_prepare_cb(uv_stream_t* handle, int status)
 {
 	zval *retval_ptr = NULL;
@@ -577,6 +582,39 @@ static void php_uv_prepare_cb(uv_stream_t* handle, int status)
 			printf("# uv_prepare_cb del(%d): %d->%d\n", uv->resource_id, le->refcount, le->refcount-1);
 		} else {
 			printf("# can't find (prepare_cb)");
+		}
+	}
+#endif
+}
+
+static void php_uv_check_cb(uv_stream_t* handle, int status)
+{
+	zval *retval_ptr = NULL;
+	zval **params[1];
+#if PHP_UV_DEBUG>=1
+	fprintf(stderr,"check_cb");
+#endif
+	php_uv_t *uv = (php_uv_t*)handle->data;
+	TSRMLS_FETCH_FROM_CTX(uv->thread_ctx);
+
+	zval *zstat;
+	MAKE_STD_ZVAL(zstat);
+	ZVAL_LONG(zstat, status);
+
+	params[0] = &zstat;
+	
+	php_uv_do_callback(&retval_ptr, uv->check_cb, params, 1 TSRMLS_CC);
+
+	zval_ptr_dtor(&zstat);
+	zval_ptr_dtor(&retval_ptr);
+
+#if PHP_UV_DEBUG>=1
+	{
+		zend_rsrc_list_entry *le;
+		if (zend_hash_index_find(&EG(regular_list), uv->resource_id, (void **) &le)==SUCCESS) {
+			printf("# uv_check_cb del(%d): %d->%d\n", uv->resource_id, le->refcount, le->refcount-1);
+		} else {
+			printf("# can't find (check_cb)");
 		}
 	}
 #endif
@@ -756,6 +794,9 @@ static inline uv_stream_t* php_uv_get_current_stream(php_uv_t *uv)
 		break;
 		case IS_UV_PREPARE:
 			stream = (uv_stream_t*)&uv->uv.prepare;
+		break;
+		case IS_UV_CHECK:
+			stream = (uv_stream_t*)&uv->uv.check;
 		break;
 		default: {
 			TSRMLS_FETCH();
@@ -2992,7 +3033,7 @@ PHP_FUNCTION(uv_prepare_start)
 
 	uv->prepare_cb = callback;
 	if(uv->type == IS_UV_PREPARE) {
-		uv->uv.tcp.data = uv;
+		uv->uv.prepare.data = uv;
 	} else {
 		php_error_docref(NULL TSRMLS_CC, E_NOTICE, "this type does not support yet");
 	}
@@ -3042,6 +3083,116 @@ PHP_FUNCTION(uv_prepare_stop)
 }
 /* }}} */
 
+/* {{{ */
+PHP_FUNCTION(uv_check_init)
+{
+	int r;
+	zval *zloop = NULL;
+	uv_loop_t *loop;
+	php_uv_t *uv;
+	
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
+		"|z",&zloop) == FAILURE) {
+		return;
+	}
+
+	uv = (php_uv_t *)emalloc(sizeof(php_uv_t));
+	if (!uv) {
+		php_error_docref(NULL TSRMLS_CC, E_ERROR, "uv_check_init emalloc failed");
+		return;
+	}
+	if (zloop != NULL) {
+		ZEND_FETCH_RESOURCE(loop, uv_loop_t*, &zloop, -1, PHP_UV_LOOP_RESOURCE_NAME, uv_loop_handle);
+	} else {
+		loop = uv_default_loop();
+	}
+
+	uv->type = IS_UV_CHECK;
+	r = uv_check_init(loop, &uv->uv.check);
+	if (r) {
+		php_error_docref(NULL TSRMLS_CC, E_ERROR, "uv_check_init failed");
+		return;
+	}
+	
+	uv->uv.check.data = uv;
+	PHP_UV_INIT_ZVALS(uv)
+	TSRMLS_SET_CTX(uv->thread_ctx);
+	
+	ZEND_REGISTER_RESOURCE(return_value, uv, uv_resource_handle);
+	uv->resource_id = Z_LVAL_P(return_value);
+}
+/* }}} */
+
+/* {{{ */
+PHP_FUNCTION(uv_check_start)
+{
+#if PHP_UV_DEBUG>=1
+	fprintf(stderr,"uv_check_start");
+#endif
+	zval *handle, *callback;
+	php_uv_t *uv;
+	int r;
+	
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
+		"rz",&handle, &callback) == FAILURE) {
+		return;
+	}
+
+	ZEND_FETCH_RESOURCE(uv, php_uv_t *, &handle, -1, PHP_UV_RESOURCE_NAME, uv_resource_handle);
+	Z_ADDREF_P(callback);
+	zend_list_addref(uv->resource_id);
+
+	uv->check_cb = callback;
+	if(uv->type == IS_UV_CHECK) {
+		uv->uv.check.data = uv;
+	} else {
+		php_error_docref(NULL TSRMLS_CC, E_NOTICE, "this type does not support yet");
+	}
+
+	r = uv_check_start((uv_stream_t*)php_uv_get_current_stream(uv), php_uv_check_cb);
+	if (r) {
+		php_error_docref(NULL TSRMLS_CC, E_NOTICE, "read failed");
+	}
+#if PHP_UV_DEBUG>=1
+	{
+		zend_rsrc_list_entry *le;
+		if (zend_hash_index_find(&EG(regular_list), uv->resource_id, (void **) &le)==SUCCESS) {
+			printf("# uv_check_start del(%d): %d->%d\n", uv->resource_id, le->refcount, le->refcount-1);
+		} else {
+			printf("# can't find(uv_check_start)");
+		}
+	}
+#endif
+
+}
+/* }}} */
+
+/* {{{ */
+PHP_FUNCTION(uv_check_stop)
+{
+	zval *handle;
+	php_uv_t *uv;
+	
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
+		"r", &handle) == FAILURE) {
+		return;
+	}
+
+	ZEND_FETCH_RESOURCE(uv, php_uv_t *, &handle, -1, PHP_UV_RESOURCE_NAME, uv_resource_handle);
+	uv_check_stop((uv_stream_t*)php_uv_get_current_stream(uv));
+#if PHP_UV_DEBUG>=1
+	{
+		zend_rsrc_list_entry *le;
+		if (zend_hash_index_find(&EG(regular_list), uv->resource_id, (void **) &le)==SUCCESS) {
+			printf("# uv_check_stop del(%d): %d->%d\n", uv->resource_id, le->refcount, le->refcount-1);
+		} else {
+			printf("# can't find(uv_check_stop)");
+		}
+	}
+#endif
+
+}
+/* }}} */
 
 
 static zend_function_entry uv_functions[] = {
@@ -3122,10 +3273,14 @@ static zend_function_entry uv_functions[] = {
 	PHP_FE(uv_mutex_lock, NULL)
 	PHP_FE(uv_mutex_trylock, NULL)
 	PHP_FE(uv_mutex_unlock, NULL)
-	/* prepare */
+	/* prepare (before poll hook) */
 	PHP_FE(uv_prepare_init, NULL)
 	PHP_FE(uv_prepare_start, NULL)
 	PHP_FE(uv_prepare_stop, NULL)
+	/* check (after poll hook) */
+	PHP_FE(uv_check_init, NULL)
+	PHP_FE(uv_check_start, NULL)
+	PHP_FE(uv_check_stop, NULL)
 	/* info */
 	PHP_FE(uv_loadavg, NULL)
 	PHP_FE(uv_uptime, NULL)
