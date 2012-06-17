@@ -263,6 +263,11 @@ void static destruct_uv(zend_rsrc_list_entry *rsrc TSRMLS_DC)
 		zval_ptr_dtor(&obj->check_cb);
 		obj->check_cb = NULL;
 	}
+	if (obj->async_cb) {
+		//fprintf(stderr, "uv_async: %d\n", Z_REFCOUNT_P(obj->async_cb));
+		zval_ptr_dtor(&obj->async_cb);
+		obj->async_cb = NULL;
+	}
 
 	if (obj->resource_id) {
 		base_id = obj->resource_id;
@@ -620,6 +625,39 @@ static void php_uv_check_cb(uv_stream_t* handle, int status)
 #endif
 }
 
+
+static void php_uv_async_cb(uv_stream_t* handle, int status)
+{
+	zval *retval_ptr = NULL;
+	zval **params[1];
+#if PHP_UV_DEBUG>=1
+	fprintf(stderr,"async_cb");
+#endif
+	php_uv_t *uv = (php_uv_t*)handle->data;
+	TSRMLS_FETCH_FROM_CTX(uv->thread_ctx);
+
+	zval *zstat;
+	MAKE_STD_ZVAL(zstat);
+	ZVAL_LONG(zstat, status);
+
+	params[0] = &zstat;
+	
+	php_uv_do_callback(&retval_ptr, uv->async_cb, params, 1 TSRMLS_CC);
+
+	zval_ptr_dtor(&zstat);
+	zval_ptr_dtor(&retval_ptr);
+
+#if PHP_UV_DEBUG>=1
+	{
+		zend_rsrc_list_entry *le;
+		if (zend_hash_index_find(&EG(regular_list), uv->resource_id, (void **) &le)==SUCCESS) {
+			printf("# uv_async_cb del(%d): %d->%d\n", uv->resource_id, le->refcount, le->refcount-1);
+		} else {
+			printf("# can't find (async_cb)");
+		}
+	}
+#endif
+}
 
 
 static void php_uv_udp_recv_cb(uv_udp_t* handle, ssize_t nread, uv_buf_t buf, struct sockaddr* addr, unsigned flags)
@@ -3195,6 +3233,76 @@ PHP_FUNCTION(uv_check_stop)
 /* }}} */
 
 
+/* {{{ */
+PHP_FUNCTION(uv_async_init)
+{
+	int r;
+	zval *zloop = NULL;
+	uv_loop_t *loop;
+	php_uv_t *uv, *callback;;
+	
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
+		"zz",&zloop, &callback) == FAILURE) {
+		return;
+	}
+
+	uv = (php_uv_t *)emalloc(sizeof(php_uv_t));
+	if (!uv) {
+		php_error_docref(NULL TSRMLS_CC, E_ERROR, "uv_check_init emalloc failed");
+		return;
+	}
+	if (zloop != NULL) {
+		ZEND_FETCH_RESOURCE(loop, uv_loop_t*, &zloop, -1, PHP_UV_LOOP_RESOURCE_NAME, uv_loop_handle);
+	} else {
+		loop = uv_default_loop();
+	}
+
+	uv->type = IS_UV_ASYNC;
+	r = uv_async_init(loop, &uv->uv.async, php_uv_async_cb);
+	if (r) {
+		php_error_docref(NULL TSRMLS_CC, E_ERROR, "uv_async_init failed");
+		return;
+	}
+	
+	uv->uv.async.data = uv;
+	PHP_UV_INIT_ZVALS(uv)
+	uv->async_cb = callback;
+	Z_ADDREF_P(callback);
+	TSRMLS_SET_CTX(uv->thread_ctx);
+	
+	ZEND_REGISTER_RESOURCE(return_value, uv, uv_resource_handle);
+	uv->resource_id = Z_LVAL_P(return_value);
+}
+/* }}} */
+
+/* {{{ */
+PHP_FUNCTION(uv_async_send)
+{
+	zval *handle;
+	php_uv_t *uv;
+	
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
+		"r", &handle) == FAILURE) {
+		return;
+	}
+
+	ZEND_FETCH_RESOURCE(uv, php_uv_t *, &handle, -1, PHP_UV_RESOURCE_NAME, uv_resource_handle);
+	uv_async_send((uv_stream_t*)php_uv_get_current_stream(uv));
+#if PHP_UV_DEBUG>=1
+	{
+		zend_rsrc_list_entry *le;
+		if (zend_hash_index_find(&EG(regular_list), uv->resource_id, (void **) &le)==SUCCESS) {
+			printf("# uv_async_send del(%d): %d->%d\n", uv->resource_id, le->refcount, le->refcount-1);
+		} else {
+			printf("# can't find(uv_async_send)");
+		}
+	}
+#endif
+
+}
+/* }}} */
+
+
 static zend_function_entry uv_functions[] = {
 	/* general */
 	PHP_FE(uv_update_time, arginfo_uv_update_time)
@@ -3281,6 +3389,9 @@ static zend_function_entry uv_functions[] = {
 	PHP_FE(uv_check_init, NULL)
 	PHP_FE(uv_check_start, NULL)
 	PHP_FE(uv_check_stop, NULL)
+	/* async */
+	PHP_FE(uv_async_init, NULL)
+	PHP_FE(uv_async_send, NULL)
 	/* info */
 	PHP_FE(uv_loadavg, NULL)
 	PHP_FE(uv_uptime, NULL)

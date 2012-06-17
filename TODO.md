@@ -28,9 +28,6 @@
 * UV_EXTERN int uv_tty_get_winsize(uv_tty_t*, int* width, int* height);
 * UV_EXTERN uv_handle_type uv_guess_handle(uv_file file);
 
-* UV_EXTERN int uv_async_init(uv_loop_t*, uv_async_t* async,uv_async_cb async_cb);
-* UV_EXTERN int uv_async_send(uv_async_t* async);
-
 * UV_EXTERN void uv_ares_destroy(uv_loop_t*, ares_channel channel);
 
 * UV_EXTERN int uv_getaddrinfo(uv_loop_t*, uv_getaddrinfo_t* handle,uv_getaddrinfo_cb getaddrinfo_cb, const char* node, const char* service,const struct addrinfo* hints);

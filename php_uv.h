@@ -77,6 +77,7 @@ typedef struct {
 	zval *proc_close_cb;
 	zval *prepare_cb;
 	zval *check_cb;
+	zval *async_cb;
 } php_uv_t;
 
 typedef struct {
