@@ -28,10 +28,6 @@
 * UV_EXTERN int uv_tty_get_winsize(uv_tty_t*, int* width, int* height);
 * UV_EXTERN uv_handle_type uv_guess_handle(uv_file file);
 
-* UV_EXTERN int uv_prepare_init(uv_loop_t*, uv_prepare_t* prepare);
-* UV_EXTERN int uv_prepare_start(uv_prepare_t* prepare, uv_prepare_cb cb);
-* UV_EXTERN int uv_prepare_stop(uv_prepare_t* prepare);
-
 * UV_EXTERN int uv_check_init(uv_loop_t*, uv_check_t* check);
 * UV_EXTERN int uv_check_start(uv_check_t* check, uv_check_cb cb);
 * UV_EXTERN int uv_check_stop(uv_check_t* check);
