@@ -1,0 +1,9 @@
+ARG_ENABLE("uv", "for uv support", "no");
+
+if (PHP_UV != "no") {
+    if (CHECK_HEADER_ADD_INCLUDE("uv.h", "CFLAGS_UV") && CHECK_LIB("uv.lib", "uv", PHP_UV)) {
+        EXTENSION('uv', 'php_uv.c uv.c');
+    } else {
+        WARNING("uv not enabled; libraries and/or headers not found");
+    }
+}
