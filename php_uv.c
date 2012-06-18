@@ -1046,10 +1046,6 @@ ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_idle_init, 0, 0, 0)
 	ZEND_ARG_INFO(0, loop)
 ZEND_END_ARG_INFO()
 
-ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_loop_refcount, 0, 0, 1)
-	ZEND_ARG_INFO(0, loop)
-ZEND_END_ARG_INFO()
-
 ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_update_time, 0, 0, 1)
 	ZEND_ARG_INFO(0, loop)
 ZEND_END_ARG_INFO()
@@ -1278,22 +1274,6 @@ PHP_FUNCTION(uv_ref)
 	}
 	ZEND_FETCH_RESOURCE(loop, uv_loop_t *, &z_loop, -1, PHP_UV_LOOP_RESOURCE_NAME, uv_loop_handle);
 	uv_ref(loop);
-}
-/* }}} */
-
-/* {{{ */
-PHP_FUNCTION(uv_loop_refcount)
-{
-	zval *z_loop = NULL;
-	uv_loop_t *loop;
-	
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
-		"z",&z_loop) == FAILURE) {
-		return;
-	}
-	ZEND_FETCH_RESOURCE(loop, uv_loop_t *, &z_loop, -1, PHP_UV_LOOP_RESOURCE_NAME, uv_loop_handle);
-	
-	RETURN_LONG(uv_loop_refcount(loop));
 }
 /* }}} */
 
@@ -3465,8 +3445,6 @@ static zend_function_entry uv_functions[] = {
 	PHP_FE(uv_spawn, arginfo_uv_spawn)
 	PHP_FE(uv_process_kill, arginfo_uv_process_kill)
 	PHP_FE(uv_kill, arginfo_uv_kill)
-	/* for debug */
-	PHP_FE(uv_loop_refcount, arginfo_uv_loop_refcount)
 	/* c-ares */
 	PHP_FE(uv_getaddrinfo, arginfo_uv_tcp_connect)
 	PHP_FE(uv_ares_init_options, NULL)
