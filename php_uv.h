@@ -9,6 +9,13 @@
 #include "config.h"
 #endif
 
+#ifdef PHP_WIN32
+#include <Winsock2.h>
+#include <Mswsock.h>
+#include <psapi.h>
+#include <Iphlpapi.h>
+#fi
+
 #include "php.h"
 #include "uv.h"
 
