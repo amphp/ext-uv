@@ -12,7 +12,6 @@
 #include "php.h"
 #include "uv.h"
 
-#include "ext/spl/spl_exceptions.h"
 #include "zend_interfaces.h"
 
 /* Define the entry point symbol
