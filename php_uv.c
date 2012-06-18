@@ -1865,15 +1865,15 @@ PHP_FUNCTION(uv_tcp_init)
 PHP_FUNCTION(uv_idle_init)
 {
 	int r;
-	zval *zloop;
+	zval *zloop = NULL;
 	uv_loop_t *loop;
 	php_uv_t *uv;
 	
 	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
-		"|z",&loop) == FAILURE) {
+		"|z",&zloop) == FAILURE) {
 		return;
 	}
-	if (loop) {
+	if (zloop != NULL) {
 		ZEND_FETCH_RESOURCE(loop, uv_loop_t*, &zloop, -1, PHP_UV_LOOP_RESOURCE_NAME, uv_loop_handle);
 	} else {
 		loop = uv_default_loop();
