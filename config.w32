@@ -1,11 +1,18 @@
 ARG_ENABLE("uv", "for uv support", "no");
 
 if (PHP_UV != "no") {
+    var libuv_target_dir = ".\\libuv\\Release";
+    if (PHP_DEBUG == "yes") {
+      libuv_target_dir = ".\\libuv\\Debug"
+    }
+
     if (CHECK_HEADER_ADD_INCLUDE("uv.h", "CFLAGS_UV", ".\\libuv\\include") && 
-        CHECK_LIB("uv.lib", "uv", PHP_UV, ".\\")) {
+        CHECK_LIB("uv.lib", "uv", libuv_target_dir)
+    ) {
         EXTENSION('uv', 'php_uv.c uv.c');
     } else {
-        WARNING("uv not enabled; libraries and/or headers not found");
+        WARNING("uv not enabled; libraries and/or headers not found. You have to execute vcbuild.bat first");
     }
-    CHECK_LIB("Iphlpapi.lib","iphlpapi",PHP_UV);
+    CHECK_LIB("Iphlpapi.lib","uv", PHP_UV);
+    CHECK_LIB("psapi.lib","uv", PHP_UV);
 }
