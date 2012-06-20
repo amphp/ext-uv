@@ -14,7 +14,7 @@
 #include <Mswsock.h>
 #include <psapi.h>
 #include <Iphlpapi.h>
-#fi
+#endif
 
 #include "php.h"
 #include "uv.h"
