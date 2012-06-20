@@ -57,6 +57,7 @@ typedef struct {
 		uv->work_cb = NULL; \
 		uv->async_cb = NULL; \
 		uv->after_work_cb = NULL; \
+		uv->fs_cb = NULL; \
 	}
 
 /* static variables */
@@ -280,6 +281,11 @@ void static destruct_uv(zend_rsrc_list_entry *rsrc TSRMLS_DC)
 		//fprintf(stderr, "uv_async: %d\n", Z_REFCOUNT_P(obj->async_cb));
 		zval_ptr_dtor(&obj->after_work_cb);
 		obj->after_work_cb = NULL;
+	}
+	if (obj->fs_cb) {
+		//fprintf(stderr, "uv_fs: %d\n", Z_REFCOUNT_P(obj->fs_cb));
+		zval_ptr_dtor(&obj->fs_cb);
+		obj->fs_cb = NULL;
 	}
 
 	if (obj->resource_id) {
@@ -718,6 +724,37 @@ static void php_uv_after_work_cb(uv_work_t* req)
 			printf("# uv_after_work_cb del(%d): %d->%d\n", uv->resource_id, le->refcount, le->refcount-1);
 		} else {
 			printf("# can't find (work_cb)");
+		}
+	}
+#endif
+}
+
+
+static void php_uv_fs_cb(uv_fs_t* req)
+{
+	zval **params[1], *result, *retval_ptr = NULL;
+	php_uv_t *uv = (php_uv_t*)req->data;
+	TSRMLS_FETCH_FROM_CTX(uv->thread_ctx);
+
+#if PHP_UV_DEBUG>=1
+	fprintf(stderr,"fs_cb");
+#endif
+
+	MAKE_STD_ZVAL(result);
+	ZVAL_LONG(result, uv->uv.fs.result);
+	params[0] = &result;
+
+	php_uv_do_callback(&retval_ptr, uv->fs_cb, params, 1 TSRMLS_CC);
+	zval_ptr_dtor(&retval_ptr);
+	zval_ptr_dtor(&result);
+
+#if PHP_UV_DEBUG>=1
+	{
+		zend_rsrc_list_entry *le;
+		if (zend_hash_index_find(&EG(regular_list), uv->resource_id, (void **) &le)==SUCCESS) {
+			printf("# uv_fs_cb del(%d): %d->%d\n", uv->resource_id, le->refcount, le->refcount-1);
+		} else {
+			printf("# can't find (fs_cb)");
 		}
 	}
 #endif
@@ -3385,6 +3422,114 @@ PHP_FUNCTION(uv_queue_work)
 }
 /* }}} */
 
+/* {{{ */
+PHP_FUNCTION(uv_fs_open)
+{
+	int r;
+	zval *tmp, *zloop = NULL;
+	zval *callback;
+	uv_loop_t *loop;
+	php_uv_t *uv;
+	char *path;
+	int path_len;
+	long flag, mode;
+	
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
+		"zsllz", &zloop, &path, &path_len, &flag, &mode, &callback) == FAILURE) {
+		return;
+	}
+
+	uv = (php_uv_t *)emalloc(sizeof(php_uv_t));
+	if (!uv) {
+		php_error_docref(NULL TSRMLS_CC, E_ERROR, "uv_queue_work emalloc failed");
+		return;
+	}
+	
+	if (zloop != NULL) {
+		ZEND_FETCH_RESOURCE(loop, uv_loop_t*, &zloop, -1, PHP_UV_LOOP_RESOURCE_NAME, uv_loop_handle);
+	} else {
+		loop = uv_default_loop();
+	}
+
+	uv->type = IS_UV_FS;
+	PHP_UV_INIT_ZVALS(uv)
+
+	uv->fs_cb = callback;
+	Z_ADDREF_P(callback);
+	uv->uv.fs.data = uv;
+	
+	r = uv_fs_open(loop, (uv_fs_t*)&uv->uv.fs, path, flag, mode, php_uv_fs_cb);
+
+	if (r) {
+		php_error_docref(NULL TSRMLS_CC, E_ERROR, "uv_async_init failed");
+		return;
+	}
+
+	TSRMLS_SET_CTX(uv->thread_ctx);
+	MAKE_STD_ZVAL(tmp);
+	ZEND_REGISTER_RESOURCE(tmp, uv, uv_resource_handle);
+	uv->resource_id = Z_LVAL_P(tmp);
+	Z_TYPE_P(tmp) = IS_NULL;
+	zval_ptr_dtor(&tmp);
+}
+/* }}} */
+
+
+/* {{{ */
+PHP_FUNCTION(uv_fs_read)
+{
+	int r;
+	zval *tmp, *zloop = NULL;
+	zval *callback;
+	uv_loop_t *loop;
+	php_uv_t *uv;
+	char *path;
+	int path_len;
+	long flag, mode;
+	
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
+		"zsllz", &zloop, &path, &path_len, &flag, &mode, &callback) == FAILURE) {
+		return;
+	}
+
+	uv = (php_uv_t *)emalloc(sizeof(php_uv_t));
+	if (!uv) {
+		php_error_docref(NULL TSRMLS_CC, E_ERROR, "uv_queue_work emalloc failed");
+		return;
+	}
+	
+	if (zloop != NULL) {
+		ZEND_FETCH_RESOURCE(loop, uv_loop_t*, &zloop, -1, PHP_UV_LOOP_RESOURCE_NAME, uv_loop_handle);
+	} else {
+		loop = uv_default_loop();
+	}
+
+	uv->type = IS_UV_FS;
+	PHP_UV_INIT_ZVALS(uv)
+
+	uv->fs_cb = callback;
+	Z_ADDREF_P(callback);
+	uv->uv.fs.data = uv;
+
+	//uv_fs_read($loop, int $fd, Closure $cb)
+	//UV_EXTERN int uv_fs_read(uv_loop_t* loop, uv_fs_t* req, uv_file file, void* buf, size_t length, off_t offset, uv_fs_cb cb);
+	r = uv_fs_read(loop, (uv_fs_t*)&uv->uv.fs, path, flag, mode, php_uv_fs_cb);
+
+	if (r) {
+		php_error_docref(NULL TSRMLS_CC, E_ERROR, "uv_async_init failed");
+		return;
+	}
+
+	TSRMLS_SET_CTX(uv->thread_ctx);
+	MAKE_STD_ZVAL(tmp);
+	ZEND_REGISTER_RESOURCE(tmp, uv, uv_resource_handle);
+	uv->resource_id = Z_LVAL_P(tmp);
+	Z_TYPE_P(tmp) = IS_NULL;
+	zval_ptr_dtor(&tmp);
+}
+/* }}} */
+
+
 static zend_function_entry uv_functions[] = {
 	/* general */
 	PHP_FE(uv_update_time, arginfo_uv_update_time)
@@ -3472,8 +3617,11 @@ static zend_function_entry uv_functions[] = {
 	/* async */
 	PHP_FE(uv_async_init, NULL)
 	PHP_FE(uv_async_send, NULL)
-	/* queue */
+	/* queue (does not work yet) */
 	PHP_FE(uv_queue_work, NULL)
+	/* fs */
+	PHP_FE(uv_fs_open, NULL)
+	PHP_FE(uv_fs_read, NULL)
 	/* info */
 	PHP_FE(uv_loadavg, NULL)
 	PHP_FE(uv_uptime, NULL)

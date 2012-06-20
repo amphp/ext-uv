@@ -44,7 +44,8 @@ enum php_uv_resource_type{
 	IS_UV_PREPARE = 11,
 	IS_UV_CHECK = 12,
 	IS_UV_WORK = 13,
-	IS_UV_MAX = 14
+	IS_UV_FS = 14,
+	IS_UV_MAX = 15
 };
 
 typedef struct {
@@ -69,6 +70,7 @@ typedef struct {
 		uv_check_t check;
 		uv_process_t process;
 		uv_work_t work;
+		uv_fs_t fs;
 	} uv;
 	zval *address;
 	zval *listen_cb;
@@ -88,6 +90,7 @@ typedef struct {
 	zval *async_cb;
 	zval *work_cb;
 	zval *after_work_cb;
+	zval *fs_cb;
 } php_uv_t;
 
 typedef struct {
