@@ -734,25 +734,38 @@ static void php_uv_after_work_cb(uv_work_t* req)
 
 static void php_uv_fs_cb(uv_fs_t* req)
 {
-	zval **params[1], *result, *retval_ptr = NULL;
+	zval **params[2], *result, *retval_ptr = NULL;
 	php_uv_t *uv = (php_uv_t*)req->data;
+	int argc = 2;
 	TSRMLS_FETCH_FROM_CTX(uv->thread_ctx);
 
 #if PHP_UV_DEBUG>=1
 	fprintf(stderr,"fs_cb");
 #endif
 
-	if (uv->uv.fs.fs_type == UV_FS_READ) {
-		fprintf(stderr,"buf: %s", uv_fs_read_buf);
-	}
-
 	MAKE_STD_ZVAL(result);
 	ZVAL_LONG(result, uv->uv.fs.result);
 	params[0] = &result;
 
-	php_uv_do_callback(&retval_ptr, uv->fs_cb, params, 1 TSRMLS_CC);
+	if (uv->uv.fs.fs_type == UV_FS_READ) {
+		zval *buffer;
+		
+		MAKE_STD_ZVAL(buffer);
+		ZVAL_STRINGL(buffer, uv_fs_read_buf, uv->uv.fs.result, 1);
+		params[1] = &buffer;
+	} else {
+		argc = 1;
+	}
+
+	php_uv_do_callback(&retval_ptr, uv->fs_cb, params, argc TSRMLS_CC);
+	
+	if (argc == 2) {
+		zval_ptr_dtor(params[1]);
+	}
+
 	zval_ptr_dtor(&retval_ptr);
 	zval_ptr_dtor(&result);
+	uv_fs_req_cleanup(req);
 
 #if PHP_UV_DEBUG>=1
 	{
