@@ -78,6 +78,8 @@ static int uv_rwlock_handle;
 
 static int uv_mutex_handle;
 
+static char uv_fs_read_buf[10];
+
 /* declarations */
 
 void php_uv_init(TSRMLS_D);
@@ -740,6 +742,10 @@ static void php_uv_fs_cb(uv_fs_t* req)
 	fprintf(stderr,"fs_cb");
 #endif
 
+	if (uv->uv.fs.fs_type == UV_FS_READ) {
+		fprintf(stderr,"buf: %s", uv_fs_read_buf);
+	}
+
 	MAKE_STD_ZVAL(result);
 	ZVAL_LONG(result, uv->uv.fs.result);
 	params[0] = &result;
@@ -752,7 +758,7 @@ static void php_uv_fs_cb(uv_fs_t* req)
 	{
 		zend_rsrc_list_entry *le;
 		if (zend_hash_index_find(&EG(regular_list), uv->resource_id, (void **) &le)==SUCCESS) {
-			printf("# uv_fs_cb del(%d): %d->%d\n", uv->resource_id, le->refcount, le->refcount-1);
+			printf("# uv_fs_cb type(%d) del(%d): %d->%d\n", uv->uv.fs.fs_type, uv->resource_id, le->refcount, le->refcount-1);
 		} else {
 			printf("# can't find (fs_cb)");
 		}
@@ -3483,12 +3489,10 @@ PHP_FUNCTION(uv_fs_read)
 	zval *callback;
 	uv_loop_t *loop;
 	php_uv_t *uv;
-	char *path;
-	int path_len;
-	long flag, mode;
+	unsigned long fd;
 	
 	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
-		"zsllz", &zloop, &path, &path_len, &flag, &mode, &callback) == FAILURE) {
+		"zlz", &zloop, &fd, &callback) == FAILURE) {
 		return;
 	}
 
@@ -3513,7 +3517,8 @@ PHP_FUNCTION(uv_fs_read)
 
 	//uv_fs_read($loop, int $fd, Closure $cb)
 	//UV_EXTERN int uv_fs_read(uv_loop_t* loop, uv_fs_t* req, uv_file file, void* buf, size_t length, off_t offset, uv_fs_cb cb);
-	r = uv_fs_read(loop, (uv_fs_t*)&uv->uv.fs, path, flag, mode, php_uv_fs_cb);
+	memset(uv_fs_read_buf, 0, sizeof(uv_fs_read_buf));
+	r = uv_fs_read(loop, (uv_fs_t*)&uv->uv.fs, fd, uv_fs_read_buf, sizeof(uv_fs_read_buf), -1, php_uv_fs_cb);
 
 	if (r) {
 		php_error_docref(NULL TSRMLS_CC, E_ERROR, "uv_async_init failed");
