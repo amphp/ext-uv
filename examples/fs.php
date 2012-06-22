@@ -20,7 +20,8 @@ function r($rs,$data)
     }
 
 }
-uv_fs_open(uv_default_loop(),"./fs.php", 0, 0, function($r){
+
+uv_fs_open(uv_default_loop(),__FILE__, 0, 0, function($r){
     global $x;
     $x = $r;
     uv_fs_read(uv_default_loop(),$r,"r");

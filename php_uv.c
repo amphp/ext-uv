@@ -748,6 +748,9 @@ static void php_uv_fs_cb(uv_fs_t* req)
 	params[0] = &result;
 
 	switch (uv->uv.fs.fs_type) {
+		case UV_FS_CLOSE:
+			argc = 1;
+			break;
 		case UV_FS_OPEN: {
 			argc = 1;
 			break;
