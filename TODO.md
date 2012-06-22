@@ -44,13 +44,10 @@
 
 * UV_EXTERN int uv_fs_readdir(uv_loop_t* loop, uv_fs_t* req,const char* path, int flags, uv_fs_cb cb);
 
-
 * UV_EXTERN int uv_fs_stat(uv_loop_t* loop, uv_fs_t* req, const char* path,uv_fs_cb cb);
 * UV_EXTERN int uv_fs_fstat(uv_loop_t* loop, uv_fs_t* req, uv_file file,uv_fs_cb cb);
 * UV_EXTERN int uv_fs_lstat(uv_loop_t* loop, uv_fs_t* req, const char* path,uv_fs_cb cb);
 
-* UV_EXTERN int uv_fs_link(uv_loop_t* loop, uv_fs_t* req, const char* path,const char* new_path, uv_fs_cb cb);
-* UV_EXTERN int uv_fs_symlink(uv_loop_t* loop, uv_fs_t* req, const char* path,const char* new_path, int flags, uv_fs_cb cb);
 * UV_EXTERN int uv_fs_readlink(uv_loop_t* loop, uv_fs_t* req, const char* path,uv_fs_cb cb);
 
 * UV_EXTERN int uv_fs_event_init(uv_loop_t* loop, uv_fs_event_t* handle,const char* filename, uv_fs_event_cb cb, int flags);

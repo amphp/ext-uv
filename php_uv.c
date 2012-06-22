@@ -749,6 +749,8 @@ static void php_uv_fs_cb(uv_fs_t* req)
 	params[0] = &result;
 
 	switch (uv->uv.fs.fs_type) {
+		case UV_FS_SYMLINK:
+		case UV_FS_LINK:
 		case UV_FS_CHMOD:
 		case UV_FS_FCHMOD:
 		case UV_FS_RENAME:
@@ -4039,12 +4041,12 @@ PHP_FUNCTION(uv_fs_chown)
 	Z_ADDREF_P(callback);
 	uv->uv.fs.data = uv;
 
-	PHP_UV_FS_ASYNC(loop, chmod, path, mode);
+	PHP_UV_FS_ASYNC(loop, chown, path, uid, gid);
 }
 /* }}} */
 
 /* {{{ */
-PHP_FUNCTION(uv_fs_fchmod)
+PHP_FUNCTION(uv_fs_fchown)
 {
 	int error;
 	zval *callback, *tmp, *zloop = NULL;
@@ -4052,7 +4054,7 @@ PHP_FUNCTION(uv_fs_fchmod)
 	php_uv_t *uv;
 	char *path;
 	int path_len;
-	long mode;
+	long uid, gid;
 	unsigned long fd;
 	
 	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
@@ -4067,10 +4069,63 @@ PHP_FUNCTION(uv_fs_fchmod)
 	Z_ADDREF_P(callback);
 	uv->uv.fs.data = uv;
 
-	PHP_UV_FS_ASYNC(loop, fchmod, fd, mode);
+	PHP_UV_FS_ASYNC(loop, fchown, fd, uid, gid);
+}
+/* }}} */
+	
+/* {{{ */
+PHP_FUNCTION(uv_fs_link)
+{
+	int error;
+	zval *callback, *tmp, *zloop = NULL;
+	uv_loop_t *loop;
+	php_uv_t *uv;
+	char *from, *to;
+	int from_len, to_len = 0;
+	
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
+		"zssz", &zloop, &from, &from_len, &to, &to_len, &callback) == FAILURE) {
+		return;
+	}
+
+	PHP_UV_INIT_UV(uv, IS_UV_FS);
+	PHP_UV_FETCH_UV_DEFAULT_LOOP(loop, zloop);
+
+	uv->fs_cb = callback;
+	Z_ADDREF_P(callback);
+	uv->uv.fs.data = uv;
+
+	PHP_UV_FS_ASYNC(loop, link, from, to);
 }
 /* }}} */
 
+
+/* {{{ */
+PHP_FUNCTION(uv_fs_symlink)
+{
+	int error;
+	zval *callback, *tmp, *zloop = NULL;
+	uv_loop_t *loop;
+	php_uv_t *uv;
+	char *from, *to;
+	int from_len, to_len = 0;
+	long flags;
+	
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
+		"zsslz", &zloop, &from, &from_len, &to, &to_len, &flags, &callback) == FAILURE) {
+		return;
+	}
+
+	PHP_UV_INIT_UV(uv, IS_UV_FS);
+	PHP_UV_FETCH_UV_DEFAULT_LOOP(loop, zloop);
+
+	uv->fs_cb = callback;
+	Z_ADDREF_P(callback);
+	uv->uv.fs.data = uv;
+
+	PHP_UV_FS_ASYNC(loop, symlink, from, to, flags);
+}
+/* }}} */
 
 static zend_function_entry uv_functions[] = {
 	/* general */
@@ -4179,6 +4234,8 @@ static zend_function_entry uv_functions[] = {
 	PHP_FE(uv_fs_fchmod, NULL)
 	PHP_FE(uv_fs_chown, NULL)
 	PHP_FE(uv_fs_fchown, NULL)
+	PHP_FE(uv_fs_link, NULL)
+	PHP_FE(uv_fs_symlink, NULL)
 	/* info */
 	PHP_FE(uv_loadavg, NULL)
 	PHP_FE(uv_uptime, NULL)
