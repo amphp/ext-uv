@@ -72,6 +72,7 @@ typedef struct {
 		uv_work_t work;
 		uv_fs_t fs;
 	} uv;
+	char *buffer;
 	zval *address;
 	zval *listen_cb;
 	zval *read_cb;
