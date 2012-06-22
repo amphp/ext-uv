@@ -748,6 +748,7 @@ static void php_uv_fs_cb(uv_fs_t* req)
 	params[0] = &result;
 
 	switch (uv->uv.fs.fs_type) {
+		case UV_FS_FSYNC:
 		case UV_FS_CLOSE:
 			argc = 1;
 			break;
@@ -3681,6 +3682,57 @@ PHP_FUNCTION(uv_fs_write)
 /* }}} */
 
 
+/* {{{ */
+PHP_FUNCTION(uv_fs_fsync)
+{
+	int r;
+	zval *tmp, *zloop = NULL;
+	zval *callback;
+	uv_loop_t *loop;
+	php_uv_t *uv;
+	unsigned long fd;
+	
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
+		"zlz", &zloop, &fd, &callback) == FAILURE) {
+		return;
+	}
+
+	uv = (php_uv_t *)emalloc(sizeof(php_uv_t));
+	if (!uv) {
+		php_error_docref(NULL TSRMLS_CC, E_ERROR, "uv_fs_write emalloc failed");
+		return;
+	}
+	
+	if (zloop != NULL) {
+		ZEND_FETCH_RESOURCE(loop, uv_loop_t*, &zloop, -1, PHP_UV_LOOP_RESOURCE_NAME, uv_loop_handle);
+	} else {
+		loop = uv_default_loop();
+	}
+
+	uv->type = IS_UV_FS;
+	PHP_UV_INIT_ZVALS(uv)
+
+	uv->fs_cb = callback;
+	Z_ADDREF_P(callback);
+	uv->uv.fs.data = uv;
+	
+	r = uv_fs_fsync(loop, (uv_fs_t*)&uv->uv.fs, fd, php_uv_fs_cb);
+
+	if (r) {
+		php_error_docref(NULL TSRMLS_CC, E_ERROR, "uv_fs_write failed");
+		return;
+	}
+
+	TSRMLS_SET_CTX(uv->thread_ctx);
+	MAKE_STD_ZVAL(tmp);
+	ZEND_REGISTER_RESOURCE(tmp, uv, uv_resource_handle);
+	uv->resource_id = Z_LVAL_P(tmp);
+	Z_TYPE_P(tmp) = IS_NULL;
+	zval_ptr_dtor(&tmp);
+}
+/* }}} */
+
+
 static zend_function_entry uv_functions[] = {
 	/* general */
 	PHP_FE(uv_update_time, arginfo_uv_update_time)
@@ -3775,6 +3827,7 @@ static zend_function_entry uv_functions[] = {
 	PHP_FE(uv_fs_read, NULL)
 	PHP_FE(uv_fs_write, NULL)
 	PHP_FE(uv_fs_close, NULL)
+	PHP_FE(uv_fs_fsync, NULL)
 	/* info */
 	PHP_FE(uv_loadavg, NULL)
 	PHP_FE(uv_uptime, NULL)
