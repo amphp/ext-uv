@@ -49,8 +49,6 @@
 * UV_EXTERN int uv_fs_fstat(uv_loop_t* loop, uv_fs_t* req, uv_file file,uv_fs_cb cb);
 * UV_EXTERN int uv_fs_lstat(uv_loop_t* loop, uv_fs_t* req, const char* path,uv_fs_cb cb);
 
-* UV_EXTERN int uv_fs_chmod(uv_loop_t* loop, uv_fs_t* req, const char* path,int mode, uv_fs_cb cb);
-* UV_EXTERN int uv_fs_fchmod(uv_loop_t* loop, uv_fs_t* req, uv_file file,int mode, uv_fs_cb cb);
 * UV_EXTERN int uv_fs_chown(uv_loop_t* loop, uv_fs_t* req, const char* path,int uid, int gid, uv_fs_cb cb);
 * UV_EXTERN int uv_fs_fchown(uv_loop_t* loop, uv_fs_t* req, uv_file file,int uid, int gid, uv_fs_cb cb);
 

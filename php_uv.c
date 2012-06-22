@@ -749,6 +749,8 @@ static void php_uv_fs_cb(uv_fs_t* req)
 	params[0] = &result;
 
 	switch (uv->uv.fs.fs_type) {
+		case UV_FS_CHMOD:
+		case UV_FS_FCHMOD:
 		case UV_FS_RENAME:
 		case UV_FS_UNLINK:
 		case UV_FS_RMDIR:
@@ -3957,6 +3959,61 @@ PHP_FUNCTION(uv_fs_futime)
 }
 /* }}} */
 
+/* {{{ */
+PHP_FUNCTION(uv_fs_chmod)
+{
+	int error;
+	zval *callback, *tmp, *zloop = NULL;
+	uv_loop_t *loop;
+	php_uv_t *uv;
+	long mode;
+	char *path;
+	int path_len = 0;
+	
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
+		"zslz", &zloop, &path, &path_len, &mode, &callback) == FAILURE) {
+		return;
+	}
+
+	PHP_UV_INIT_UV(uv, IS_UV_FS);
+	PHP_UV_FETCH_UV_DEFAULT_LOOP(loop, zloop);
+
+	uv->fs_cb = callback;
+	Z_ADDREF_P(callback);
+	uv->uv.fs.data = uv;
+
+	PHP_UV_FS_ASYNC(loop, chmod, path, mode);
+}
+/* }}} */
+
+
+/* {{{ */
+PHP_FUNCTION(uv_fs_fchmod)
+{
+	int error;
+	zval *callback, *tmp, *zloop = NULL;
+	uv_loop_t *loop;
+	php_uv_t *uv;
+	long mode;
+	unsigned long fd;
+	
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
+		"zlllz", &zloop, &fd, &mode, &callback) == FAILURE) {
+		return;
+	}
+
+	PHP_UV_INIT_UV(uv, IS_UV_FS);
+	PHP_UV_FETCH_UV_DEFAULT_LOOP(loop, zloop);
+
+	uv->fs_cb = callback;
+	Z_ADDREF_P(callback);
+	uv->uv.fs.data = uv;
+
+	PHP_UV_FS_ASYNC(loop, fchmod, fd, mode);
+}
+/* }}} */
+
+
 
 static zend_function_entry uv_functions[] = {
 	/* general */
@@ -4061,6 +4118,8 @@ static zend_function_entry uv_functions[] = {
 	PHP_FE(uv_fs_rename, NULL)
 	PHP_FE(uv_fs_utime, NULL)
 	PHP_FE(uv_fs_futime, NULL)
+	PHP_FE(uv_fs_chmod, NULL)
+	PHP_FE(uv_fs_fchmod, NULL)
 	/* info */
 	PHP_FE(uv_loadavg, NULL)
 	PHP_FE(uv_uptime, NULL)
