@@ -749,6 +749,9 @@ static void php_uv_fs_cb(uv_fs_t* req)
 	params[0] = &result;
 
 	switch (uv->uv.fs.fs_type) {
+		case UV_FS_UNLINK:
+		case UV_FS_RMDIR:
+		case UV_FS_MKDIR:
 		case UV_FS_FTRUNCATE:
 		case UV_FS_FDATASYNC:
 		case UV_FS_FSYNC:
@@ -3790,6 +3793,85 @@ PHP_FUNCTION(uv_fs_ftruncate)
 }
 /* }}} */
 
+/* {{{ */
+PHP_FUNCTION(uv_fs_mkdir)
+{
+	int error;
+	zval *callback, *tmp, *zloop = NULL;
+	uv_loop_t *loop;
+	php_uv_t *uv;
+	char *path;
+	int path_len = 0;
+	long mode = 0;
+	
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
+		"zslz", &zloop, &path, &path_len, &mode, &callback) == FAILURE) {
+		return;
+	}
+
+	PHP_UV_INIT_UV(uv, IS_UV_FS);
+	PHP_UV_FETCH_UV_DEFAULT_LOOP(loop, zloop);
+
+	uv->fs_cb = callback;
+	Z_ADDREF_P(callback);
+	uv->uv.fs.data = uv;
+
+	PHP_UV_FS_ASYNC(loop, mkdir, path, mode);
+}
+/* }}} */
+
+
+/* {{{ */
+PHP_FUNCTION(uv_fs_rmdir)
+{
+	int error;
+	zval *callback, *tmp, *zloop = NULL;
+	uv_loop_t *loop;
+	php_uv_t *uv;
+	char *path;
+	int path_len = 0;
+	
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
+		"zsz", &zloop, &path, &path_len, &callback) == FAILURE) {
+		return;
+	}
+
+	PHP_UV_INIT_UV(uv, IS_UV_FS);
+	PHP_UV_FETCH_UV_DEFAULT_LOOP(loop, zloop);
+
+	uv->fs_cb = callback;
+	Z_ADDREF_P(callback);
+	uv->uv.fs.data = uv;
+
+	PHP_UV_FS_ASYNC(loop, rmdir, path);
+}
+/* }}} */
+
+/* {{{ */
+PHP_FUNCTION(uv_fs_unlink)
+{
+	int error;
+	zval *callback, *tmp, *zloop = NULL;
+	uv_loop_t *loop;
+	php_uv_t *uv;
+	char *path;
+	int path_len = 0;
+	
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
+		"zsz", &zloop, &path, &path_len, &callback) == FAILURE) {
+		return;
+	}
+
+	PHP_UV_INIT_UV(uv, IS_UV_FS);
+	PHP_UV_FETCH_UV_DEFAULT_LOOP(loop, zloop);
+
+	uv->fs_cb = callback;
+	Z_ADDREF_P(callback);
+	uv->uv.fs.data = uv;
+
+	PHP_UV_FS_ASYNC(loop, unlink, path);
+}
+/* }}} */
 
 static zend_function_entry uv_functions[] = {
 	/* general */
@@ -3888,6 +3970,9 @@ static zend_function_entry uv_functions[] = {
 	PHP_FE(uv_fs_fsync, NULL)
 	PHP_FE(uv_fs_fdatasync, NULL)
 	PHP_FE(uv_fs_ftruncate, NULL)
+	PHP_FE(uv_fs_mkdir, NULL)
+	PHP_FE(uv_fs_rmdir, NULL)
+	PHP_FE(uv_fs_unlink, NULL)
 	/* info */
 	PHP_FE(uv_loadavg, NULL)
 	PHP_FE(uv_uptime, NULL)
