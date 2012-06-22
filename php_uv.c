@@ -749,6 +749,7 @@ static void php_uv_fs_cb(uv_fs_t* req)
 	params[0] = &result;
 
 	switch (uv->uv.fs.fs_type) {
+		case UV_FS_FTRUNCATE:
 		case UV_FS_FDATASYNC:
 		case UV_FS_FSYNC:
 		case UV_FS_CLOSE:
@@ -3763,6 +3764,31 @@ PHP_FUNCTION(uv_fs_fdatasync)
 }
 /* }}} */
 
+/* {{{ */
+PHP_FUNCTION(uv_fs_ftruncate)
+{
+	int error;
+	zval *callback, *tmp, *zloop = NULL;
+	uv_loop_t *loop;
+	php_uv_t *uv;
+	long offset = 0;
+	unsigned long fd;
+	
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
+		"zllz", &zloop, &fd, &offset, &callback) == FAILURE) {
+		return;
+	}
+
+	PHP_UV_INIT_UV(uv, IS_UV_FS);
+	PHP_UV_FETCH_UV_DEFAULT_LOOP(loop, zloop);
+
+	uv->fs_cb = callback;
+	Z_ADDREF_P(callback);
+	uv->uv.fs.data = uv;
+
+	PHP_UV_FS_ASYNC(loop, ftruncate, fd, offset);
+}
+/* }}} */
 
 
 static zend_function_entry uv_functions[] = {
@@ -3861,6 +3887,7 @@ static zend_function_entry uv_functions[] = {
 	PHP_FE(uv_fs_close, NULL)
 	PHP_FE(uv_fs_fsync, NULL)
 	PHP_FE(uv_fs_fdatasync, NULL)
+	PHP_FE(uv_fs_ftruncate, NULL)
 	/* info */
 	PHP_FE(uv_loadavg, NULL)
 	PHP_FE(uv_uptime, NULL)
