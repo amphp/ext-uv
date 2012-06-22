@@ -10,6 +10,9 @@ function r($rs,$data)
         uv_fs_read(uv_default_loop(),$x,"r");
     } else {
         var_dump($buf);
+        uv_fs_close(uv_default_loop(), $x,function(){
+        	echo "# closed\n";
+        });
     }
 
 }
