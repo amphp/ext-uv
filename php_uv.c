@@ -3682,12 +3682,40 @@ PHP_FUNCTION(uv_fs_write)
 /* }}} */
 
 
+#define PHP_UV_INIT_UV(uv, uv_type) \
+	uv = (php_uv_t *)emalloc(sizeof(php_uv_t)); \
+	if (!uv) { \
+		php_error_docref(NULL TSRMLS_CC, E_ERROR, "emalloc failed"); \
+		return; \
+	} else { \
+		uv->type = uv_type; \
+		PHP_UV_INIT_ZVALS(uv) \
+		TSRMLS_SET_CTX(uv->thread_ctx); \
+		uv->resource_id = zend_list_insert(uv, uv_resource_handle TSRMLS_CC); \
+	}
+
+#define PHP_UV_FETCH_UV_DEFAULT_LOOP(loop, zloop) \
+	{ \
+		if (zloop != NULL) { \
+			ZEND_FETCH_RESOURCE(loop, uv_loop_t*, &zloop, -1, PHP_UV_LOOP_RESOURCE_NAME, uv_loop_handle); \
+		} else { \
+			loop = uv_default_loop(); \
+		}  \
+	}
+
+#define PHP_UV_FS_ASYNC(loop, func,  ...) \
+	error = uv_fs_##func(loop, (uv_fs_t*)&uv->uv.fs, __VA_ARGS__, php_uv_fs_cb); \
+	if (error) { \
+		php_error_docref(NULL TSRMLS_CC, E_ERROR, "uv_##func failed"); \
+		return; \
+	}
+
+
 /* {{{ */
 PHP_FUNCTION(uv_fs_fsync)
 {
-	int r;
-	zval *tmp, *zloop = NULL;
-	zval *callback;
+	int error;
+	zval *callback, *tmp, *zloop = NULL;
 	uv_loop_t *loop;
 	php_uv_t *uv;
 	unsigned long fd;
@@ -3697,38 +3725,14 @@ PHP_FUNCTION(uv_fs_fsync)
 		return;
 	}
 
-	uv = (php_uv_t *)emalloc(sizeof(php_uv_t));
-	if (!uv) {
-		php_error_docref(NULL TSRMLS_CC, E_ERROR, "uv_fs_write emalloc failed");
-		return;
-	}
-	
-	if (zloop != NULL) {
-		ZEND_FETCH_RESOURCE(loop, uv_loop_t*, &zloop, -1, PHP_UV_LOOP_RESOURCE_NAME, uv_loop_handle);
-	} else {
-		loop = uv_default_loop();
-	}
-
-	uv->type = IS_UV_FS;
-	PHP_UV_INIT_ZVALS(uv)
+	PHP_UV_INIT_UV(uv, IS_UV_FS);
+	PHP_UV_FETCH_UV_DEFAULT_LOOP(loop, zloop);
 
 	uv->fs_cb = callback;
 	Z_ADDREF_P(callback);
 	uv->uv.fs.data = uv;
-	
-	r = uv_fs_fsync(loop, (uv_fs_t*)&uv->uv.fs, fd, php_uv_fs_cb);
 
-	if (r) {
-		php_error_docref(NULL TSRMLS_CC, E_ERROR, "uv_fs_write failed");
-		return;
-	}
-
-	TSRMLS_SET_CTX(uv->thread_ctx);
-	MAKE_STD_ZVAL(tmp);
-	ZEND_REGISTER_RESOURCE(tmp, uv, uv_resource_handle);
-	uv->resource_id = Z_LVAL_P(tmp);
-	Z_TYPE_P(tmp) = IS_NULL;
-	zval_ptr_dtor(&tmp);
+	PHP_UV_FS_ASYNC(loop, fsync, fd);
 }
 /* }}} */
 
