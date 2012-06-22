@@ -749,6 +749,7 @@ static void php_uv_fs_cb(uv_fs_t* req)
 	params[0] = &result;
 
 	switch (uv->uv.fs.fs_type) {
+		case UV_FS_RENAME:
 		case UV_FS_UNLINK:
 		case UV_FS_RMDIR:
 		case UV_FS_MKDIR:
@@ -3873,6 +3874,33 @@ PHP_FUNCTION(uv_fs_unlink)
 }
 /* }}} */
 
+/* {{{ */
+PHP_FUNCTION(uv_fs_rename)
+{
+	int error;
+	zval *callback, *tmp, *zloop = NULL;
+	uv_loop_t *loop;
+	php_uv_t *uv;
+	char *from, *to;
+	int from_len, to_len = 0;
+	
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
+		"zssz", &zloop, &from, &from_len, &to, &to_len, &callback) == FAILURE) {
+		return;
+	}
+
+	PHP_UV_INIT_UV(uv, IS_UV_FS);
+	PHP_UV_FETCH_UV_DEFAULT_LOOP(loop, zloop);
+
+	uv->fs_cb = callback;
+	Z_ADDREF_P(callback);
+	uv->uv.fs.data = uv;
+
+	PHP_UV_FS_ASYNC(loop, rename, from, to);
+}
+/* }}} */
+
+
 static zend_function_entry uv_functions[] = {
 	/* general */
 	PHP_FE(uv_update_time, arginfo_uv_update_time)
@@ -3973,6 +4001,7 @@ static zend_function_entry uv_functions[] = {
 	PHP_FE(uv_fs_mkdir, NULL)
 	PHP_FE(uv_fs_rmdir, NULL)
 	PHP_FE(uv_fs_unlink, NULL)
+	PHP_FE(uv_fs_rename, NULL)
 	/* info */
 	PHP_FE(uv_loadavg, NULL)
 	PHP_FE(uv_uptime, NULL)
