@@ -7,7 +7,7 @@ uv_fs_open(uv_default_loop(),"./tmp", UV::O_WRONLY | UV::O_CREAT | UV::O_APPEND,
     uv_fs_write(uv_default_loop(),$r,"hello",function($a) use ($r){
     	var_dump($a);
     	var_dump("ok");
-        uv_fs_fsync(uv_default_loop(),$r,function(){
+        uv_fs_fdatasync(uv_default_loop(),$r,function(){
             echo "fsync finished";
         });
     });
