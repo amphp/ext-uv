@@ -6,6 +6,10 @@ function r($rs,$data)
     global $x;
     $buf .= $data;
     if ($rs != 0) {
+        if ($rs < 0) {
+            throw new Exception("error");
+        }
+        
         echo "moe";
         uv_fs_read(uv_default_loop(),$x,"r");
     } else {

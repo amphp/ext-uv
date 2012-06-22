@@ -748,12 +748,19 @@ static void php_uv_fs_cb(uv_fs_t* req)
 	params[0] = &result;
 
 	switch (uv->uv.fs.fs_type) {
-		case UV_FS_OPEN:
+		case UV_FS_OPEN: {
+			argc = 1;
+			break;
+		}
 		case UV_FS_READ: {
 			zval *buffer;
 			
 			MAKE_STD_ZVAL(buffer);
-			ZVAL_STRINGL(buffer, uv_fs_read_buf, uv->uv.fs.result, 1);
+			if (uv->uv.fs.result > 0) {
+				ZVAL_STRINGL(buffer, uv_fs_read_buf, uv->uv.fs.result, 1);
+			} else {
+				ZVAL_NULL(buffer);
+			}
 			params[1] = &buffer;
 			break;
 		}
