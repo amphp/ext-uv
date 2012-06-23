@@ -43,10 +43,6 @@
 * UV_EXTERN int uv_fs_sendfile(uv_loop_t* loop, uv_fs_t* req, uv_file out_fd,uv_file in_fd, off_t in_offset, size_t length, uv_fs_cb cb);
 * UV_EXTERN int uv_fs_readdir(uv_loop_t* loop, uv_fs_t* req,const char* path, int flags, uv_fs_cb cb);
 
-* UV_EXTERN int uv_fs_stat(uv_loop_t* loop, uv_fs_t* req, const char* path,uv_fs_cb cb);
-* UV_EXTERN int uv_fs_fstat(uv_loop_t* loop, uv_fs_t* req, uv_file file,uv_fs_cb cb);
-* UV_EXTERN int uv_fs_lstat(uv_loop_t* loop, uv_fs_t* req, const char* path,uv_fs_cb cb);
-
 * UV_EXTERN int uv_fs_event_init(uv_loop_t* loop, uv_fs_event_t* handle,const char* filename, uv_fs_event_cb cb, int flags);
 
 * UV_EXTERN struct sockaddr_in6 uv_ip6_addr(const char* ip, int port);
