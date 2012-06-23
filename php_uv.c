@@ -122,6 +122,17 @@ static void php_uv_timer_cb(uv_timer_t *handle, int status);
 
 static void php_uv_idle_cb(uv_timer_t *handle, int status);
 
+/* util */
+
+static zval *php_uv_make_stat(void *stat)
+{
+	zval *tmp;
+	MAKE_STD_ZVAL(tmp);
+	array_init(tmp);
+	
+	return tmp;
+}
+
 /* destructor */
 
 void static destruct_uv_mutex(zend_rsrc_list_entry *rsrc TSRMLS_DC)
@@ -732,7 +743,6 @@ static void php_uv_after_work_cb(uv_work_t* req)
 #endif
 }
 
-
 static void php_uv_fs_cb(uv_fs_t* req)
 {
 	zval **params[2], *result, *retval_ptr = NULL;
@@ -767,6 +777,12 @@ static void php_uv_fs_cb(uv_fs_t* req)
 			break;
 		case UV_FS_OPEN: {
 			argc = 1;
+			break;
+		}
+		case UV_FS_STAT: {
+			zval *buffer;
+			buffer = php_uv_make_stat(req->ptr);
+			params[1] = &buffer;
 			break;
 		}
 		case UV_FS_UTIME:
@@ -2913,7 +2929,6 @@ PHP_FUNCTION(uv_spawn)
 	if (command_args) {
 		efree(command_args);
 	}
-
 }
 /* }}} */
 
@@ -4161,6 +4176,32 @@ PHP_FUNCTION(uv_fs_readlink)
 }
 /* }}} */
 
+/* {{{ */
+PHP_FUNCTION(uv_fs_stat)
+{
+	int error;
+	zval *callback, *tmp, *zloop = NULL;
+	uv_loop_t *loop;
+	php_uv_t *uv;
+	char *path;
+	int path_len = 0;
+	
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
+		"zsz", &zloop, &path, &path_len, &callback) == FAILURE) {
+		return;
+	}
+
+	PHP_UV_INIT_UV(uv, IS_UV_FS);
+	PHP_UV_FETCH_UV_DEFAULT_LOOP(loop, zloop);
+
+	uv->fs_cb = callback;
+	Z_ADDREF_P(callback);
+	uv->uv.fs.data = uv;
+
+	PHP_UV_FS_ASYNC(loop, stat, path);
+}
+/* }}} */
+
 static zend_function_entry uv_functions[] = {
 	/* general */
 	PHP_FE(uv_update_time, arginfo_uv_update_time)
@@ -4271,6 +4312,7 @@ static zend_function_entry uv_functions[] = {
 	PHP_FE(uv_fs_link, NULL)
 	PHP_FE(uv_fs_symlink, NULL)
 	PHP_FE(uv_fs_readlink, NULL)
+	PHP_FE(uv_fs_stat, NULL)
 	/* info */
 	PHP_FE(uv_loadavg, NULL)
 	PHP_FE(uv_uptime, NULL)
