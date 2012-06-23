@@ -794,13 +794,33 @@ static void php_uv_fs_cb(uv_fs_t* req)
 		case UV_FS_FCHOWN:
 			argc = 1;
 			break;
-		case UV_FS_OPEN: {
+		case UV_FS_OPEN:
+		{
 			argc = 1;
 			break;
 		}
+		case UV_FS_READDIR:
+		{
+			zval *dirent;
+			int nnames, i = 0;
+			char *namebuf = (char *)req->ptr;
+			
+			MAKE_STD_ZVAL(dirent);
+			array_init(dirent);
+			
+			nnames = req->result;
+			for (i = 0; i < nnames; i++) {
+				add_next_index_string(dirent, namebuf, 1);
+				namebuf += strlen(namebuf) + 1;
+			}
+			
+			params[1] = &dirent;
+		break;
+		}
 		case UV_FS_LSTAT:
 		case UV_FS_FSTAT:
-		case UV_FS_STAT: {
+		case UV_FS_STAT:
+		{
 			zval *buffer;
 			buffer = php_uv_make_stat((const uv_statbuf_t*)req->ptr);
 			params[1] = &buffer;
@@ -810,7 +830,8 @@ static void php_uv_fs_cb(uv_fs_t* req)
 		case UV_FS_FUTIME:
 			argc = 0;
 			break;
-		case UV_FS_READLINK: {
+		case UV_FS_READLINK:
+		{
 			zval *buffer;
 			
 			MAKE_STD_ZVAL(buffer);
@@ -818,7 +839,8 @@ static void php_uv_fs_cb(uv_fs_t* req)
 			params[1] = &buffer;
 			break;
 		}
-		case UV_FS_READ: {
+		case UV_FS_READ:
+		{
 			zval *buffer;
 			
 			MAKE_STD_ZVAL(buffer);
@@ -830,7 +852,8 @@ static void php_uv_fs_cb(uv_fs_t* req)
 			params[1] = &buffer;
 			break;
 		}
-		case UV_FS_WRITE: {
+		case UV_FS_WRITE:
+		{
 			argc = 1;
 			params[1] = NULL;
 			efree(uv->buffer);
@@ -4278,6 +4301,33 @@ PHP_FUNCTION(uv_fs_fstat)
 }
 /* }}} */
 
+
+/* {{{ */
+PHP_FUNCTION(uv_fs_readdir)
+{
+	int error;
+	zval *callback, *tmp, *zloop = NULL;
+	uv_loop_t *loop;
+	php_uv_t *uv;
+	char *path;
+	int path_len = 0;
+	long flags;
+	
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
+		"zslz", &zloop, &path, &path_len, &flags, &callback) == FAILURE) {
+		return;
+	}
+
+	PHP_UV_INIT_UV(uv, IS_UV_FS);
+	PHP_UV_FETCH_UV_DEFAULT_LOOP(loop, zloop);
+
+	uv->fs_cb = callback;
+	Z_ADDREF_P(callback);
+	uv->uv.fs.data = uv;
+
+	PHP_UV_FS_ASYNC(loop, readdir, path, flags);
+}
+/* }}} */
 static zend_function_entry uv_functions[] = {
 	/* general */
 	PHP_FE(uv_update_time, arginfo_uv_update_time)
@@ -4391,6 +4441,7 @@ static zend_function_entry uv_functions[] = {
 	PHP_FE(uv_fs_stat, NULL)
 	PHP_FE(uv_fs_lstat, NULL)
 	PHP_FE(uv_fs_fstat, NULL)
+	PHP_FE(uv_fs_readdir, NULL)
 	/* info */
 	PHP_FE(uv_loadavg, NULL)
 	PHP_FE(uv_uptime, NULL)
