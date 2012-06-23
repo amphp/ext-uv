@@ -361,6 +361,11 @@ void static destruct_uv(zend_rsrc_list_entry *rsrc TSRMLS_DC)
 		zval_ptr_dtor(&obj->fs_cb);
 		obj->fs_cb = NULL;
 	}
+	if (obj->getaddr_cb) {
+		//fprintf(stderr, "uv_fs: %d\n", Z_REFCOUNT_P(obj->fs_cb));
+		zval_ptr_dtor(&obj->getaddr_cb);
+		obj->getaddr_cb = NULL;
+	}
 
 	if (obj->resource_id) {
 		base_id = obj->resource_id;
@@ -1098,8 +1103,53 @@ static void php_uv_idle_cb(uv_timer_t *handle, int status)
 
 static void php_uv_getaddrinfo_cb(uv_getaddrinfo_t* handle, int status, struct addrinfo* res)
 {
-	/* TODO */
-	efree(handle);
+	zval *tmp, *retval_ptr, *stat = NULL;
+	zval **params[2];
+    struct addrinfo *address;
+	char ip[INET6_ADDRSTRLEN];
+	const char *addr;
+	
+	php_uv_t *uv = (php_uv_t*)handle->data;
+	TSRMLS_FETCH_FROM_CTX(uv->thread_ctx);
+	
+	MAKE_STD_ZVAL(stat);
+	ZVAL_LONG(stat, status);
+	params[0] = &stat;
+
+	MAKE_STD_ZVAL(tmp);
+	array_init(tmp);
+	
+	address = res;
+	while (address) {
+		if (address->ai_family == AF_INET) {
+			addr = (char*) &((struct sockaddr_in*) address->ai_addr)->sin_addr;
+			const char *c = uv_inet_ntop(address->ai_family, addr, ip, INET6_ADDRSTRLEN);
+			add_next_index_string(tmp, c, 1);
+		}
+		
+		address = address->ai_next;
+	}
+
+	address = res;
+	while (address) {
+		if (address->ai_family == AF_INET6) {
+			addr = (char*) &((struct sockaddr_in6*) address->ai_addr)->sin6_addr;
+			const char *c = uv_inet_ntop(address->ai_family, addr, ip, INET6_ADDRSTRLEN);
+			add_next_index_string(tmp, c, 1);
+		}
+		
+		address = address->ai_next;
+	}
+
+	params[1] = &tmp;
+	
+	php_uv_do_callback(&retval_ptr, uv->getaddr_cb, params, 2 TSRMLS_CC);
+	
+	zval_ptr_dtor(&retval_ptr);
+	zval_ptr_dtor(&stat);
+	zval_ptr_dtor(&tmp);
+	
+	zend_list_delete(uv->resource_id);
 	uv_freeaddrinfo(res);
 }
 
@@ -2057,25 +2107,48 @@ PHP_FUNCTION(uv_idle_start)
 /* {{{ */
 PHP_FUNCTION(uv_getaddrinfo)
 {
-	zval *z_loop, *callback = NULL;
+	zval *z_loop, *hints, *callback = NULL;
 	uv_loop_t *loop;
 	php_uv_t *uv = NULL;
-	uv_getaddrinfo_t *handle = (uv_getaddrinfo_t*)emalloc(sizeof(uv_getaddrinfo_t));
-
-	/* FIXME: hints */
-	char *node, *service, *hints;
-	int node_len, service_len, hints_len = 0;
+	struct addrinfo hint = {0};
+	char *node, *service;
+	int node_len, service_len = 0;
 	
 	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
-	"zzsss",&z_loop, &callback, &node, &node_len, &service, &service_len, &hints, &hints_len) == FAILURE) {
+		"zzss|a",&z_loop, &callback, &node, &node_len, &service, &service_len, &hints) == FAILURE) {
 		return;
 	}
 
 	ZEND_FETCH_RESOURCE(loop, uv_loop_t *, &z_loop, -1, PHP_UV_LOOP_RESOURCE_NAME, uv_loop_handle);
 	Z_ADDREF_P(callback);
+	
+	if (Z_TYPE_P(hints) == IS_ARRAY) {
+		HashTable *h;
+		zval **data;
+		
+		h = Z_ARRVAL_P(hints);
+		if (zend_hash_find(h, "ai_family", sizeof("ai_family"), (void **)&data) == SUCCESS) {
+			hint.ai_family = Z_LVAL_PP(data);
+		}
+		if (zend_hash_find(h, "ai_socktype", sizeof("ai_socktype"), (void **)&data) == SUCCESS) {
+			hint.ai_socktype = Z_LVAL_PP(data);
+		}
+		if (zend_hash_find(h, "ai_protocol", sizeof("ai_socktype"), (void **)&data) == SUCCESS) {
+			hint.ai_socktype = Z_LVAL_PP(data);
+		}
+		if (zend_hash_find(h, "ai_flags", sizeof("ai_flags"), (void **)&data) == SUCCESS) {
+			hint.ai_flags = Z_LVAL_PP(data);
+		}
+	}
 
+	uv = (php_uv_t *)emalloc(sizeof(php_uv_t));
+	PHP_UV_INIT_ZVALS(uv)
+	TSRMLS_SET_CTX(uv->thread_ctx);
 	uv->getaddr_cb = callback;
-	uv_getaddrinfo(loop, handle, php_uv_getaddrinfo_cb, node, service, NULL);
+	uv->uv.addrinfo.data = uv;
+	uv->resource_id = zend_list_insert(uv, uv_resource_handle TSRMLS_CC);
+
+	uv_getaddrinfo(loop, &uv->uv.addrinfo, php_uv_getaddrinfo_cb, node, service, &hint);
 }
 /* }}} */
 
@@ -4670,6 +4743,16 @@ PHP_FUNCTION(uv_udp_getsockname)
 /* }}} */
 
 
+/* {{{ */
+PHP_FUNCTION(uv_resident_set_memory)
+{
+	size_t rss;
+	uv_resident_set_memory(&rss);
+
+	RETURN_LONG(rss);
+}
+/* }}} */
+
 static zend_function_entry uv_functions[] = {
 	/* general */
 	PHP_FE(uv_update_time, arginfo_uv_update_time)
@@ -4810,6 +4893,7 @@ static zend_function_entry uv_functions[] = {
 	PHP_FE(uv_exepath, NULL)
 	PHP_FE(uv_cwd, NULL)
 	PHP_FE(uv_chdir, arginfo_uv_chdir)
+	PHP_FE(uv_resident_set_memory, NULL)
 	{NULL, NULL, NULL}
 };
 

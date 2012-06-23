@@ -17,13 +17,8 @@
 * UV_EXTERN int uv_udp_bind6(uv_udp_t* handle, struct sockaddr_in6 addr,unsigned flags);
 * UV_EXTERN int uv_udp_set_membership(uv_udp_t* handle,const char* multicast_addr, const char* interface_addr,uv_membership membership);
 
-* UV_EXTERN int uv_getaddrinfo(uv_loop_t*, uv_getaddrinfo_t* handle,uv_getaddrinfo_cb getaddrinfo_cb, const char* node, const char* service,const struct addrinfo* hints);
-* UV_EXTERN void uv_freeaddrinfo(struct addrinfo* ai);
-
-
 * UV_EXTERN int uv_queue_work(uv_loop_t* loop, uv_work_t* req,uv_work_cb work_cb, uv_after_work_cb after_work_cb);
 * UV_EXTERN char** uv_setup_args(int argc, char** argv);
-* UV_EXTERN uv_err_t uv_resident_set_memory(size_t* rss);
 
 * UV_EXTERN struct sockaddr_in6 uv_ip6_addr(const char* ip, int port);
 * UV_EXTERN int uv_ip4_name(struct sockaddr_in* src, char* dst, size_t size);
