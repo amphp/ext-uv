@@ -20,13 +20,6 @@
 * UV_EXTERN int uv_udp_bind6(uv_udp_t* handle, struct sockaddr_in6 addr,unsigned flags);
 * UV_EXTERN int uv_udp_getsockname(uv_udp_t* handle, struct sockaddr* name,int* namelen);
 * UV_EXTERN int uv_udp_set_membership(uv_udp_t* handle,const char* multicast_addr, const char* interface_addr,uv_membership membership);
-* UV_EXTERN int uv_udp_set_membership(uv_udp_t* handle,const char* multicast_addr, const char* interface_addr,uv_membership membership);
-
-* UV_EXTERN int uv_tty_init(uv_loop_t*, uv_tty_t*, uv_file fd, int readable);
-* UV_EXTERN int uv_tty_set_mode(uv_tty_t*, int mode);
-* UV_EXTERN void uv_tty_reset_mode(void);
-* UV_EXTERN int uv_tty_get_winsize(uv_tty_t*, int* width, int* height);
-* UV_EXTERN uv_handle_type uv_guess_handle(uv_file file);
 
 * UV_EXTERN void uv_ares_destroy(uv_loop_t*, ares_channel channel);
 
@@ -46,8 +39,9 @@
 * UV_EXTERN int uv_thread_create(uv_thread_t *tid,void (*entry)(void *arg), void *arg);
 * UV_EXTERN int uv_thread_join(uv_thread_t *tid);
 
-
 # Not support
+
+* UV_EXTERN uv_handle_type uv_guess_handle(uv_file file);
 
 * UV_EXTERN uv_buf_t uv_buf_init(char* base, size_t len);
 * UV_EXTERN size_t uv_strlcpy(char* dst, const char* src, size_t size);

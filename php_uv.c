@@ -1404,6 +1404,13 @@ ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_chdir, 0, 0, 1)
 	ZEND_ARG_INFO(0, dir)
 ZEND_END_ARG_INFO()
 
+ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_tty_get_winsize, 0, 0, 3)
+	ZEND_ARG_INFO(0, tty)
+	ZEND_ARG_INFO(1, width)
+	ZEND_ARG_INFO(1, height)
+ZEND_END_ARG_INFO()
+
+
 /* PHP Functions */
 
 /* {{{ */
@@ -4443,13 +4450,97 @@ PHP_FUNCTION(uv_fs_event_init)
 	uv->uv.fs_event.data = uv;
 
 	error = uv_fs_event_init(loop, (uv_fs_event_t*)&uv->uv.fs_event, path, php_uv_fs_event_cb, flags); \
-	if (error) { \
+	if (error) {
 		php_error_docref(NULL TSRMLS_CC, E_ERROR, "uv_fs_event_init failed"); \
-		return; \
+		return;
 	}
-
 }
 /* }}} */
+
+/* {{{ */
+PHP_FUNCTION(uv_tty_init)
+{
+	int error;
+	zval *callback, *tmp, *zloop = NULL;
+	uv_loop_t *loop;
+	php_uv_t *uv;
+	char *path;
+	int path_len = 0;
+	long readable = 1;
+	unsigned long fd;
+	
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
+		"zll", &zloop, &fd, &readable) == FAILURE) {
+		return;
+	}
+
+	PHP_UV_INIT_UV(uv, IS_UV_TTY);
+	PHP_UV_FETCH_UV_DEFAULT_LOOP(loop, zloop);
+
+	uv->uv.tty.data = uv;
+	
+	error = uv_tty_init(loop, (uv_tty_t*)&uv->uv.tty, fd, readable); \
+	if (error) {
+		php_error_docref(NULL TSRMLS_CC, E_ERROR, "uv_fs_event_init failed"); \
+		return;
+	}
+	
+
+	ZVAL_RESOURCE(return_value, uv->resource_id);
+}
+/* }}} */
+
+
+/* {{{ */
+PHP_FUNCTION(uv_tty_get_winsize)
+{
+	php_uv_t *uv;
+	zval *handle, *result,*w, *h = NULL;
+	int error, width, height;
+	
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
+		"zzz", &handle, &w, &h) == FAILURE) {
+		return;
+	}
+
+	ZEND_FETCH_RESOURCE(uv, php_uv_t*, &handle, -1, PHP_UV_RESOURCE_NAME, uv_resource_handle);
+	error = uv_tty_get_winsize(&uv->uv.tty, &width, &height);
+	
+	ZVAL_LONG(w, width);
+	ZVAL_LONG(h, height);
+
+	RETURN_LONG(error);
+}
+/* }}} */
+
+
+/* {{{ */
+PHP_FUNCTION(uv_tty_set_mode)
+{
+	php_uv_t *uv;
+	zval *handle, *result;
+	int width, height;
+	long mode;
+	long error = 0;
+	
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
+		"zl", &handle, &mode) == FAILURE) {
+		return;
+	}
+
+	ZEND_FETCH_RESOURCE(uv, php_uv_t*, &handle, -1, PHP_UV_RESOURCE_NAME, uv_resource_handle);
+	error = uv_tty_set_mode(&uv->uv.tty, &mode);
+	RETURN_LONG(error);
+}
+/* }}} */
+
+/* {{{ */
+PHP_FUNCTION(uv_tty_reset_mode)
+{
+	uv_tty_reset_mode();
+}
+/* }}} */
+
 
 static zend_function_entry uv_functions[] = {
 	/* general */
@@ -4567,6 +4658,11 @@ static zend_function_entry uv_functions[] = {
 	PHP_FE(uv_fs_readdir, NULL)
 	PHP_FE(uv_fs_sendfile, NULL)
 	PHP_FE(uv_fs_event_init, NULL)
+	/* tty */
+	PHP_FE(uv_tty_init, NULL)
+	PHP_FE(uv_tty_get_winsize, arginfo_uv_tty_get_winsize)
+	PHP_FE(uv_tty_set_mode, NULL)
+	PHP_FE(uv_tty_reset_mode, NULL)
 	/* info */
 	PHP_FE(uv_loadavg, NULL)
 	PHP_FE(uv_uptime, NULL)
