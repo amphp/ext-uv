@@ -58,6 +58,7 @@ typedef struct {
 		uv->async_cb = NULL; \
 		uv->after_work_cb = NULL; \
 		uv->fs_cb = NULL; \
+		uv->fs_event_cb = NULL; \
 	}
 
 /* static variables */
@@ -901,6 +902,52 @@ static void php_uv_fs_cb(uv_fs_t* req)
 	}
 #endif
 }
+
+static void php_uv_fs_event_cb(uv_fs_event_t* req, const char* filename, int events, int status)
+{
+	zval *retval_ptr = NULL;
+	php_uv_t *uv = (php_uv_t*)req->data;
+	zval **params[3];
+	zval *name,*ev,*stat;
+	TSRMLS_FETCH_FROM_CTX(uv->thread_ctx);
+
+#if PHP_UV_DEBUG>=1
+	fprintf(stderr,"fs_event_cb:%s, %d\n", filename, status);
+#endif
+
+	MAKE_STD_ZVAL(name);
+	MAKE_STD_ZVAL(ev);
+	MAKE_STD_ZVAL(stat);
+	if (filename) {
+		ZVAL_STRING(name,filename,1);
+	} else {
+		ZVAL_NULL(name);
+	}
+	ZVAL_LONG(ev, events);
+	ZVAL_LONG(stat, status);
+	
+	params[0] = &name;
+	params[1] = &ev;
+	params[2] = &stat;
+
+	php_uv_do_callback(&retval_ptr, uv->fs_event_cb, params, 3 TSRMLS_CC);
+	zval_ptr_dtor(&retval_ptr);
+	zval_ptr_dtor(params[0]);
+	zval_ptr_dtor(params[1]);
+	zval_ptr_dtor(params[2]);
+
+#if PHP_UV_DEBUG>=1
+	{
+		zend_rsrc_list_entry *le;
+		if (zend_hash_index_find(&EG(regular_list), uv->resource_id, (void **) &le)==SUCCESS) {
+			printf("# uv_fs_event_cb del(%d): %d->%d\n", uv->resource_id, le->refcount, le->refcount-1);
+		} else {
+			printf("# can't find (work_cb)");
+		}
+	}
+#endif
+}
+
 
 static void php_uv_udp_recv_cb(uv_udp_t* handle, ssize_t nread, uv_buf_t buf, struct sockaddr* addr, unsigned flags)
 {
@@ -4372,6 +4419,38 @@ PHP_FUNCTION(uv_fs_sendfile)
 }
 /* }}} */
 
+/* {{{ */
+PHP_FUNCTION(uv_fs_event_init)
+{
+	int error;
+	zval *callback, *tmp, *zloop = NULL;
+	uv_loop_t *loop;
+	php_uv_t *uv;
+	char *path;
+	int path_len = 0;
+	long flags = 0;
+	
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
+		"zszl", &zloop, &path, &path_len, &callback, &flags) == FAILURE) {
+		return;
+	}
+
+	PHP_UV_INIT_UV(uv, IS_UV_FS_EVENT);
+	PHP_UV_FETCH_UV_DEFAULT_LOOP(loop, zloop);
+
+	uv->fs_event_cb = callback;
+	Z_ADDREF_P(callback);
+	uv->uv.fs_event.data = uv;
+
+	error = uv_fs_event_init(loop, (uv_fs_event_t*)&uv->uv.fs_event, path, php_uv_fs_event_cb, flags); \
+	if (error) { \
+		php_error_docref(NULL TSRMLS_CC, E_ERROR, "uv_fs_event_init failed"); \
+		return; \
+	}
+
+}
+/* }}} */
+
 static zend_function_entry uv_functions[] = {
 	/* general */
 	PHP_FE(uv_update_time, arginfo_uv_update_time)
@@ -4487,6 +4566,7 @@ static zend_function_entry uv_functions[] = {
 	PHP_FE(uv_fs_fstat, NULL)
 	PHP_FE(uv_fs_readdir, NULL)
 	PHP_FE(uv_fs_sendfile, NULL)
+	PHP_FE(uv_fs_event_init, NULL)
 	/* info */
 	PHP_FE(uv_loadavg, NULL)
 	PHP_FE(uv_uptime, NULL)
