@@ -773,6 +773,14 @@ static void php_uv_fs_cb(uv_fs_t* req)
 		case UV_FS_FUTIME:
 			argc = 0;
 			break;
+		case UV_FS_READLINK: {
+			zval *buffer;
+			
+			MAKE_STD_ZVAL(buffer);
+			ZVAL_STRING(buffer, req->ptr, 1);
+			params[1] = &buffer;
+			break;
+		}
 		case UV_FS_READ: {
 			zval *buffer;
 			
@@ -4127,6 +4135,32 @@ PHP_FUNCTION(uv_fs_symlink)
 }
 /* }}} */
 
+/* {{{ */
+PHP_FUNCTION(uv_fs_readlink)
+{
+	int error;
+	zval *callback, *tmp, *zloop = NULL;
+	uv_loop_t *loop;
+	php_uv_t *uv;
+	char *path;
+	int path_len = 0;
+	
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
+		"zsz", &zloop, &path, &path_len, &callback) == FAILURE) {
+		return;
+	}
+
+	PHP_UV_INIT_UV(uv, IS_UV_FS);
+	PHP_UV_FETCH_UV_DEFAULT_LOOP(loop, zloop);
+
+	uv->fs_cb = callback;
+	Z_ADDREF_P(callback);
+	uv->uv.fs.data = uv;
+
+	PHP_UV_FS_ASYNC(loop, readlink, path);
+}
+/* }}} */
+
 static zend_function_entry uv_functions[] = {
 	/* general */
 	PHP_FE(uv_update_time, arginfo_uv_update_time)
@@ -4236,6 +4270,7 @@ static zend_function_entry uv_functions[] = {
 	PHP_FE(uv_fs_fchown, NULL)
 	PHP_FE(uv_fs_link, NULL)
 	PHP_FE(uv_fs_symlink, NULL)
+	PHP_FE(uv_fs_readlink, NULL)
 	/* info */
 	PHP_FE(uv_loadavg, NULL)
 	PHP_FE(uv_uptime, NULL)
