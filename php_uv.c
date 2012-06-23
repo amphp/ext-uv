@@ -125,6 +125,47 @@ static void php_uv_idle_cb(uv_timer_t *handle, int status);
 
 /* util */
 
+static zval *php_uv_address_to_zval(const struct sockaddr *addr)
+{
+	zval *tmp;
+	char ip[INET6_ADDRSTRLEN];
+	struct sockaddr_in *a4;
+	struct sockaddr_in6 *a6;
+	int port;
+	
+	MAKE_STD_ZVAL(tmp);
+	array_init(tmp);
+	
+	switch (addr->sa_family) {
+		case AF_INET6:
+		{
+			a6 = (const struct sockaddr_in *)addr;
+			uv_inet_ntop(AF_INET, &a6->sin6_addr, ip, sizeof ip);
+			port = ntohs(a6->sin6_port);
+			
+			add_assoc_string_ex(tmp, "address",sizeof("address"), ip, 1);
+			add_assoc_long_ex(tmp, "port", sizeof("port"), port);
+			add_assoc_string_ex(tmp, "family",sizeof("address"), "IPv6", 1);
+			break;
+		}
+		case AF_INET:
+		{
+			a4 = (const struct sockaddr_in *)addr;
+			uv_inet_ntop(AF_INET, &a4->sin_addr, ip, sizeof ip);
+			port = ntohs(a4->sin_port);
+			
+			add_assoc_string_ex(tmp, "address",sizeof("address"), ip, 1);
+			add_assoc_long_ex(tmp, "port", sizeof("port"), port);
+			add_assoc_string_ex(tmp, "family",sizeof("address"), "IPv4", 1);
+			break;
+		}
+		default:
+		break;
+	}
+	
+	return tmp;
+}
+
 static zval *php_uv_make_stat(const uv_statbuf_t *s)
 {
 	zval *tmp;
@@ -4541,6 +4582,93 @@ PHP_FUNCTION(uv_tty_reset_mode)
 }
 /* }}} */
 
+#ifdef PHP_WIN32
+/* {{{ */
+PHP_FUNCTION(uv_tcp_simultaneous_accepts)
+{
+	php_uv_t *uv;
+	zval *handle, *result;
+	long enable;
+	long error = 0;
+	
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
+		"zl", &handle, &enable) == FAILURE) {
+		return;
+	}
+
+	ZEND_FETCH_RESOURCE(uv, php_uv_t*, &handle, -1, PHP_UV_RESOURCE_NAME, uv_resource_handle);
+	error = uv_tcp_simultaneous_accepts(&uv->uv.tcp, enable);
+	RETURN_LONG(error);
+}
+/* }}} */
+#endif
+
+/* {{{ */
+PHP_FUNCTION(uv_tcp_getsockname)
+{
+	php_uv_t *uv;
+	zval *handle, *result;
+	int addr_len, error = 0;
+	struct sockaddr_storage addr;
+	addr_len = sizeof(struct sockaddr_storage);
+	
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
+		"z", &handle) == FAILURE) {
+		return;
+	}
+
+	ZEND_FETCH_RESOURCE(uv, php_uv_t*, &handle, -1, PHP_UV_RESOURCE_NAME, uv_resource_handle);
+	error  = uv_tcp_getsockname(&uv->uv.tcp, (struct sockaddr*)&addr, &addr_len);
+	
+	result = php_uv_address_to_zval((struct sockaddr*)&addr);
+	RETURN_ZVAL(result, 0, 1);
+}
+/* }}} */
+
+/* {{{ */
+PHP_FUNCTION(uv_tcp_getpeername)
+{
+	php_uv_t *uv;
+	zval *handle, *result;
+	int addr_len, error = 0;
+	struct sockaddr_storage addr;
+	addr_len = sizeof(struct sockaddr_storage);
+	
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
+		"z", &handle) == FAILURE) {
+		return;
+	}
+
+	ZEND_FETCH_RESOURCE(uv, php_uv_t*, &handle, -1, PHP_UV_RESOURCE_NAME, uv_resource_handle);
+	error  = uv_tcp_getpeername(&uv->uv.tcp, (struct sockaddr*)&addr, &addr_len);
+	
+	result = php_uv_address_to_zval((struct sockaddr*)&addr);
+	RETURN_ZVAL(result, 0, 1);
+}
+/* }}} */
+
+/* {{{ */
+PHP_FUNCTION(uv_udp_getsockname)
+{
+	php_uv_t *uv;
+	zval *handle, *result;
+	int addr_len, error = 0;
+	struct sockaddr_storage addr;
+	addr_len = sizeof(struct sockaddr_storage);
+	
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
+		"z", &handle) == FAILURE) {
+		return;
+	}
+
+	ZEND_FETCH_RESOURCE(uv, php_uv_t*, &handle, -1, PHP_UV_RESOURCE_NAME, uv_resource_handle);
+	error  = uv_tcp_getsockname(&uv->uv.udp, (struct sockaddr*)&addr, &addr_len);
+	
+	result = php_uv_address_to_zval((struct sockaddr*)&addr);
+	RETURN_ZVAL(result, 0, 1);
+}
+/* }}} */
+
 
 static zend_function_entry uv_functions[] = {
 	/* general */
@@ -4589,7 +4717,14 @@ static zend_function_entry uv_functions[] = {
 	PHP_FE(uv_udp_send, arginfo_uv_udp_send)
 	PHP_FE(uv_udp_recv_start, arginfo_uv_udp_recv_start)
 	PHP_FE(uv_udp_recv_stop, arginfo_uv_udp_recv_stop)
-	/* pipe */
+	/* other network functions */
+	PHP_FE(uv_tcp_getsockname, NULL)
+	PHP_FE(uv_tcp_getpeername, NULL)
+	PHP_FE(uv_udp_getsockname, NULL)
+#ifdef PHP_WIN32
+	PHP_FE(uv_tcp_simultaneous_accepts, NULL)
+#endif
+		/* pipe */
 	PHP_FE(uv_pipe_init, arginfo_uv_pipe_init)
 	PHP_FE(uv_pipe_bind, arginfo_uv_pipe_bind)
 	PHP_FE(uv_pipe_open, arginfo_uv_pipe_open)

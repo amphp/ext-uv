@@ -123,4 +123,16 @@ typedef struct {
 #define PHP_UV_RWLOCK_RESOURCE_NAME "uv_rwlock"
 #define PHP_UV_MUTEX_RESOURCE_NAME "uv_mutex"
 
+/* TODO: remove these macro when libuv provides uv_inet_ntop & uv_inet_pton */
+#ifdef PHP_WIN32
+# include <inet_net_pton.h>
+# include <inet_ntop.h>
+# define uv_inet_pton ares_inet_pton
+# define uv_inet_ntop ares_inet_ntop
+#else
+# include <arpa/inet.h>
+# define uv_inet_pton inet_pton
+# define uv_inet_ntop inet_ntop
+#endif
+
 #endif /* PHP_UV_H */

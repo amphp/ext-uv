@@ -12,16 +12,10 @@
 
 * UV_EXTERN int uv_read2_start(uv_stream_t*, uv_alloc_cb alloc_cb,uv_read2_cb read_cb);
 * UV_EXTERN int uv_write2(uv_write_t* req, uv_stream_t* handle, uv_buf_t bufs[],int bufcnt, uv_stream_t* send_handle, uv_write_cb cb);
-* UV_EXTERN int uv_tcp_simultaneous_accepts(uv_tcp_t* handle, int enable);
 * UV_EXTERN int uv_tcp_bind6(uv_tcp_t* handle, struct sockaddr_in6);
-* UV_EXTERN int uv_tcp_getsockname(uv_tcp_t* handle, struct sockaddr* name,int* namelen);
-* UV_EXTERN int uv_tcp_getpeername(uv_tcp_t* handle, struct sockaddr* name,int* namelen);
 * UV_EXTERN int uv_tcp_connect6(uv_connect_t* req, uv_tcp_t* handle,struct sockaddr_in6 address, uv_connect_cb cb);
 * UV_EXTERN int uv_udp_bind6(uv_udp_t* handle, struct sockaddr_in6 addr,unsigned flags);
-* UV_EXTERN int uv_udp_getsockname(uv_udp_t* handle, struct sockaddr* name,int* namelen);
 * UV_EXTERN int uv_udp_set_membership(uv_udp_t* handle,const char* multicast_addr, const char* interface_addr,uv_membership membership);
-
-* UV_EXTERN void uv_ares_destroy(uv_loop_t*, ares_channel channel);
 
 * UV_EXTERN int uv_getaddrinfo(uv_loop_t*, uv_getaddrinfo_t* handle,uv_getaddrinfo_cb getaddrinfo_cb, const char* node, const char* service,const struct addrinfo* hints);
 * UV_EXTERN void uv_freeaddrinfo(struct addrinfo* ai);

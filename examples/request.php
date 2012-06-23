@@ -19,6 +19,8 @@ ares_gethostbyname($uv,$domain, AF_INET, function($name, $addr) use ($path, $hos
     $tcp = uv_tcp_init();
 
     uv_tcp_connect($tcp, $address, function($stat, $client) use ($path, $host){
+    var_dump(uv_tcp_getpeername($client));
+    
     $request = <<<EOF
 GET {$path} HTTP/1.0
 Host: {$host}
