@@ -2775,6 +2775,7 @@ PHP_FUNCTION(uv_interface_addresses)
 /* {{{ */
 PHP_FUNCTION(uv_spawn)
 {
+/*
 	zval *zloop = NULL;
 	uv_loop_t *loop;
 	uv_process_options_t options = {0};
@@ -2929,6 +2930,7 @@ PHP_FUNCTION(uv_spawn)
 	if (command_args) {
 		efree(command_args);
 	}
+*/
 }
 /* }}} */
 
