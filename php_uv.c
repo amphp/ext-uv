@@ -852,10 +852,25 @@ static void php_uv_fs_cb(uv_fs_t* req)
 			params[1] = &buffer;
 			break;
 		}
+		case UV_FS_SENDFILE:
+		{
+			argc = 2;
+			zval *res;
+
+			MAKE_STD_ZVAL(res);
+			ZVAL_LONG(res, uv->uv.fs.result);
+
+			params[1] = &res;
+			break;
+		}
 		case UV_FS_WRITE:
 		{
 			argc = 1;
-			params[1] = NULL;
+			zval *res;
+			MAKE_STD_ZVAL(res);
+			ZVAL_LONG(res, uv->uv.fs.result);
+
+			params[1] = &res;
 			efree(uv->buffer);
 			break;
 		}
@@ -4328,6 +4343,35 @@ PHP_FUNCTION(uv_fs_readdir)
 	PHP_UV_FS_ASYNC(loop, readdir, path, flags);
 }
 /* }}} */
+
+/* {{{ */
+PHP_FUNCTION(uv_fs_sendfile)
+{
+	int error;
+	zval *callback, *tmp, *zloop = NULL;
+	uv_loop_t *loop;
+	php_uv_t *uv;
+	char *path;
+	int path_len = 0;
+	unsigned long in_fd, out_fd;
+	long offset, length = 0;
+	
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
+		"zllllz", &zloop, &in_fd, &out_fd, &offset, &length, &callback) == FAILURE) {
+		return;
+	}
+
+	PHP_UV_INIT_UV(uv, IS_UV_FS);
+	PHP_UV_FETCH_UV_DEFAULT_LOOP(loop, zloop);
+
+	uv->fs_cb = callback;
+	Z_ADDREF_P(callback);
+	uv->uv.fs.data = uv;
+
+	PHP_UV_FS_ASYNC(loop, sendfile, in_fd, out_fd, offset, length);
+}
+/* }}} */
+
 static zend_function_entry uv_functions[] = {
 	/* general */
 	PHP_FE(uv_update_time, arginfo_uv_update_time)
@@ -4442,6 +4486,7 @@ static zend_function_entry uv_functions[] = {
 	PHP_FE(uv_fs_lstat, NULL)
 	PHP_FE(uv_fs_fstat, NULL)
 	PHP_FE(uv_fs_readdir, NULL)
+	PHP_FE(uv_fs_sendfile, NULL)
 	/* info */
 	PHP_FE(uv_loadavg, NULL)
 	PHP_FE(uv_uptime, NULL)

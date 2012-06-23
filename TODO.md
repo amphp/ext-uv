@@ -38,10 +38,6 @@
 * UV_EXTERN char** uv_setup_args(int argc, char** argv);
 * UV_EXTERN uv_err_t uv_resident_set_memory(size_t* rss);
 
-* UV_EXTERN void uv_fs_req_cleanup(uv_fs_t* req);
-
-* UV_EXTERN int uv_fs_sendfile(uv_loop_t* loop, uv_fs_t* req, uv_file out_fd,uv_file in_fd, off_t in_offset, size_t length, uv_fs_cb cb);
-
 * UV_EXTERN int uv_fs_event_init(uv_loop_t* loop, uv_fs_event_t* handle,const char* filename, uv_fs_event_cb cb, int flags);
 
 * UV_EXTERN struct sockaddr_in6 uv_ip6_addr(const char* ip, int port);
