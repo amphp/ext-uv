@@ -1,7 +1,11 @@
 # TODO
 
-* adjust config.m4 (currently, this ext supports osx and windows only. i'll fix this soon)
+* implement all test cases.
 * improve source code.(avoids copy and paste)
+* error handling
+* make continuous build box (linux and windows)
+* re-consider function signatures. (I'd like to provide libuv same api)
+* adjust config.m4 (currently, this ext supports osx and windows only. i'll fix this soon)
 
 # Not tested
 
