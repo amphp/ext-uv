@@ -2655,7 +2655,7 @@ PHP_FUNCTION(uv_is_writable)
 PHP_FUNCTION(uv_pipe_init)
 {
 	php_uv_t *uv;
-	/*uv_loop_t *loop;  TODO */
+	uv_loop_t *loop;
 	zval *z_loop;
 	long ipc = 0;
 	int r;
@@ -2670,14 +2670,21 @@ PHP_FUNCTION(uv_pipe_init)
 		php_error_docref(NULL TSRMLS_CC, E_ERROR, "uv_pipe_init emalloc failed");
 		return;
 	}
+	
+	if (Z_TYPE_P(z_loop) == IS_RESOURCE) {
+		ZEND_FETCH_RESOURCE(loop, uv_loop_t *, &z_loop, -1, PHP_UV_LOOP_RESOURCE_NAME, uv_loop_handle);
+	} else {
+		loop = php_uv_default_loop();
+	}
 
 	uv->type = IS_UV_PIPE;
-	r = uv_pipe_init(uv_default_loop(), &uv->uv.pipe, ipc);
+	r = uv_pipe_init(loop, &uv->uv.pipe, ipc);
 	
 	if (r) {
 		php_error_docref(NULL TSRMLS_CC, E_ERROR, "uv_pipe_init failed");
 		return;
 	}
+
 	uv->uv.pipe.data = uv;
 	PHP_UV_INIT_ZVALS(uv)
 	TSRMLS_SET_CTX(uv->thread_ctx);
@@ -3087,17 +3094,19 @@ PHP_FUNCTION(uv_interface_addresses)
 /* {{{ */
 PHP_FUNCTION(uv_spawn)
 {
-/*
 	zval *zloop = NULL;
 	uv_loop_t *loop;
 	uv_process_options_t options = {0};
+	uv_stdio_container_t stdio[3];
 	php_uv_t *proc;
-
 	zval *args, *context, *callback;
 	char **zenv;
 	char *command;
 	char **command_args;
 	int command_len = 0;
+
+	options.stdio = stdio;
+	options.stdio_count = 3;
 
 	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
 		"zsaaz", &zloop, &command, &command_len, &args, &context, &callback) == FAILURE) {
@@ -3174,11 +3183,14 @@ PHP_FUNCTION(uv_spawn)
 				ZEND_FETCH_RESOURCE(pipe, php_uv_t *, value, -1, PHP_UV_RESOURCE_NAME, uv_resource_handle);
 
 				if (pos->h == 0) {
-					options.stdout_stream = &pipe->uv.pipe;
+					options.stdio[0].flags = UV_CREATE_PIPE | UV_READABLE_PIPE;
+					options.stdio[0].data.stream = (uv_stream_t *)&pipe->uv.pipe;
 				} else if (pos->h == 1) {
-					options.stdin_stream = &pipe->uv.pipe;
+					options.stdio[1].flags = UV_CREATE_PIPE | UV_WRITABLE_PIPE;
+					options.stdio[1].data.stream = (uv_stream_t *)&pipe->uv.pipe;
 				} else if (pos->h == 2) {
-					options.stderr_stream = &pipe->uv.pipe;
+					options.stdio[2].flags = UV_CREATE_PIPE | UV_WRITABLE_PIPE;
+					options.stdio[2].data.stream = (uv_stream_t *)&pipe->uv.pipe;
 				}
 			}
 			
@@ -3231,6 +3243,7 @@ PHP_FUNCTION(uv_spawn)
 	zval_copy_ctor(return_value);
 	
 	uv_spawn(loop, &proc->uv.process, options);
+	
 	if (zenv!=NULL) {
 		char **p = zenv;
 		while(*p != NULL) {
@@ -3242,7 +3255,6 @@ PHP_FUNCTION(uv_spawn)
 	if (command_args) {
 		efree(command_args);
 	}
-*/
 }
 /* }}} */
 
