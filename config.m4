@@ -7,9 +7,18 @@ if test $PHP_UV != "no"; then
     PHP_ADD_INCLUDE([$ext_srcdir/libuv/include])
  
     CFLAGS=" -g -O0 -Wunused-variable -Wpointer-sign -Wimplicit-function-declaration -Wl,libuv/uv.a"
-    if test "`(uname) 2>/dev/null`" == "Darwin"; then
-        CFLAGS="$CFLAGS -framework CoreServices -framework Carbon"
-    fi
+
+    case $host in
+        *darwin*)
+            dnl these macro does not work. why?
+            dnl
+            dnl PHP_ADD_FRAMEWORK(CoreServices)
+            dnl PHP_ADD_FRAMEWORK(Carbon)
+
+            CFLAGS="$CFLAGS -framework CoreServices -framework Carbon"
+        ;;
+        *linux*)
+    esac
 
     PHP_SUBST(UV_SHARED_LIBADD)
     PHP_SUBST([CFLAGS])
