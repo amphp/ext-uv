@@ -1270,6 +1270,11 @@ ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_tcp_connect, 0, 0, 2)
 	ZEND_ARG_INFO(0, callback)
 ZEND_END_ARG_INFO()
 
+ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_tcp_connect6, 0, 0, 2)
+	ZEND_ARG_INFO(0, resource)
+	ZEND_ARG_INFO(0, callback)
+ZEND_END_ARG_INFO()
+
 ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_tcp_init, 0, 0, 0)
 	ZEND_ARG_INFO(0, loop)
 ZEND_END_ARG_INFO()
@@ -1355,7 +1360,11 @@ ZEND_END_ARG_INFO()
 ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_tcp_bind, 0, 0, 1)
 	ZEND_ARG_INFO(0, resource)
 	ZEND_ARG_INFO(0, address)
-	ZEND_ARG_INFO(0, port)
+ZEND_END_ARG_INFO()
+
+ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_tcp_bind6, 0, 0, 1)
+	ZEND_ARG_INFO(0, resource)
+	ZEND_ARG_INFO(0, address)
 ZEND_END_ARG_INFO()
 
 ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_close, 0, 0, 1)
@@ -1416,6 +1425,12 @@ ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_udp_init, 0, 0, 1)
 ZEND_END_ARG_INFO()
 
 ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_udp_bind, 0, 0, 3)
+	ZEND_ARG_INFO(0, resource)
+	ZEND_ARG_INFO(0, address)
+	ZEND_ARG_INFO(0, flags)
+ZEND_END_ARG_INFO()
+
+ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_udp_bind6, 0, 0, 3)
 	ZEND_ARG_INFO(0, resource)
 	ZEND_ARG_INFO(0, address)
 	ZEND_ARG_INFO(0, flags)
@@ -1713,6 +1728,31 @@ PHP_FUNCTION(uv_tcp_bind)
 /* }}} */
 
 /* {{{ */
+PHP_FUNCTION(uv_tcp_bind6)
+{
+	zval *resource, *address;
+	php_uv_sockaddr_t *addr;
+	php_uv_t *uv;
+	int r;
+	
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
+		"zz",&resource, &address) == FAILURE) {
+		return;
+	}
+	
+	ZEND_FETCH_RESOURCE(uv, php_uv_t *, &resource, -1, PHP_UV_RESOURCE_NAME, uv_resource_handle);
+	ZEND_FETCH_RESOURCE(addr, php_uv_sockaddr_t *, &address, -1, PHP_UV_SOCKADDR_RESOURCE_NAME, uv_sockaddr_handle);
+	Z_ADDREF_P(resource);
+	
+	r = uv_tcp_bind6((uv_tcp_t*)&uv->uv.tcp, addr->addr.ipv6);
+	if (r) {
+		php_error_docref(NULL TSRMLS_CC, E_ERROR, "bind failed");
+	}
+}
+/* }}} */
+
+
+/* {{{ */
 PHP_FUNCTION(uv_write)
 {
 	zval *z_cli,*callback;
@@ -1984,6 +2024,36 @@ PHP_FUNCTION(uv_tcp_connect)
 	uv_tcp_connect(req, &uv->uv.tcp, addr->addr.ipv4, php_uv_tcp_connect_cb);
 }
 /* }}} */
+
+
+/* {{{ */
+PHP_FUNCTION(uv_tcp_connect6)
+{
+	zval *resource,*address, *callback;
+	php_uv_t *uv;
+	php_uv_sockaddr_t *addr;
+	uv_connect_t *req;
+	
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
+		"zzz",&resource,&address, &callback) == FAILURE) {
+		return;
+	}
+	
+	ZEND_FETCH_RESOURCE(uv, php_uv_t *, &resource, -1, PHP_UV_RESOURCE_NAME, uv_resource_handle);
+	ZEND_FETCH_RESOURCE(addr, php_uv_sockaddr_t *, &address, -1, PHP_UV_SOCKADDR_RESOURCE_NAME, uv_sockaddr_handle);
+	zend_list_addref(uv->resource_id);
+	Z_ADDREF_P(callback);
+	Z_ADDREF_P(address);
+	
+	req = (uv_connect_t*)emalloc(sizeof(uv_connect_t));
+	
+	req->data = uv;
+	uv->address = address;
+	uv->connect_cb = callback;
+	uv_tcp_connect6(req, &uv->uv.tcp, addr->addr.ipv6, php_uv_tcp_connect_cb);
+}
+/* }}} */
+
 
 /* {{{ */
 PHP_FUNCTION(uv_timer_init)
@@ -2340,6 +2410,30 @@ PHP_FUNCTION(uv_udp_bind)
 	r = uv_udp_bind((uv_udp_t*)&uv->uv.udp, addr->addr.ipv4, flags);
 	if (r) {
 		php_error_docref(NULL TSRMLS_CC, E_ERROR, "uv_udp_bind failed");
+	}
+}
+/* }}} */
+
+/* {{{ */
+PHP_FUNCTION(uv_udp_bind6)
+{
+	zval *resource, *address;
+	long flags = 0;
+	php_uv_sockaddr_t *addr;
+	php_uv_t *uv;
+	int r;
+	
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
+		"zz|l",&resource, &address, &flags) == FAILURE) {
+		return;
+	}
+	
+	ZEND_FETCH_RESOURCE(uv, php_uv_t *, &resource, -1, PHP_UV_RESOURCE_NAME, uv_resource_handle);
+	ZEND_FETCH_RESOURCE(addr, php_uv_sockaddr_t *, &address, -1, PHP_UV_SOCKADDR_RESOURCE_NAME, uv_sockaddr_handle);
+	
+	r = uv_udp_bind6((uv_udp_t*)&uv->uv.udp, addr->addr.ipv6, flags);
+	if (r) {
+		php_error_docref(NULL TSRMLS_CC, E_ERROR, "uv_udp_bind6 failed");
 	}
 }
 /* }}} */
@@ -4854,12 +4948,15 @@ static zend_function_entry uv_functions[] = {
 	PHP_FE(uv_tcp_init, arginfo_uv_tcp_init)
 	PHP_FE(uv_tcp_nodelay, arginfo_uv_tcp_nodelay)
 	PHP_FE(uv_tcp_bind, arginfo_uv_tcp_bind)
+	PHP_FE(uv_tcp_bind6, arginfo_uv_tcp_bind6)
 	PHP_FE(uv_listen, arginfo_uv_listen)
 	PHP_FE(uv_accept, arginfo_uv_accept)
 	PHP_FE(uv_tcp_connect, arginfo_uv_tcp_connect)
+	PHP_FE(uv_tcp_connect6, arginfo_uv_tcp_connect6)
 	/* udp */
 	PHP_FE(uv_udp_init, arginfo_uv_udp_init)
 	PHP_FE(uv_udp_bind, arginfo_uv_udp_bind)
+	PHP_FE(uv_udp_bind6, arginfo_uv_udp_bind6)
 	PHP_FE(uv_udp_set_multicast_loop, arginfo_uv_udp_set_multicast_loop)
 	PHP_FE(uv_udp_set_multicast_ttl, arginfo_uv_udp_set_multicast_ttl)
 	PHP_FE(uv_udp_send, arginfo_uv_udp_send)
