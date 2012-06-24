@@ -2906,69 +2906,6 @@ PHP_FUNCTION(ares_gethostbyname)
 }
 /* }}} */
 
-
-/* {{{ */
-PHP_FUNCTION(ares_test)
-{
-/*
-struct ares_options {
-  int flags;
-  int timeout; // in seconds or milliseconds, depending on options
-  int tries;
-  int ndots;
-  unsigned short udp_port;
-  unsigned short tcp_port;
-  int socket_send_buffer_size;
-  int socket_receive_buffer_size;
-  struct in_addr *servers;
-  int nservers;
-  char **domains;
-  int ndomains;
-  char *lookups;
-  ares_sock_state_cb sock_state_cb;
-  void *sock_state_cb_data;
-  struct apattern *sortlist;
-  int nsort;
-};
-*/
-	int rc;
-	ares_channel channel;
-	struct ares_options options;
-	int optmask;
-//char *domains[1] = {"/ets/hosts"};
-	int bynamecallbacksig;
-
-/*
-struct sockaddr_in {
-    short   sin_family;
-    u_short sin_port;
-    struct  in_addr sin_addr;
-    char    sin_zero[8];
-};
-*/
-
-	struct sockaddr_in test_server = uv_ip4_addr("8.8.8.8", 53);
-	optmask = ARES_OPT_SERVERS | ARES_OPT_TCP_PORT | ARES_OPT_LOOKUPS | ARES_OPT_FLAGS;
-
-	options.servers = &test_server.sin_addr;
-	options.nservers = 1;
-	options.tcp_port = test_server.sin_port;
-	options.lookups = "b";
-	options.flags = ARES_FLAG_USEVC;
-	rc = uv_ares_init_options(uv_default_loop(), &channel, &options, optmask);
-	bynamecallbacksig = 7;
-
-	ares_gethostbyname(channel,
-		"chobie.net",
-		AF_INET,
-		&php_ares_gethostbyname_cb,
-		&bynamecallbacksig
-	);
-	uv_run(uv_default_loop());
-
-}
-/* }}} */
-
 /* {{{ proto array uv_loadavg(void)
 */
 PHP_FUNCTION(uv_loadavg)
