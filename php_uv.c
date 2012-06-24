@@ -4014,7 +4014,7 @@ PHP_FUNCTION(uv_fs_write)
 PHP_FUNCTION(uv_fs_fsync)
 {
 	int error;
-	zval *callback, *tmp, *zloop = NULL;
+	zval *callback, *zloop = NULL;
 	uv_loop_t *loop;
 	php_uv_t *uv;
 	unsigned long fd;
@@ -4039,7 +4039,7 @@ PHP_FUNCTION(uv_fs_fsync)
 PHP_FUNCTION(uv_fs_fdatasync)
 {
 	int error;
-	zval *callback, *tmp, *zloop = NULL;
+	zval *callback, *zloop = NULL;
 	uv_loop_t *loop;
 	php_uv_t *uv;
 	unsigned long fd;
@@ -4064,7 +4064,7 @@ PHP_FUNCTION(uv_fs_fdatasync)
 PHP_FUNCTION(uv_fs_ftruncate)
 {
 	int error;
-	zval *callback, *tmp, *zloop = NULL;
+	zval *callback, *zloop = NULL;
 	uv_loop_t *loop;
 	php_uv_t *uv;
 	long offset = 0;
@@ -4090,7 +4090,7 @@ PHP_FUNCTION(uv_fs_ftruncate)
 PHP_FUNCTION(uv_fs_mkdir)
 {
 	int error;
-	zval *callback, *tmp, *zloop = NULL;
+	zval *callback, *zloop = NULL;
 	uv_loop_t *loop;
 	php_uv_t *uv;
 	char *path;
@@ -4118,7 +4118,7 @@ PHP_FUNCTION(uv_fs_mkdir)
 PHP_FUNCTION(uv_fs_rmdir)
 {
 	int error;
-	zval *callback, *tmp, *zloop = NULL;
+	zval *callback, *zloop = NULL;
 	uv_loop_t *loop;
 	php_uv_t *uv;
 	char *path;
@@ -4144,7 +4144,7 @@ PHP_FUNCTION(uv_fs_rmdir)
 PHP_FUNCTION(uv_fs_unlink)
 {
 	int error;
-	zval *callback, *tmp, *zloop = NULL;
+	zval *callback, *zloop = NULL;
 	uv_loop_t *loop;
 	php_uv_t *uv;
 	char *path;
@@ -4170,7 +4170,7 @@ PHP_FUNCTION(uv_fs_unlink)
 PHP_FUNCTION(uv_fs_rename)
 {
 	int error;
-	zval *callback, *tmp, *zloop = NULL;
+	zval *callback, *zloop = NULL;
 	uv_loop_t *loop;
 	php_uv_t *uv;
 	char *from, *to;
@@ -4196,7 +4196,7 @@ PHP_FUNCTION(uv_fs_rename)
 PHP_FUNCTION(uv_fs_utime)
 {
 	int error;
-	zval *callback, *tmp, *zloop = NULL;
+	zval *callback, *zloop = NULL;
 	uv_loop_t *loop;
 	php_uv_t *uv;
 	long utime, atime;
@@ -4223,7 +4223,7 @@ PHP_FUNCTION(uv_fs_utime)
 PHP_FUNCTION(uv_fs_futime)
 {
 	int error;
-	zval *callback, *tmp, *zloop = NULL;
+	zval *callback, *zloop = NULL;
 	uv_loop_t *loop;
 	php_uv_t *uv;
 	long utime, atime;
@@ -4249,7 +4249,7 @@ PHP_FUNCTION(uv_fs_futime)
 PHP_FUNCTION(uv_fs_chmod)
 {
 	int error;
-	zval *callback, *tmp, *zloop = NULL;
+	zval *callback, *zloop = NULL;
 	uv_loop_t *loop;
 	php_uv_t *uv;
 	long mode;
@@ -4277,7 +4277,7 @@ PHP_FUNCTION(uv_fs_chmod)
 PHP_FUNCTION(uv_fs_fchmod)
 {
 	int error;
-	zval *callback, *tmp, *zloop = NULL;
+	zval *callback, *zloop = NULL;
 	uv_loop_t *loop;
 	php_uv_t *uv;
 	long mode;
@@ -4304,7 +4304,7 @@ PHP_FUNCTION(uv_fs_fchmod)
 PHP_FUNCTION(uv_fs_chown)
 {
 	int error;
-	zval *callback, *tmp, *zloop = NULL;
+	zval *callback, *zloop = NULL;
 	uv_loop_t *loop;
 	php_uv_t *uv;
 	long uid, gid;
@@ -4331,11 +4331,9 @@ PHP_FUNCTION(uv_fs_chown)
 PHP_FUNCTION(uv_fs_fchown)
 {
 	int error;
-	zval *callback, *tmp, *zloop = NULL;
+	zval *callback, *zloop = NULL;
 	uv_loop_t *loop;
 	php_uv_t *uv;
-	char *path;
-	int path_len;
 	long uid, gid;
 	unsigned long fd;
 	
@@ -4359,7 +4357,7 @@ PHP_FUNCTION(uv_fs_fchown)
 PHP_FUNCTION(uv_fs_link)
 {
 	int error;
-	zval *callback, *tmp, *zloop = NULL;
+	zval *callback, *zloop = NULL;
 	uv_loop_t *loop;
 	php_uv_t *uv;
 	char *from, *to;
@@ -4386,7 +4384,7 @@ PHP_FUNCTION(uv_fs_link)
 PHP_FUNCTION(uv_fs_symlink)
 {
 	int error;
-	zval *callback, *tmp, *zloop = NULL;
+	zval *callback, *zloop = NULL;
 	uv_loop_t *loop;
 	php_uv_t *uv;
 	char *from, *to;
@@ -4413,7 +4411,7 @@ PHP_FUNCTION(uv_fs_symlink)
 PHP_FUNCTION(uv_fs_readlink)
 {
 	int error;
-	zval *callback, *tmp, *zloop = NULL;
+	zval *callback, *zloop = NULL;
 	uv_loop_t *loop;
 	php_uv_t *uv;
 	char *path;
@@ -4439,7 +4437,7 @@ PHP_FUNCTION(uv_fs_readlink)
 PHP_FUNCTION(uv_fs_stat)
 {
 	int error;
-	zval *callback, *tmp, *zloop = NULL;
+	zval *callback, *zloop = NULL;
 	uv_loop_t *loop;
 	php_uv_t *uv;
 	char *path;
@@ -4465,7 +4463,7 @@ PHP_FUNCTION(uv_fs_stat)
 PHP_FUNCTION(uv_fs_lstat)
 {
 	int error;
-	zval *callback, *tmp, *zloop = NULL;
+	zval *callback, *zloop = NULL;
 	uv_loop_t *loop;
 	php_uv_t *uv;
 	char *path;
@@ -4491,11 +4489,9 @@ PHP_FUNCTION(uv_fs_lstat)
 PHP_FUNCTION(uv_fs_fstat)
 {
 	int error;
-	zval *callback, *tmp, *zloop = NULL;
+	zval *callback, *zloop = NULL;
 	uv_loop_t *loop;
 	php_uv_t *uv;
-	char *path;
-	int path_len = 0;
 	unsigned long fd;
 	
 	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
@@ -4519,7 +4515,7 @@ PHP_FUNCTION(uv_fs_fstat)
 PHP_FUNCTION(uv_fs_readdir)
 {
 	int error;
-	zval *callback, *tmp, *zloop = NULL;
+	zval *callback, *zloop = NULL;
 	uv_loop_t *loop;
 	php_uv_t *uv;
 	char *path;
@@ -4546,11 +4542,9 @@ PHP_FUNCTION(uv_fs_readdir)
 PHP_FUNCTION(uv_fs_sendfile)
 {
 	int error;
-	zval *callback, *tmp, *zloop = NULL;
+	zval *callback, *zloop = NULL;
 	uv_loop_t *loop;
 	php_uv_t *uv;
-	char *path;
-	int path_len = 0;
 	unsigned long in_fd, out_fd;
 	long offset, length = 0;
 	
@@ -4574,7 +4568,7 @@ PHP_FUNCTION(uv_fs_sendfile)
 PHP_FUNCTION(uv_fs_event_init)
 {
 	int error;
-	zval *callback, *tmp, *zloop = NULL;
+	zval *callback, *zloop = NULL;
 	uv_loop_t *loop;
 	php_uv_t *uv;
 	char *path;
@@ -4605,11 +4599,9 @@ PHP_FUNCTION(uv_fs_event_init)
 PHP_FUNCTION(uv_tty_init)
 {
 	int error;
-	zval *callback, *tmp, *zloop = NULL;
+	zval *zloop = NULL;
 	uv_loop_t *loop;
 	php_uv_t *uv;
-	char *path;
-	int path_len = 0;
 	long readable = 1;
 	unsigned long fd;
 	
@@ -4639,7 +4631,7 @@ PHP_FUNCTION(uv_tty_init)
 PHP_FUNCTION(uv_tty_get_winsize)
 {
 	php_uv_t *uv;
-	zval *handle, *result,*w, *h = NULL;
+	zval *handle, *w, *h = NULL;
 	int error, width, height;
 	
 	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
@@ -4662,8 +4654,7 @@ PHP_FUNCTION(uv_tty_get_winsize)
 PHP_FUNCTION(uv_tty_set_mode)
 {
 	php_uv_t *uv;
-	zval *handle, *result;
-	int width, height;
+	zval *handle;
 	long mode;
 	long error = 0;
 	
@@ -4673,7 +4664,7 @@ PHP_FUNCTION(uv_tty_set_mode)
 	}
 
 	ZEND_FETCH_RESOURCE(uv, php_uv_t*, &handle, -1, PHP_UV_RESOURCE_NAME, uv_resource_handle);
-	error = uv_tty_set_mode(&uv->uv.tty, &mode);
+	error = uv_tty_set_mode(&uv->uv.tty, mode);
 	RETURN_LONG(error);
 }
 /* }}} */
