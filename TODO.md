@@ -20,7 +20,6 @@
 * UV_EXTERN int uv_queue_work(uv_loop_t* loop, uv_work_t* req,uv_work_cb work_cb, uv_after_work_cb after_work_cb);
 * UV_EXTERN char** uv_setup_args(int argc, char** argv);
 
-* UV_EXTERN struct sockaddr_in6 uv_ip6_addr(const char* ip, int port);
 * UV_EXTERN int uv_ip4_name(struct sockaddr_in* src, char* dst, size_t size);
 * UV_EXTERN int uv_ip6_name(struct sockaddr_in6* src, char* dst, size_t size);
 

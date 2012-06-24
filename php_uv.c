@@ -1400,6 +1400,12 @@ ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_ip4_addr, 0, 0, 2)
 	ZEND_ARG_INFO(0, port)
 ZEND_END_ARG_INFO()
 
+ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_ip6_addr, 0, 0, 2)
+	ZEND_ARG_INFO(0, address)
+	ZEND_ARG_INFO(0, port)
+ZEND_END_ARG_INFO()
+
+
 ZEND_BEGIN_ARG_INFO_EX(arginfo_ares_gethostbyname, 0, 0, 2)
 	ZEND_ARG_INFO(0, address)
 	ZEND_ARG_INFO(0, port)
@@ -1901,6 +1907,30 @@ PHP_FUNCTION(uv_ip4_addr)
 	sockaddr->resource_id = Z_LVAL_P(return_value);
 }
 /* }}} */
+
+/* {{{ */
+PHP_FUNCTION(uv_ip6_addr)
+{
+	char *address;
+	int address_len = 0;
+	long port = 0;
+	php_uv_sockaddr_t *sockaddr;
+	
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
+		"sl",&address, &address_len, &port) == FAILURE) {
+		return;
+	}
+	
+	sockaddr = (php_uv_sockaddr_t*)emalloc(sizeof(php_uv_sockaddr_t));
+	
+	sockaddr->is_ipv4 = 0;
+	sockaddr->addr.ipv6 = uv_ip6_addr(address, port);
+	
+	ZEND_REGISTER_RESOURCE(return_value, sockaddr, uv_sockaddr_handle);
+	sockaddr->resource_id = Z_LVAL_P(return_value);
+}
+/* }}} */
+
 
 /* {{{ */
 PHP_FUNCTION(uv_listen)
@@ -4762,6 +4792,7 @@ static zend_function_entry uv_functions[] = {
 	PHP_FE(uv_run, arginfo_uv_run)
 	PHP_FE(uv_run_once, arginfo_uv_run_once)
 	PHP_FE(uv_ip4_addr, arginfo_uv_ip4_addr)
+	PHP_FE(uv_ip6_addr, arginfo_uv_ip6_addr)
 	PHP_FE(uv_write, arginfo_uv_write)
 	PHP_FE(uv_close, arginfo_uv_close)
 	PHP_FE(uv_now, arginfo_uv_now)
