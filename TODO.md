@@ -1,6 +1,7 @@
 # TODO
 
-* resource ref counting.
+* adjust config.m4 (currently, this ext supports osx and windows only. i'll fix this soon)
+* improve source code.(avoids copy and paste)
 
 # Not tested
 
