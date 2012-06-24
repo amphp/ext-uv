@@ -2481,6 +2481,28 @@ PHP_FUNCTION(uv_udp_recv_stop)
 /* }}} */
 
 /* {{{ */
+PHP_FUNCTION(uv_udp_set_membership)
+{
+	zval *client;
+	php_uv_t *uv;
+	char *multicast_addr, interface_addr = NULL;
+	int error, multicast_addr_len, interface_addr_len = 0;
+	long membership;
+	
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
+		"rssl", &client, &multicast_addr, &multicast_addr_len, &interface_addr, &interface_addr_len, &membership) == FAILURE) {
+		return;
+	}
+	ZEND_FETCH_RESOURCE(uv, php_uv_t *, &client, -1, PHP_UV_RESOURCE_NAME, uv_resource_handle);
+	
+	error = uv_udp_set_membership((uv_udp_t*)&uv->uv.udp, multicast_addr, interface_addr, membership);
+
+	RETURN_LONG(error);
+}
+/* }}} */
+
+
+/* {{{ */
 PHP_FUNCTION(uv_udp_set_multicast_loop)
 {
 	zval *client;
@@ -4962,6 +4984,7 @@ static zend_function_entry uv_functions[] = {
 	PHP_FE(uv_udp_send, arginfo_uv_udp_send)
 	PHP_FE(uv_udp_recv_start, arginfo_uv_udp_recv_start)
 	PHP_FE(uv_udp_recv_stop, arginfo_uv_udp_recv_stop)
+	PHP_FE(uv_udp_set_membership, NULL)
 	/* other network functions */
 	PHP_FE(uv_tcp_getsockname, NULL)
 	PHP_FE(uv_tcp_getpeername, NULL)

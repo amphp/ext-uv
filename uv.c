@@ -61,6 +61,9 @@ static int php_uv_class_init(TSRMLS_D)
 	zend_declare_class_constant_long(uv_class_entry, "AF_INET6",  sizeof("AF_INET6")-1, AF_INET6 TSRMLS_CC);
 	zend_declare_class_constant_long(uv_class_entry, "AF_UNSPEC",  sizeof("AF_UNSPEC")-1, AF_UNSPEC TSRMLS_CC);
 
+	zend_declare_class_constant_long(uv_class_entry, "LEAVE_GROUP",  sizeof("LEAVE_GROUP")-1, UV_LEAVE_GROUP TSRMLS_CC);
+	zend_declare_class_constant_long(uv_class_entry, "JOIN_GROUP",  sizeof("JOIN_GROUP")-1, UV_JOIN_GROUP TSRMLS_CC);
+
 	return 0;
 }
 
