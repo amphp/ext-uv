@@ -21,9 +21,6 @@
 * UV_EXTERN int uv_queue_work(uv_loop_t* loop, uv_work_t* req,uv_work_cb work_cb, uv_after_work_cb after_work_cb);
 * UV_EXTERN char** uv_setup_args(int argc, char** argv);
 
-* UV_EXTERN int uv_ip4_name(struct sockaddr_in* src, char* dst, size_t size);
-* UV_EXTERN int uv_ip6_name(struct sockaddr_in6* src, char* dst, size_t size);
-
 * UV_EXTERN void uv_once(uv_once_t* guard, void (*callback)(void));
 * UV_EXTERN int uv_thread_create(uv_thread_t *tid,void (*entry)(void *arg), void *arg);
 * UV_EXTERN int uv_thread_join(uv_thread_t *tid);

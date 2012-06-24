@@ -4774,6 +4774,47 @@ PHP_FUNCTION(uv_resident_set_memory)
 }
 /* }}} */
 
+/* {{{ */
+PHP_FUNCTION(uv_ip4_name)
+{
+	int error = 0;
+	zval *address;
+	php_uv_sockaddr_t *addr;
+	char ip[INET6_ADDRSTRLEN];
+	
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
+		"z",&address) == FAILURE) {
+		return;
+	}
+	
+	ZEND_FETCH_RESOURCE(addr, php_uv_sockaddr_t *, &address, -1, PHP_UV_SOCKADDR_RESOURCE_NAME, uv_sockaddr_handle);
+	
+	error = uv_ip4_name(&addr->addr.ipv4, &ip, INET6_ADDRSTRLEN);
+	RETVAL_STRING(ip,1);
+}
+/* }}} */
+
+/* {{{ */
+PHP_FUNCTION(uv_ip6_name)
+{
+	int error = 0;
+	zval *address;
+	php_uv_sockaddr_t *addr;
+	char ip[INET6_ADDRSTRLEN];
+	
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
+		"z",&address) == FAILURE) {
+		return;
+	}
+	
+	ZEND_FETCH_RESOURCE(addr, php_uv_sockaddr_t *, &address, -1, PHP_UV_SOCKADDR_RESOURCE_NAME, uv_sockaddr_handle);
+	
+	error = uv_ip6_name(&addr->addr.ipv6, &ip, INET6_ADDRSTRLEN);
+	RETVAL_STRING(ip,1);
+}
+/* }}} */
+
+
 static zend_function_entry uv_functions[] = {
 	/* general */
 	PHP_FE(uv_update_time, arginfo_uv_update_time)
@@ -4784,6 +4825,8 @@ static zend_function_entry uv_functions[] = {
 	PHP_FE(uv_run_once, arginfo_uv_run_once)
 	PHP_FE(uv_ip4_addr, arginfo_uv_ip4_addr)
 	PHP_FE(uv_ip6_addr, arginfo_uv_ip6_addr)
+	PHP_FE(uv_ip4_name, NULL)
+	PHP_FE(uv_ip6_name, NULL)
 	PHP_FE(uv_write, arginfo_uv_write)
 	PHP_FE(uv_close, arginfo_uv_close)
 	PHP_FE(uv_now, arginfo_uv_now)
