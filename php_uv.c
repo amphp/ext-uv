@@ -20,7 +20,7 @@
 #include "php_uv.h"
 
 #ifndef PHP_UV_DEBUG
-#define PHP_UV_DEBUG 1
+#define PHP_UV_DEBUG 0
 #endif
 
 extern void php_uv_init(TSRMLS_D);
@@ -2972,7 +2972,8 @@ struct sockaddr_in {
 }
 /* }}} */
 
-/* {{{ */
+/* {{{ proto array uv_loadavg(void)
+*/
 PHP_FUNCTION(uv_loadavg)
 {
 	zval *retval;
@@ -2990,19 +2991,16 @@ PHP_FUNCTION(uv_loadavg)
 }
 /* }}} */
 
-/* {{{ */
+/* {{{ proto double uv_uptime(void)
+*/
 PHP_FUNCTION(uv_uptime)
 {
-	zval *retval;
 	uv_err_t error;
 	double uptime;
 
 	error = uv_uptime(&uptime);
 	
-	MAKE_STD_ZVAL(retval);
-	ZVAL_DOUBLE(retval, uptime);
-
-	RETURN_ZVAL(retval,0,1);
+	RETURN_DOUBLE(uptime);
 }
 /* }}} */
 
@@ -3020,35 +3018,39 @@ PHP_FUNCTION(uv_get_process_title)
 }
 /* }}} */
 
-/* {{{ */
+/* {{{ proto long uv_get_free_memory(void)
+*/
 PHP_FUNCTION(uv_get_free_memory)
 {
 	RETURN_LONG(uv_get_free_memory());
 }
 /* }}} */
 
-/* {{{ */
+/* {{{ proto long uv_get_total_memory(void)
+*/
 PHP_FUNCTION(uv_get_total_memory)
 {
 	RETURN_LONG(uv_get_total_memory());
 }
 /* }}} */
 
-/* {{{ */
+/* {{{ proto long uv_hrtime(void)
+*/
 PHP_FUNCTION(uv_hrtime)
 {
-	/* TODO: check behavior */
+	/* TODO: is this correct? */
 	RETURN_LONG(uv_hrtime());
 }
 /* }}} */
 
-/* {{{ */
+/* {{{ proto string uv_exepath(void)
+*/
 PHP_FUNCTION(uv_exepath)
 {
 	char buffer[1024] = {0};
-	size_t buffer_sz = sizeof(buffer);
+	size_t buffer_sz;
 	
-	/* TODO: check behavior */
+	buffer_sz = sizeof(buffer);
 	uv_exepath(buffer, &buffer_sz);
 	buffer[buffer_sz] = '\0';
 	
@@ -3070,7 +3072,8 @@ PHP_FUNCTION(uv_cwd)
 }
 /* }}} */
 
-/* {{{ */
+/* {{{ proto array uv_cpu_info(void)
+*/
 PHP_FUNCTION(uv_cpu_info)
 {
 	zval *retval;
@@ -3085,23 +3088,25 @@ PHP_FUNCTION(uv_cpu_info)
 		
 		for (i = 0; i < count; i++) {
 			zval *tmp, *times;
+
 			MAKE_STD_ZVAL(tmp);
-			array_init(tmp);
 			MAKE_STD_ZVAL(times);
+			array_init(tmp);
 			array_init(times);
 
 			add_assoc_string_ex(tmp, "model", sizeof("model"), cpus[i].model, 1);
 			add_assoc_long_ex(tmp,   "speed", sizeof("speed"), cpus[i].speed);
 
-			add_assoc_long_ex(times, "sys", sizeof("sys"), (size_t)cpus[i].cpu_times.sys);
-			add_assoc_long_ex(times, "user", sizeof("user"), (size_t)cpus[i].cpu_times.user);
-			add_assoc_long_ex(times, "idle", sizeof("idle"), (size_t)cpus[i].cpu_times.idle);
-			add_assoc_long_ex(times, "irq", sizeof("irq"), (size_t)cpus[i].cpu_times.irq);
-			add_assoc_long_ex(times, "nice", sizeof("nice"), (size_t)cpus[i].cpu_times.nice);
-			add_assoc_zval_ex(tmp,"times", sizeof("times"), times);
+			add_assoc_long_ex(times, "sys",   sizeof("sys"),  (size_t)cpus[i].cpu_times.sys);
+			add_assoc_long_ex(times, "user",  sizeof("user"), (size_t)cpus[i].cpu_times.user);
+			add_assoc_long_ex(times, "idle",  sizeof("idle"), (size_t)cpus[i].cpu_times.idle);
+			add_assoc_long_ex(times, "irq",   sizeof("irq"),  (size_t)cpus[i].cpu_times.irq);
+			add_assoc_long_ex(times, "nice",  sizeof("nice"), (size_t)cpus[i].cpu_times.nice);
+			add_assoc_zval_ex(tmp,   "times", sizeof("times"), times);
 
 			add_next_index_zval(retval,tmp);
 		}
+		
 		uv_free_cpu_info(cpus, count);
 		RETURN_ZVAL(retval,0,1);
 	}
