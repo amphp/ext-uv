@@ -26,3 +26,10 @@ ltmain.sh
 *.la
 tmp-php.ini
 php_test_results*
+config.guess
+config.h
+config.h.in
+config.log
+config.nice
+config.status
+config.sub
