@@ -4997,7 +4997,7 @@ static zend_function_entry uv_functions[] = {
 #ifdef PHP_WIN32
 	PHP_FE(uv_tcp_simultaneous_accepts, NULL)
 #endif
-		/* pipe */
+	/* pipe */
 	PHP_FE(uv_pipe_init, arginfo_uv_pipe_init)
 	PHP_FE(uv_pipe_bind, arginfo_uv_pipe_bind)
 	PHP_FE(uv_pipe_open, arginfo_uv_pipe_open)
@@ -5090,7 +5090,15 @@ static zend_function_entry uv_functions[] = {
 
 PHP_MINFO_FUNCTION(uv)
 {
+	char uv_version[20];
+	sprintf(uv_version, "%d.%d",UV_VERSION_MAJOR, UV_VERSION_MINOR);
+	
 	php_printf("PHP libuv Extension\n");
+	php_info_print_table_start();
+	php_info_print_table_header(2,"libuv Support",  "enabled");
+	php_info_print_table_row(2,"Version", PHP_UV_EXTVER);
+	php_info_print_table_row(2,"bundled libuv Version", uv_version);
+	php_info_print_table_end();
 }
 
 zend_module_entry uv_module_entry = {
