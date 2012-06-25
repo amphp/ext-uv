@@ -18,6 +18,7 @@
 
 
 #include "php_uv.h"
+#include "ext/standard/info.h"
 
 #ifndef PHP_UV_DEBUG
 #define PHP_UV_DEBUG 0
@@ -139,7 +140,7 @@ static zval *php_uv_address_to_zval(const struct sockaddr *addr)
 	switch (addr->sa_family) {
 		case AF_INET6:
 		{
-			a6 = (const struct sockaddr_in *)addr;
+			a6 = (const struct sockaddr_in6 *)addr;
 			uv_inet_ntop(AF_INET, &a6->sin6_addr, ip, sizeof ip);
 			port = ntohs(a6->sin6_port);
 			
@@ -609,7 +610,7 @@ static void php_uv_read_cb(uv_stream_t* handle, ssize_t nread, uv_buf_t buf)
 #if PHP_UV_DEBUG>=1
 		fprintf(stderr,"read close");
 #endif
-		uv_close(handle, php_uv_close_cb2);
+		uv_close((uv_handle_t *)handle, php_uv_close_cb2);
 		return;
 	}
 	
@@ -652,7 +653,7 @@ static void php_uv_read_cb(uv_stream_t* handle, ssize_t nread, uv_buf_t buf)
 #endif
 }
 
-static void php_uv_prepare_cb(uv_stream_t* handle, int status)
+static void php_uv_prepare_cb(uv_prepare_t* handle, int status)
 {
 	zval *retval_ptr = NULL;
 	zval **params[1];
@@ -686,7 +687,7 @@ static void php_uv_prepare_cb(uv_stream_t* handle, int status)
 #endif
 }
 
-static void php_uv_check_cb(uv_stream_t* handle, int status)
+static void php_uv_check_cb(uv_check_t* handle, int status)
 {
 	zval *retval_ptr = NULL;
 	zval **params[1];
@@ -721,7 +722,7 @@ static void php_uv_check_cb(uv_stream_t* handle, int status)
 }
 
 
-static void php_uv_async_cb(uv_stream_t* handle, int status)
+static void php_uv_async_cb(uv_async_t* handle, int status)
 {
 	zval *retval_ptr = NULL;
 	zval **params[1];
@@ -759,7 +760,9 @@ static void php_uv_async_cb(uv_stream_t* handle, int status)
 static void php_uv_work_cb(uv_work_t* req)
 {
 	zval *retval_ptr = NULL;
-	php_uv_t *uv = (uv_work_t*)req->data;
+	php_uv_t *uv;
+	
+	uv = (php_uv_t*)req->data;
 	TSRMLS_FETCH_FROM_CTX(uv->thread_ctx);
 
 #if PHP_UV_DEBUG>=1
@@ -1529,15 +1532,15 @@ ZEND_END_ARG_INFO()
 /* {{{ */
 PHP_FUNCTION(uv_unref)
 {
-	zval *z_loop = NULL;
-	uv_loop_t *loop;
+	zval *handle = NULL;
+	php_uv_t *uv;
 	
 	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
-		"z",&z_loop) == FAILURE) {
+		"z",&handle) == FAILURE) {
 		return;
 	}
-	ZEND_FETCH_RESOURCE(loop, uv_loop_t *, &z_loop, -1, PHP_UV_LOOP_RESOURCE_NAME, uv_loop_handle);
-	uv_unref(loop);
+	ZEND_FETCH_RESOURCE(uv, php_uv_t *, &handle, -1, PHP_UV_RESOURCE_NAME, uv_resource_handle);
+	uv_unref((uv_handle_t *)php_uv_get_current_stream(uv));
 }
 /* }}} */
 
@@ -1614,15 +1617,15 @@ PHP_FUNCTION(uv_update_time)
 /* {{{ */
 PHP_FUNCTION(uv_ref)
 {
-	zval *z_loop = NULL;
-	uv_loop_t *loop;
+	zval *handle = NULL;
+	php_uv_t *uv;
 	
 	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
-		"z",&z_loop) == FAILURE) {
+		"z",&handle) == FAILURE) {
 		return;
 	}
-	ZEND_FETCH_RESOURCE(loop, uv_loop_t *, &z_loop, -1, PHP_UV_LOOP_RESOURCE_NAME, uv_loop_handle);
-	uv_ref(loop);
+	ZEND_FETCH_RESOURCE(uv, php_uv_t *, &handle, -1, PHP_UV_RESOURCE_NAME, uv_resource_handle);
+	uv_ref((uv_handle_t *)php_uv_get_current_stream(uv));
 }
 /* }}} */
 
@@ -2486,7 +2489,7 @@ PHP_FUNCTION(uv_udp_set_membership)
 {
 	zval *client;
 	php_uv_t *uv;
-	char *multicast_addr, interface_addr = NULL;
+	char *multicast_addr, interface_addr;
 	int error, multicast_addr_len, interface_addr_len = 0;
 	long membership;
 	
@@ -2496,7 +2499,7 @@ PHP_FUNCTION(uv_udp_set_membership)
 	}
 	ZEND_FETCH_RESOURCE(uv, php_uv_t *, &client, -1, PHP_UV_RESOURCE_NAME, uv_resource_handle);
 	
-	error = uv_udp_set_membership((uv_udp_t*)&uv->uv.udp, multicast_addr, interface_addr, membership);
+	error = uv_udp_set_membership((uv_udp_t*)&uv->uv.udp, (const char*)multicast_addr, (const char*)interface_addr, (int)membership);
 
 	RETURN_LONG(error);
 }
@@ -2995,7 +2998,7 @@ PHP_FUNCTION(uv_cwd)
 	char buffer[1024] = {0};
 	size_t buffer_sz = sizeof(buffer);
 	
-	uv_cwd(buffer, &buffer_sz);
+	uv_cwd(buffer, buffer_sz);
 	buffer[buffer_sz] = '\0';
 	
 	RETURN_STRING(buffer, 1);
@@ -3153,7 +3156,6 @@ PHP_FUNCTION(uv_spawn)
 			int key_type;
 			uint key_len;
 			ulong key_index;
-			int i = 0;
 			
 			pipes = Z_ARRVAL_P(*data);
 
@@ -3544,7 +3546,7 @@ PHP_FUNCTION(uv_prepare_start)
 		php_error_docref(NULL TSRMLS_CC, E_NOTICE, "this type does not support yet");
 	}
 
-	r = uv_prepare_start((uv_stream_t*)php_uv_get_current_stream(uv), php_uv_prepare_cb);
+	r = uv_prepare_start((uv_prepare_t*)php_uv_get_current_stream(uv), php_uv_prepare_cb);
 	if (r) {
 		php_error_docref(NULL TSRMLS_CC, E_NOTICE, "read failed");
 	}
@@ -3574,7 +3576,7 @@ PHP_FUNCTION(uv_prepare_stop)
 	}
 
 	ZEND_FETCH_RESOURCE(uv, php_uv_t *, &handle, -1, PHP_UV_RESOURCE_NAME, uv_resource_handle);
-	uv_prepare_stop((uv_stream_t*)php_uv_get_current_stream(uv));
+	uv_prepare_stop((uv_prepare_t*)php_uv_get_current_stream(uv));
 #if PHP_UV_DEBUG>=1
 	{
 		zend_rsrc_list_entry *le;
@@ -3656,7 +3658,7 @@ PHP_FUNCTION(uv_check_start)
 		php_error_docref(NULL TSRMLS_CC, E_NOTICE, "this type does not support yet");
 	}
 
-	r = uv_check_start((uv_stream_t*)php_uv_get_current_stream(uv), php_uv_check_cb);
+	r = uv_check_start((uv_check_t*)php_uv_get_current_stream(uv), php_uv_check_cb);
 	if (r) {
 		php_error_docref(NULL TSRMLS_CC, E_NOTICE, "read failed");
 	}
@@ -3686,7 +3688,7 @@ PHP_FUNCTION(uv_check_stop)
 	}
 
 	ZEND_FETCH_RESOURCE(uv, php_uv_t *, &handle, -1, PHP_UV_RESOURCE_NAME, uv_resource_handle);
-	uv_check_stop((uv_stream_t*)php_uv_get_current_stream(uv));
+	uv_check_stop((uv_check_t*)php_uv_get_current_stream(uv));
 #if PHP_UV_DEBUG>=1
 	{
 		zend_rsrc_list_entry *le;
@@ -3757,7 +3759,7 @@ PHP_FUNCTION(uv_async_send)
 	}
 
 	ZEND_FETCH_RESOURCE(uv, php_uv_t *, &handle, -1, PHP_UV_RESOURCE_NAME, uv_resource_handle);
-	uv_async_send((uv_stream_t*)php_uv_get_current_stream(uv));
+	uv_async_send((uv_async_t*)php_uv_get_current_stream(uv));
 #if PHP_UV_DEBUG>=1
 	{
 		zend_rsrc_list_entry *le;
@@ -4813,7 +4815,7 @@ PHP_FUNCTION(uv_udp_getsockname)
 	}
 
 	ZEND_FETCH_RESOURCE(uv, php_uv_t*, &handle, -1, PHP_UV_RESOURCE_NAME, uv_resource_handle);
-	error  = uv_tcp_getsockname(&uv->uv.udp, (struct sockaddr*)&addr, &addr_len);
+	error  = uv_udp_getsockname(&uv->uv.udp, (struct sockaddr*)&addr, &addr_len);
 	
 	result = php_uv_address_to_zval((struct sockaddr*)&addr);
 	RETURN_ZVAL(result, 0, 1);
