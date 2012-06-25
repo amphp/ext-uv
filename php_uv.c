@@ -181,7 +181,7 @@ static zval *php_uv_make_stat(const uv_statbuf_t *s)
 	add_assoc_long_ex(tmp, "rdev", sizeof("rdev"), s->st_rdev);
 	add_assoc_long_ex(tmp, "size", sizeof("size"), s->st_size);
 
-#ifdef __POSIX__
+#ifndef PHP_WIN32
 	add_assoc_long_ex(tmp, "blksize", sizeof("blksize"), s->st_blksize);
 	add_assoc_long_ex(tmp, "blocks", sizeof("blocks"), s->st_blocks);
 #endif
