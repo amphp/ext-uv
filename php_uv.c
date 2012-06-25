@@ -2949,12 +2949,14 @@ PHP_FUNCTION(uv_uptime)
 PHP_FUNCTION(uv_get_process_title)
 {
 	char buffer[512] = {0};
+	size_t buffer_sz;
 	uv_err_t error;
 
-	/* TODO: check behavior */
-	error = uv_get_process_title(buffer,sizeof(buffer));
+	error = uv_get_process_title(buffer, sizeof(buffer));
 	if (UV_OK == error.code) {
 		RETURN_STRING(buffer,1);
+	} else {
+		RETURN_FALSE;
 	}
 }
 /* }}} */
@@ -4880,6 +4882,55 @@ PHP_FUNCTION(uv_ip6_name)
 }
 /* }}} */
 
+/* {{{ */
+PHP_FUNCTION(uv_setup_args)
+{
+	long argc = 0;
+	zval *argv, *z_result;
+	char **result, **real_argv, *key, *p;
+	HashTable *h;
+	HashPosition pos;
+	int i, hash_len , key_type = 0;
+	uint guard = 255;
+	uint key_len;
+	ulong key_index;
+	
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
+		"la", &argc, &argv) == FAILURE) {
+		return;
+	}
+	
+	h = Z_ARRVAL_P(argv);
+	hash_len = zend_hash_num_elements(h);
+
+	real_argv = ecalloc(hash_len+1, sizeof(char**));
+	for (zend_hash_internal_pointer_reset_ex(h, &pos);
+		(key_type = zend_hash_get_current_key_ex(h, &key, &key_len, &key_index, 0, &pos)) != HASH_KEY_NON_EXISTANT;
+		zend_hash_move_forward_ex(h, &pos)) {
+		zval **value;
+		
+		zend_hash_get_current_data_ex(h, (void *) &value, &pos);
+		real_argv[pos->h] = Z_STRVAL_PP(value);
+	}
+	
+	result = uv_setup_args(argc, real_argv);
+	
+	MAKE_STD_ZVAL(z_result);
+	array_init(z_result);
+	
+	i = 0;
+	p = *result;
+	while (p != '\0' && i < guard) {
+		add_next_index_string(z_result, p, 1);
+		p = *result++;
+		i++;
+	}
+	efree(real_argv);
+	
+	RETURN_ZVAL(z_result,0,1);
+}
+/* }}} */
+
 
 static zend_function_entry uv_functions[] = {
 	/* general */
@@ -5027,6 +5078,7 @@ static zend_function_entry uv_functions[] = {
 	PHP_FE(uv_cwd,                      NULL)
 	PHP_FE(uv_chdir,                    arginfo_uv_chdir)
 	PHP_FE(uv_resident_set_memory,      NULL)
+	PHP_FE(uv_setup_args,               NULL)
 	{NULL, NULL, NULL}
 };
 
