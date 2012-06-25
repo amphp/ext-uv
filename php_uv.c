@@ -2247,7 +2247,7 @@ PHP_FUNCTION(uv_getaddrinfo)
 	TSRMLS_SET_CTX(uv->thread_ctx);
 	uv->getaddr_cb = callback;
 	uv->uv.addrinfo.data = uv;
-	uv->resource_id = zend_list_insert(uv, uv_resource_handle TSRMLS_CC);
+	uv->resource_id = PHP_UV_LIST_INSERT(uv, uv_resource_handle);
 
 	uv_getaddrinfo(loop, &uv->uv.addrinfo, php_uv_getaddrinfo_cb, node, service, &hint);
 }
@@ -4047,7 +4047,7 @@ PHP_FUNCTION(uv_fs_write)
 		uv->type = uv_type; \
 		PHP_UV_INIT_ZVALS(uv) \
 		TSRMLS_SET_CTX(uv->thread_ctx); \
-		uv->resource_id = zend_list_insert(uv, uv_resource_handle TSRMLS_CC); \
+		uv->resource_id = PHP_UV_LIST_INSERT(uv, uv_resource_handle); \
 	}
 
 #define PHP_UV_FETCH_UV_DEFAULT_LOOP(loop, zloop) \
