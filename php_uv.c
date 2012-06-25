@@ -364,6 +364,11 @@ void static destruct_uv(zend_rsrc_list_entry *rsrc TSRMLS_DC)
 		zval_ptr_dtor(&obj->getaddr_cb);
 		obj->getaddr_cb = NULL;
 	}
+	if (obj->timer_cb) {
+		//fprintf(stderr, "uv_timer: %d\n", Z_REFCOUNT_P(obj->timer_cb));
+		zval_ptr_dtor(&obj->timer_cb);
+		obj->timer_cb = NULL;
+	}
 
 	if (obj->resource_id) {
 		base_id = obj->resource_id;
@@ -1541,6 +1546,7 @@ PHP_FUNCTION(uv_unref)
 	}
 	ZEND_FETCH_RESOURCE(uv, php_uv_t *, &handle, -1, PHP_UV_RESOURCE_NAME, uv_resource_handle);
 	uv_unref((uv_handle_t *)php_uv_get_current_stream(uv));
+	zend_list_delete(uv->resource_id);
 }
 /* }}} */
 
@@ -1626,6 +1632,7 @@ PHP_FUNCTION(uv_ref)
 	}
 	ZEND_FETCH_RESOURCE(uv, php_uv_t *, &handle, -1, PHP_UV_RESOURCE_NAME, uv_resource_handle);
 	uv_ref((uv_handle_t *)php_uv_get_current_stream(uv));
+	zend_list_addref(uv->resource_id);
 }
 /* }}} */
 
@@ -2086,6 +2093,7 @@ PHP_FUNCTION(uv_timer_init)
 	}
 	uv->uv.timer.data = uv;
 	PHP_UV_INIT_ZVALS(uv)
+	TSRMLS_SET_CTX(uv->thread_ctx);
 	
 	ZEND_REGISTER_RESOURCE(return_value, uv, uv_resource_handle);
 	uv->resource_id = Z_LVAL_P(return_value);
