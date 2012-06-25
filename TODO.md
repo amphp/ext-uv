@@ -37,3 +37,7 @@
 * UV_EXTERN uv_err_t uv_dlsym(uv_lib_t library, const char* name, void** ptr);
 * UV_EXTERN const char *uv_dlerror(uv_lib_t library);
 * UV_EXTERN void uv_dlerror_free(uv_lib_t library, const char *msg);
+
+* UV_EXTERN char** uv_setup_args(int argc, char** argv);
+* UV_EXTERN uv_err_t uv_get_process_title(char* buffer, size_t size);
+* UV_EXTERN uv_err_t uv_set_process_title(const char* title);
