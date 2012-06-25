@@ -4846,7 +4846,7 @@ PHP_FUNCTION(uv_ip4_name)
 	
 	ZEND_FETCH_RESOURCE(addr, php_uv_sockaddr_t *, &address, -1, PHP_UV_SOCKADDR_RESOURCE_NAME, uv_sockaddr_handle);
 	
-	error = uv_ip4_name(&addr->addr.ipv4, &ip, INET6_ADDRSTRLEN);
+	error = uv_ip4_name(&addr->addr.ipv4, ip, INET6_ADDRSTRLEN);
 	RETVAL_STRING(ip,1);
 }
 /* }}} */
@@ -4866,7 +4866,7 @@ PHP_FUNCTION(uv_ip6_name)
 	
 	ZEND_FETCH_RESOURCE(addr, php_uv_sockaddr_t *, &address, -1, PHP_UV_SOCKADDR_RESOURCE_NAME, uv_sockaddr_handle);
 	
-	error = uv_ip6_name(&addr->addr.ipv6, &ip, INET6_ADDRSTRLEN);
+	error = uv_ip6_name(&addr->addr.ipv6, ip, INET6_ADDRSTRLEN);
 	RETVAL_STRING(ip,1);
 }
 /* }}} */
