@@ -125,8 +125,8 @@ typedef struct {
 
 /* TODO: remove these macro when libuv provides uv_inet_ntop & uv_inet_pton */
 #ifdef PHP_WIN32
-# include <inet_net_pton.h>
-# include <inet_ntop.h>
+# include "libuv/src/ares/inet_net_pton.h"
+# include <Ws2tcpip.h>
 # define uv_inet_pton ares_inet_pton
 # define uv_inet_ntop ares_inet_ntop
 #else

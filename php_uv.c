@@ -129,8 +129,8 @@ static zval *php_uv_address_to_zval(const struct sockaddr *addr)
 {
 	zval *tmp;
 	char ip[INET6_ADDRSTRLEN];
-	struct sockaddr_in *a4;
-	struct sockaddr_in6 *a6;
+	const struct sockaddr_in *a4;
+	const struct sockaddr_in6 *a6;
 	int port;
 	
 	MAKE_STD_ZVAL(tmp);
@@ -898,8 +898,8 @@ static void php_uv_fs_cb(uv_fs_t* req)
 		}
 		case UV_FS_SENDFILE:
 		{
-			argc = 2;
 			zval *res;
+			argc = 2;
 
 			MAKE_STD_ZVAL(res);
 			ZVAL_LONG(res, uv->uv.fs.result);
@@ -909,8 +909,8 @@ static void php_uv_fs_cb(uv_fs_t* req)
 		}
 		case UV_FS_WRITE:
 		{
-			argc = 1;
 			zval *res;
+			argc = 1;
 			MAKE_STD_ZVAL(res);
 			ZVAL_LONG(res, uv->uv.fs.result);
 
@@ -1119,8 +1119,10 @@ static void php_uv_getaddrinfo_cb(uv_getaddrinfo_t* handle, int status, struct a
 	address = res;
 	while (address) {
 		if (address->ai_family == AF_INET) {
+			const char *c;
+			
 			addr = (char*) &((struct sockaddr_in*) address->ai_addr)->sin_addr;
-			const char *c = uv_inet_ntop(address->ai_family, addr, ip, INET6_ADDRSTRLEN);
+			c = uv_inet_ntop(address->ai_family, addr, ip, INET6_ADDRSTRLEN);
 			add_next_index_string(tmp, c, 1);
 		}
 		
@@ -1130,8 +1132,10 @@ static void php_uv_getaddrinfo_cb(uv_getaddrinfo_t* handle, int status, struct a
 	address = res;
 	while (address) {
 		if (address->ai_family == AF_INET6) {
+			const char *c;
+
 			addr = (char*) &((struct sockaddr_in6*) address->ai_addr)->sin6_addr;
-			const char *c = uv_inet_ntop(address->ai_family, addr, ip, INET6_ADDRSTRLEN);
+			c = uv_inet_ntop(address->ai_family, addr, ip, INET6_ADDRSTRLEN);
 			add_next_index_string(tmp, c, 1);
 		}
 		
@@ -4047,6 +4051,7 @@ PHP_FUNCTION(uv_fs_write)
 	zval_ptr_dtor(&tmp);
 }
 /* }}} */
+
 
 
 #define PHP_UV_INIT_UV(uv, uv_type) \
