@@ -124,7 +124,7 @@ typedef struct {
 #define PHP_UV_MUTEX_RESOURCE_NAME "uv_mutex"
 
 
-#ifdef PHP_VERSION_ID >= 50399
+#if PHP_VERSION_ID>=50399
 #define PHP_UV_LIST_INSERT(type, handle) zend_list_insert(type, handle TSRMLS_CC)
 #else
 #define PHP_UV_LIST_INSERT(type, handle) zend_list_insert(type, handle)
