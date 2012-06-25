@@ -3005,11 +3005,10 @@ PHP_FUNCTION(uv_cwd)
 	char buffer[1024] = {0};
 	size_t buffer_sz = sizeof(buffer);
 	
-	/* TODO: check behavior */
 	uv_cwd(buffer, &buffer_sz);
 	buffer[buffer_sz] = '\0';
 	
-	RETURN_STRINGL(buffer, buffer_sz, 1);
+	RETURN_STRING(buffer, 1);
 }
 /* }}} */
 
