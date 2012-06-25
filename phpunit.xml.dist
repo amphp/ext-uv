@@ -1,0 +1,9 @@
+<phpunit
+    colors="true"
+>
+    <testsuites>
+        <testsuite name="PHPUnit_Extensions_PhptTestSuite">
+            <directory suffix=".phpt">./tests/</directory>
+        </testsuite>
+    </testsuites>
+</phpunit>
