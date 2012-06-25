@@ -1,8 +1,10 @@
 <phpunit
+    backupGlobals="false"
     colors="true"
+    processIsolation="true"
 >
     <testsuites>
-        <testsuite name="PHPUnit_Extensions_PhptTestSuite">
+        <testsuite name="PHP UV">
             <directory suffix=".phpt">./tests/</directory>
         </testsuite>
     </testsuites>
