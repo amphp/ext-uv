@@ -1717,6 +1717,77 @@ ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_fs_rename, 0, 0, 3)
 	ZEND_ARG_INFO(0, callback)
 ZEND_END_ARG_INFO()
 
+ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_rwlock_rdlock, 0, 0, 1)
+	ZEND_ARG_INFO(0, handle)
+ZEND_END_ARG_INFO()
+
+ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_rwlock_tryrdlock, 0, 0, 1)
+	ZEND_ARG_INFO(0, handle)
+ZEND_END_ARG_INFO()
+
+ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_rwlock_rdunlock, 0, 0, 1)
+	ZEND_ARG_INFO(0, handle)
+ZEND_END_ARG_INFO()
+
+ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_rwlock_wrlock, 0, 0, 1)
+	ZEND_ARG_INFO(0, handle)
+ZEND_END_ARG_INFO()
+
+ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_rwlock_trywrlock, 0, 0, 1)
+	ZEND_ARG_INFO(0, handle)
+ZEND_END_ARG_INFO()
+
+ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_rwlock_wrunlock, 0, 0, 1)
+	ZEND_ARG_INFO(0, handle)
+ZEND_END_ARG_INFO()
+
+ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_mutex_lock, 0, 0, 1)
+	ZEND_ARG_INFO(0, handle)
+ZEND_END_ARG_INFO()
+
+ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_mutex_trylock, 0, 0, 1)
+	ZEND_ARG_INFO(0, handle)
+ZEND_END_ARG_INFO()
+
+ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_mutex_unlock, 0, 0, 1)
+	ZEND_ARG_INFO(0, handle)
+ZEND_END_ARG_INFO()
+
+ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_prepare_init, 0, 0, 1)
+	ZEND_ARG_INFO(0, loop)
+ZEND_END_ARG_INFO()
+
+ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_prepare_start, 0, 0, 2)
+	ZEND_ARG_INFO(0, handle)
+	ZEND_ARG_INFO(0, callback)
+ZEND_END_ARG_INFO()
+
+ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_prepare_stop, 0, 0, 1)
+	ZEND_ARG_INFO(0, handle)
+ZEND_END_ARG_INFO()
+
+ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_check_init, 0, 0, 1)
+	ZEND_ARG_INFO(0, loop)
+ZEND_END_ARG_INFO()
+
+ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_check_start, 0, 0, 2)
+	ZEND_ARG_INFO(0, handle)
+	ZEND_ARG_INFO(0, callback)
+ZEND_END_ARG_INFO()
+
+ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_check_stop, 0, 0, 1)
+	ZEND_ARG_INFO(0, handle)
+ZEND_END_ARG_INFO()
+
+ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_async_send, 0, 0, 1)
+	ZEND_ARG_INFO(0, handle)
+ZEND_END_ARG_INFO()
+
+ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_async_init, 0, 0, 1)
+	ZEND_ARG_INFO(0, loop)
+	ZEND_ARG_INFO(0, callback)
+ZEND_END_ARG_INFO()
+
 /* PHP Functions */
 
 /* {{{ */
@@ -5144,28 +5215,28 @@ static zend_function_entry uv_functions[] = {
 	PHP_FE(ares_gethostbyname,          NULL)
 	/* rwlock */
 	PHP_FE(uv_rwlock_init,              NULL)
-	PHP_FE(uv_rwlock_rdlock,            NULL)
-	PHP_FE(uv_rwlock_tryrdlock,         NULL)
-	PHP_FE(uv_rwlock_rdunlock,          NULL)
-	PHP_FE(uv_rwlock_wrlock,            NULL)
-	PHP_FE(uv_rwlock_trywrlock,         NULL)
-	PHP_FE(uv_rwlock_wrunlock,          NULL)
+	PHP_FE(uv_rwlock_rdlock,            arginfo_uv_rwlock_rdlock)
+	PHP_FE(uv_rwlock_tryrdlock,         arginfo_uv_rwlock_tryrdlock)
+	PHP_FE(uv_rwlock_rdunlock,          arginfo_uv_rwlock_rdunlock)
+	PHP_FE(uv_rwlock_wrlock,            arginfo_uv_rwlock_wrlock)
+	PHP_FE(uv_rwlock_trywrlock,         arginfo_uv_rwlock_trywrlock)
+	PHP_FE(uv_rwlock_wrunlock,          arginfo_uv_rwlock_wrunlock)
 	/* mutex */
 	PHP_FE(uv_mutex_init,               NULL)
-	PHP_FE(uv_mutex_lock,               NULL)
-	PHP_FE(uv_mutex_trylock,            NULL)
-	PHP_FE(uv_mutex_unlock,             NULL)
+	PHP_FE(uv_mutex_lock,               arginfo_uv_mutex_lock)
+	PHP_FE(uv_mutex_trylock,            arginfo_uv_mutex_trylock)
+	PHP_FE(uv_mutex_unlock,             arginfo_uv_mutex_unlock)
 	/* prepare (before poll hook) */
 	PHP_FE(uv_prepare_init,             NULL)
-	PHP_FE(uv_prepare_start,            NULL)
-	PHP_FE(uv_prepare_stop,             NULL)
+	PHP_FE(uv_prepare_start,            arginfo_uv_prepare_start)
+	PHP_FE(uv_prepare_stop,             arginfo_uv_prepare_stop)
 	/* check (after poll hook) */
-	PHP_FE(uv_check_init,               NULL)
-	PHP_FE(uv_check_start,              NULL)
-	PHP_FE(uv_check_stop,               NULL)
+	PHP_FE(uv_check_init,               arginfo_uv_check_init)
+	PHP_FE(uv_check_start,              arginfo_uv_check_start)
+	PHP_FE(uv_check_stop,               arginfo_uv_check_stop)
 	/* async */
-	PHP_FE(uv_async_init,               NULL)
-	PHP_FE(uv_async_send,               NULL)
+	PHP_FE(uv_async_init,               arginfo_uv_async_init)
+	PHP_FE(uv_async_send,               arginfo_uv_async_send)
 	/* queue (does not work yet) */
 	PHP_FE(uv_queue_work,               NULL)
 	/* fs */
