@@ -2091,6 +2091,7 @@ PHP_FUNCTION(uv_timer_init)
 		php_error_docref(NULL TSRMLS_CC, E_ERROR, "uv_timer_init failed");
 		return;
 	}
+	uv->type = IS_UV_TIMER;
 	uv->uv.timer.data = uv;
 	PHP_UV_INIT_ZVALS(uv)
 	TSRMLS_SET_CTX(uv->thread_ctx);
