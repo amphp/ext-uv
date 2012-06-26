@@ -766,9 +766,9 @@ static void php_uv_work_cb(uv_work_t* req)
 {
 	zval *retval_ptr = NULL;
 	php_uv_t *uv;
-	TSRMLS_FETCH_FROM_CTX(uv->thread_ctx);
-	
+
 	uv = (php_uv_t*)req->data;
+	TSRMLS_FETCH_FROM_CTX(uv->thread_ctx);
 
 #if PHP_UV_DEBUG>=1
 	fprintf(stderr,"work_cb");
