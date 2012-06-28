@@ -24,19 +24,33 @@
 #define PHP_UV_DEBUG 0
 #endif
 
-extern void php_uv_init(TSRMLS_D);
-extern zend_class_entry *uv_class_entry;
+#define PHP_UV_INIT_UV(uv, uv_type) \
+	uv = (php_uv_t *)emalloc(sizeof(php_uv_t)); \
+	if (!uv) { \
+		php_error_docref(NULL TSRMLS_CC, E_ERROR, "emalloc failed"); \
+		return; \
+	} else { \
+		uv->type = uv_type; \
+		PHP_UV_INIT_ZVALS(uv) \
+		TSRMLS_SET_CTX(uv->thread_ctx); \
+		uv->resource_id = PHP_UV_LIST_INSERT(uv, uv_resource_handle); \
+	}
 
-typedef struct {
-	uv_write_t req;
-	uv_buf_t buf;
-} write_req_t;
+#define PHP_UV_FETCH_UV_DEFAULT_LOOP(loop, zloop) \
+	{ \
+		if (zloop != NULL) { \
+			ZEND_FETCH_RESOURCE(loop, uv_loop_t*, &zloop, -1, PHP_UV_LOOP_RESOURCE_NAME, uv_loop_handle); \
+		} else { \
+			loop = uv_default_loop(); \
+		}  \
+	}
 
-typedef struct {
-	uv_udp_send_t req;
-	uv_buf_t buf;
-} send_req_t;
-
+#define PHP_UV_FS_ASYNC(loop, func,  ...) \
+	error = uv_fs_##func(loop, (uv_fs_t*)&uv->uv.fs, __VA_ARGS__, php_uv_fs_cb); \
+	if (error) { \
+		php_error_docref(NULL TSRMLS_CC, E_ERROR, "uv_##func failed"); \
+		return; \
+	}
 
 #define PHP_UV_INIT_ZVALS(uv) \
 	{ \
@@ -61,6 +75,19 @@ typedef struct {
 		uv->fs_cb = NULL; \
 		uv->fs_event_cb = NULL; \
 	}
+
+extern void php_uv_init(TSRMLS_D);
+extern zend_class_entry *uv_class_entry;
+
+typedef struct {
+	uv_write_t req;
+	uv_buf_t buf;
+} write_req_t;
+
+typedef struct {
+	uv_udp_send_t req;
+	uv_buf_t buf;
+} send_req_t;
 
 /* static variables */
 
@@ -98,7 +125,6 @@ static inline uv_stream_t* php_uv_get_current_stream(php_uv_t *uv);
  * @return int (maybe..)
  */
 static int php_uv_do_callback(zval **retval_ptr, zval *callback, zval ***params, int param_count TSRMLS_DC);
-
 
 static void php_uv_close_cb(uv_handle_t *handle);
 
@@ -549,7 +575,6 @@ static void php_uv_udp_send_cb(uv_udp_send_t* req, int status)
 	}
 	efree(wr);
 }
-
 
 static void php_uv_listen_cb(uv_stream_t* server, int status)
 {
@@ -1243,11 +1268,11 @@ PHP_MINIT_FUNCTION(uv) {
 
 	php_uv_init(TSRMLS_C);
 	uv_resource_handle = zend_register_list_destructors_ex(destruct_uv, NULL, PHP_UV_RESOURCE_NAME, module_number);
-	uv_ares_handle  = zend_register_list_destructors_ex(destruct_uv_ares, NULL, PHP_UV_ARES_RESOURCE_NAME, module_number);
-	uv_loop_handle = zend_register_list_destructors_ex(destruct_uv_loop, NULL, PHP_UV_LOOP_RESOURCE_NAME, module_number);
+	uv_ares_handle     = zend_register_list_destructors_ex(destruct_uv_ares, NULL, PHP_UV_ARES_RESOURCE_NAME, module_number);
+	uv_loop_handle     = zend_register_list_destructors_ex(destruct_uv_loop, NULL, PHP_UV_LOOP_RESOURCE_NAME, module_number);
 	uv_sockaddr_handle = zend_register_list_destructors_ex(destruct_uv_sockaddr, NULL, PHP_UV_SOCKADDR_RESOURCE_NAME, module_number);
-	uv_rwlock_handle = zend_register_list_destructors_ex(destruct_uv_rwlock, NULL, PHP_UV_RWLOCK_RESOURCE_NAME, module_number);
-	uv_mutex_handle = zend_register_list_destructors_ex(destruct_uv_mutex, NULL, PHP_UV_MUTEX_RESOURCE_NAME, module_number);
+	uv_rwlock_handle   = zend_register_list_destructors_ex(destruct_uv_rwlock, NULL, PHP_UV_RWLOCK_RESOURCE_NAME, module_number);
+	uv_mutex_handle    = zend_register_list_destructors_ex(destruct_uv_mutex, NULL, PHP_UV_MUTEX_RESOURCE_NAME, module_number);
 
 	rc = ares_library_init(ARES_LIB_INIT_ALL);
 	if (rc != 0) {
@@ -1422,7 +1447,6 @@ ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_ip6_addr, 0, 0, 2)
 	ZEND_ARG_INFO(0, address)
 	ZEND_ARG_INFO(0, port)
 ZEND_END_ARG_INFO()
-
 
 ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_udp_init, 0, 0, 1)
 	ZEND_ARG_INFO(0, loop)
@@ -1821,7 +1845,6 @@ ZEND_END_ARG_INFO()
 ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_ip4_name, 0, 0, 1)
 	ZEND_ARG_INFO(0, handle)
 ZEND_END_ARG_INFO()
-
 
 /* PHP Functions */
 
@@ -4337,37 +4360,6 @@ PHP_FUNCTION(uv_fs_write)
 	zval_ptr_dtor(&tmp);
 }
 /* }}} */
-
-
-
-#define PHP_UV_INIT_UV(uv, uv_type) \
-	uv = (php_uv_t *)emalloc(sizeof(php_uv_t)); \
-	if (!uv) { \
-		php_error_docref(NULL TSRMLS_CC, E_ERROR, "emalloc failed"); \
-		return; \
-	} else { \
-		uv->type = uv_type; \
-		PHP_UV_INIT_ZVALS(uv) \
-		TSRMLS_SET_CTX(uv->thread_ctx); \
-		uv->resource_id = PHP_UV_LIST_INSERT(uv, uv_resource_handle); \
-	}
-
-#define PHP_UV_FETCH_UV_DEFAULT_LOOP(loop, zloop) \
-	{ \
-		if (zloop != NULL) { \
-			ZEND_FETCH_RESOURCE(loop, uv_loop_t*, &zloop, -1, PHP_UV_LOOP_RESOURCE_NAME, uv_loop_handle); \
-		} else { \
-			loop = uv_default_loop(); \
-		}  \
-	}
-
-#define PHP_UV_FS_ASYNC(loop, func,  ...) \
-	error = uv_fs_##func(loop, (uv_fs_t*)&uv->uv.fs, __VA_ARGS__, php_uv_fs_cb); \
-	if (error) { \
-		php_error_docref(NULL TSRMLS_CC, E_ERROR, "uv_##func failed"); \
-		return; \
-	}
-
 
 /* {{{ */
 PHP_FUNCTION(uv_fs_fsync)
