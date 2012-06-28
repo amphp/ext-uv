@@ -1424,11 +1424,6 @@ ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_ip6_addr, 0, 0, 2)
 ZEND_END_ARG_INFO()
 
 
-ZEND_BEGIN_ARG_INFO_EX(arginfo_ares_gethostbyname, 0, 0, 2)
-	ZEND_ARG_INFO(0, address)
-	ZEND_ARG_INFO(0, port)
-ZEND_END_ARG_INFO()
-
 ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_udp_init, 0, 0, 1)
 	ZEND_ARG_INFO(0, loop)
 ZEND_END_ARG_INFO()
@@ -1787,6 +1782,46 @@ ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_async_init, 0, 0, 1)
 	ZEND_ARG_INFO(0, loop)
 	ZEND_ARG_INFO(0, callback)
 ZEND_END_ARG_INFO()
+
+ZEND_BEGIN_ARG_INFO_EX(arginfo_ares_gethostbyname, 0, 0, 3)
+	ZEND_ARG_INFO(0, handle)
+	ZEND_ARG_INFO(0, name)
+	ZEND_ARG_INFO(0, callback)
+ZEND_END_ARG_INFO()
+
+ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_ares_init_options, 0, 0, 3)
+	ZEND_ARG_INFO(0, loop)
+	ZEND_ARG_INFO(0, options)
+	ZEND_ARG_INFO(0, mask)
+ZEND_END_ARG_INFO()
+
+ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_tcp_getsockname, 0, 0, 1)
+	ZEND_ARG_INFO(0, handle)
+ZEND_END_ARG_INFO()
+
+ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_tcp_getpeername, 0, 0, 1)
+	ZEND_ARG_INFO(0, handle)
+ZEND_END_ARG_INFO()
+
+ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_udp_getsockname, 0, 0, 1)
+	ZEND_ARG_INFO(0, handle)
+ZEND_END_ARG_INFO()
+
+ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_udp_set_membership, 0, 0, 4)
+	ZEND_ARG_INFO(0, client)
+	ZEND_ARG_INFO(0, multicast_addr)
+	ZEND_ARG_INFO(0, interface_addr)
+	ZEND_ARG_INFO(0, membership)
+ZEND_END_ARG_INFO()
+
+ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_ip6_name, 0, 0, 1)
+	ZEND_ARG_INFO(0, handle)
+ZEND_END_ARG_INFO()
+
+ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_ip4_name, 0, 0, 1)
+	ZEND_ARG_INFO(0, handle)
+ZEND_END_ARG_INFO()
+
 
 /* PHP Functions */
 
@@ -5148,8 +5183,8 @@ static zend_function_entry uv_functions[] = {
 	PHP_FE(uv_run_once,                 arginfo_uv_run_once)
 	PHP_FE(uv_ip4_addr,                 arginfo_uv_ip4_addr)
 	PHP_FE(uv_ip6_addr,                 arginfo_uv_ip6_addr)
-	PHP_FE(uv_ip4_name,                 NULL)
-	PHP_FE(uv_ip6_name,                 NULL)
+	PHP_FE(uv_ip4_name,                 arginfo_uv_ip4_name)
+	PHP_FE(uv_ip6_name,                 arginfo_uv_ip6_name)
 	PHP_FE(uv_write,                    arginfo_uv_write)
 	PHP_FE(uv_close,                    arginfo_uv_close)
 	PHP_FE(uv_now,                      arginfo_uv_now)
@@ -5191,11 +5226,11 @@ static zend_function_entry uv_functions[] = {
 	PHP_FE(uv_udp_send,                 arginfo_uv_udp_send)
 	PHP_FE(uv_udp_recv_start,           arginfo_uv_udp_recv_start)
 	PHP_FE(uv_udp_recv_stop,            arginfo_uv_udp_recv_stop)
-	PHP_FE(uv_udp_set_membership,       NULL)
+	PHP_FE(uv_udp_set_membership,       arginfo_uv_udp_set_membership)
 	/* other network functions */
-	PHP_FE(uv_tcp_getsockname,          NULL)
-	PHP_FE(uv_tcp_getpeername,          NULL)
-	PHP_FE(uv_udp_getsockname,          NULL)
+	PHP_FE(uv_tcp_getsockname,          arginfo_uv_tcp_getsockname)
+	PHP_FE(uv_tcp_getpeername,          arginfo_uv_tcp_getpeername)
+	PHP_FE(uv_udp_getsockname,          arginfo_uv_udp_getsockname)
 #ifdef PHP_WIN32
 	PHP_FE(uv_tcp_simultaneous_accepts, NULL)
 #endif
@@ -5211,8 +5246,8 @@ static zend_function_entry uv_functions[] = {
 	PHP_FE(uv_kill,                     arginfo_uv_kill)
 	/* c-ares */
 	PHP_FE(uv_getaddrinfo,              arginfo_uv_tcp_connect)
-	PHP_FE(uv_ares_init_options,        NULL)
-	PHP_FE(ares_gethostbyname,          NULL)
+	PHP_FE(uv_ares_init_options,        arginfo_uv_ares_init_options)
+	PHP_FE(ares_gethostbyname,          arginfo_ares_gethostbyname)
 	/* rwlock */
 	PHP_FE(uv_rwlock_init,              NULL)
 	PHP_FE(uv_rwlock_rdlock,            arginfo_uv_rwlock_rdlock)
