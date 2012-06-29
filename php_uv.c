@@ -82,6 +82,21 @@
 #define PHP_UV_DEBUG_PRINT(format, ...)
 #endif
 
+#if PHP_UV_DEBUG>=1
+#define PHP_UV_DEBUG_RESOURCE_REFCOUNT(name, resource_id) \
+	{ \
+		zend_rsrc_list_entry *le; \
+		if (zend_hash_index_find(&EG(regular_list), resource_id, (void **) &le)==SUCCESS) { \
+			printf("# name del(%d): %d->%d\n", resource_id, le->refcount, le->refcount-1); \
+		} else { \
+			printf("# can't find (write_cb)"); \
+		} \
+	} 
+#else
+#define PHP_UV_DEBUG_RESOURCE_REFCOUNT(name, resource_id)
+#endif
+
+
 extern void php_uv_init(TSRMLS_D);
 extern zend_class_entry *uv_class_entry;
 
@@ -270,9 +285,7 @@ void static destruct_uv_ares(zend_rsrc_list_entry *rsrc TSRMLS_DC)
 {
 	int base_id = -1;
 	php_uv_ares_t *obj = (php_uv_ares_t *)rsrc->ptr;
-#if PHP_UV_DEBUG>=1
-	fprintf(stderr,"# will be free: (resource_id: %d)", obj->resource_id);
-#endif
+	PHP_UV_DEBUG_PRINT("# will be free: (resource_id: %d)", obj->resource_id);
 
 	if (obj->gethostbyname_cb) {
 		//fprintf(stderr, "udp_send_cb: %d\n", Z_REFCOUNT_P(obj->listen_cb));
@@ -532,16 +545,7 @@ static void php_uv_write_cb(uv_write_t* req, int status)
 		//free(wr->buf.base);
 	}
 	efree(wr);
-#if PHP_UV_DEBUG>=1
-	{
-		zend_rsrc_list_entry *le;
-		if (zend_hash_index_find(&EG(regular_list), uv->resource_id, (void **) &le)==SUCCESS) {
-			printf("# uv_write_cb del(%d): %d->%d\n", uv->resource_id, le->refcount, le->refcount-1);
-		} else {
-			printf("# can't find (write_cb)");
-		}
-	}
-#endif
+	PHP_UV_DEBUG_RESOURCE_REFCOUNT(uv_write_cb, uv->resource_id);
 }
 
 static void php_uv_udp_send_cb(uv_udp_send_t* req, int status)
@@ -664,17 +668,7 @@ static void php_uv_read_cb(uv_stream_t* handle, ssize_t nread, uv_buf_t buf)
 	if (buf.base) {
 		efree(buf.base);
 	}
-#if PHP_UV_DEBUG>=1
-	{
-		zend_rsrc_list_entry *le;
-		
-		if (zend_hash_index_find(&EG(regular_list), uv->resource_id, (void **) &le)==SUCCESS) {
-			printf("# uv_read_cb del(%d): %d->%d\n", uv->resource_id, le->refcount, le->refcount-1);
-		} else {
-			printf("# can't find (read_cb)");
-		}
-	}
-#endif
+	PHP_UV_DEBUG_RESOURCE_REFCOUNT(uv_read_cb, uv->resource_id);
 }
 
 static void php_uv_prepare_cb(uv_prepare_t* handle, int status)
@@ -696,17 +690,7 @@ static void php_uv_prepare_cb(uv_prepare_t* handle, int status)
 
 	zval_ptr_dtor(&zstat);
 	zval_ptr_dtor(&retval_ptr);
-
-#if PHP_UV_DEBUG>=1
-	{
-		zend_rsrc_list_entry *le;
-		if (zend_hash_index_find(&EG(regular_list), uv->resource_id, (void **) &le)==SUCCESS) {
-			printf("# uv_prepare_cb del(%d): %d->%d\n", uv->resource_id, le->refcount, le->refcount-1);
-		} else {
-			printf("# can't find (prepare_cb)");
-		}
-	}
-#endif
+	PHP_UV_DEBUG_RESOURCE_REFCOUNT(uv_prepare_cb, uv->resource_id);
 }
 
 static void php_uv_check_cb(uv_check_t* handle, int status)
@@ -728,17 +712,7 @@ static void php_uv_check_cb(uv_check_t* handle, int status)
 
 	zval_ptr_dtor(&zstat);
 	zval_ptr_dtor(&retval_ptr);
-
-#if PHP_UV_DEBUG>=1
-	{
-		zend_rsrc_list_entry *le;
-		if (zend_hash_index_find(&EG(regular_list), uv->resource_id, (void **) &le)==SUCCESS) {
-			printf("# uv_check_cb del(%d): %d->%d\n", uv->resource_id, le->refcount, le->refcount-1);
-		} else {
-			printf("# can't find (check_cb)");
-		}
-	}
-#endif
+	PHP_UV_DEBUG_RESOURCE_REFCOUNT(uv_check_cb, uv->resource_id);
 }
 
 
@@ -761,17 +735,7 @@ static void php_uv_async_cb(uv_async_t* handle, int status)
 
 	zval_ptr_dtor(&zstat);
 	zval_ptr_dtor(&retval_ptr);
-
-#if PHP_UV_DEBUG>=1
-	{
-		zend_rsrc_list_entry *le;
-		if (zend_hash_index_find(&EG(regular_list), uv->resource_id, (void **) &le)==SUCCESS) {
-			printf("# uv_async_cb del(%d): %d->%d\n", uv->resource_id, le->refcount, le->refcount-1);
-		} else {
-			printf("# can't find (async_cb)");
-		}
-	}
-#endif
+	PHP_UV_DEBUG_RESOURCE_REFCOUNT(uv_async_cb, uv->resource_id);
 }
 
 
@@ -787,17 +751,7 @@ static void php_uv_work_cb(uv_work_t* req)
 
 	php_uv_do_callback(&retval_ptr, uv->work_cb, NULL, 0 TSRMLS_CC);
 	zval_ptr_dtor(&retval_ptr);
-
-#if PHP_UV_DEBUG>=1
-	{
-		zend_rsrc_list_entry *le;
-		if (zend_hash_index_find(&EG(regular_list), uv->resource_id, (void **) &le)==SUCCESS) {
-			printf("# uv_work_cb del(%d): %d->%d\n", uv->resource_id, le->refcount, le->refcount-1);
-		} else {
-			printf("# can't find (work_cb)");
-		}
-	}
-#endif
+	PHP_UV_DEBUG_RESOURCE_REFCOUNT(uv_work_cb, uv->resource_id);
 }
 
 static void php_uv_after_work_cb(uv_work_t* req)
@@ -810,17 +764,7 @@ static void php_uv_after_work_cb(uv_work_t* req)
 
 	php_uv_do_callback(&retval_ptr, uv->after_work_cb, NULL, 0 TSRMLS_CC);
 	zval_ptr_dtor(&retval_ptr);
-
-#if PHP_UV_DEBUG>=1
-	{
-		zend_rsrc_list_entry *le;
-		if (zend_hash_index_find(&EG(regular_list), uv->resource_id, (void **) &le)==SUCCESS) {
-			printf("# uv_after_work_cb del(%d): %d->%d\n", uv->resource_id, le->refcount, le->refcount-1);
-		} else {
-			printf("# can't find (work_cb)");
-		}
-	}
-#endif
+	PHP_UV_DEBUG_RESOURCE_REFCOUNT(uv_after_work_cb, uv->resource_id);
 }
 
 static void php_uv_fs_cb(uv_fs_t* req)
@@ -948,17 +892,7 @@ static void php_uv_fs_cb(uv_fs_t* req)
 	zval_ptr_dtor(&retval_ptr);
 	zval_ptr_dtor(&result);
 	uv_fs_req_cleanup(req);
-
-#if PHP_UV_DEBUG>=1
-	{
-		zend_rsrc_list_entry *le;
-		if (zend_hash_index_find(&EG(regular_list), uv->resource_id, (void **) &le)==SUCCESS) {
-			printf("# uv_fs_cb type(%d) del(%d): %d->%d\n", uv->uv.fs.fs_type, uv->resource_id, le->refcount, le->refcount-1);
-		} else {
-			printf("# can't find (fs_cb)");
-		}
-	}
-#endif
+	PHP_UV_DEBUG_RESOURCE_REFCOUNT(uv_fs_cb, uv->resource_id);
 }
 
 static void php_uv_fs_event_cb(uv_fs_event_t* req, const char* filename, int events, int status)
@@ -991,17 +925,7 @@ static void php_uv_fs_event_cb(uv_fs_event_t* req, const char* filename, int eve
 	zval_ptr_dtor(params[0]);
 	zval_ptr_dtor(params[1]);
 	zval_ptr_dtor(params[2]);
-
-#if PHP_UV_DEBUG>=1
-	{
-		zend_rsrc_list_entry *le;
-		if (zend_hash_index_find(&EG(regular_list), uv->resource_id, (void **) &le)==SUCCESS) {
-			printf("# uv_fs_event_cb del(%d): %d->%d\n", uv->resource_id, le->refcount, le->refcount-1);
-		} else {
-			printf("# can't find (work_cb)");
-		}
-	}
-#endif
+	PHP_UV_DEBUG_RESOURCE_REFCOUNT(uv_fs_event_cb, uv->resource_id);
 }
 
 
@@ -1079,16 +1003,8 @@ static void php_uv_close_cb(uv_handle_t *handle)
 		php_uv_do_callback(&retval_ptr, uv->close_cb, params, 1 TSRMLS_CC);
 		zval_ptr_dtor(&retval_ptr);
 	}
-#if PHP_UV_DEBUG>=1
-	{
-		zend_rsrc_list_entry *le;
-		if (zend_hash_index_find(&EG(regular_list), uv->resource_id, (void **) &le)==SUCCESS) {
-			printf("# uv_close_cb del(%d): %d->%d\n", uv->resource_id, le->refcount, le->refcount-1);
-		} else {
-			printf("# can't find (close_cb)");
-		}
-	}
-#endif
+	PHP_UV_DEBUG_RESOURCE_REFCOUNT(uv_close_cb, uv->resource_id);
+
 	zval_ptr_dtor(&h); /* call destruct_uv */
 }
 
@@ -1115,7 +1031,7 @@ static void php_uv_getaddrinfo_cb(uv_getaddrinfo_t* handle, int status, struct a
 {
 	zval *tmp, *retval_ptr, *stat = NULL;
 	zval **params[2];
-    struct addrinfo *address;
+	struct addrinfo *address;
 	char ip[INET6_ADDRSTRLEN];
 	const char *addr;
 	
@@ -2081,16 +1997,7 @@ PHP_FUNCTION(uv_write)
 	w->buf = uv_buf_init(data, data_len);
 
 	uv_write(&w->req, (uv_stream_t*)php_uv_get_current_stream(client), &w->buf, 1, php_uv_write_cb);
-#if PHP_UV_DEBUG>=1
-	{
-		zend_rsrc_list_entry *le;
-		if (zend_hash_index_find(&EG(regular_list), client->resource_id, (void **) &le)==SUCCESS) {
-			printf("# uv_write del(%d): %d->%d\n", client->resource_id, le->refcount, le->refcount-1);
-		} else {
-			printf("# can't find (uv_write)");
-		}
-	}
-#endif
+	PHP_UV_DEBUG_RESOURCE_REFCOUNT(uv_write, uv->resource_id);
 }
 /* }}} */
 
@@ -2186,17 +2093,7 @@ PHP_FUNCTION(uv_read_start)
 	if (r) {
 		php_error_docref(NULL TSRMLS_CC, E_NOTICE, "read failed");
 	}
-#if PHP_UV_DEBUG>=1
-	{
-		zend_rsrc_list_entry *le;
-		if (zend_hash_index_find(&EG(regular_list), uv->resource_id, (void **) &le)==SUCCESS) {
-			printf("# uvread_start del(%d): %d->%d\n", uv->resource_id, le->refcount, le->refcount-1);
-		} else {
-			printf("# can't find(uv_read_start)");
-		}
-	}
-#endif
-
+	PHP_UV_DEBUG_RESOURCE_REFCOUNT(uv_read_start, uv->resource_id);
 }
 /* }}} */
 
@@ -2213,20 +2110,9 @@ PHP_FUNCTION(uv_read_stop)
 
 	ZEND_FETCH_RESOURCE(uv, php_uv_t *, &server, -1, PHP_UV_RESOURCE_NAME, uv_resource_handle);
 	uv_read_stop((uv_stream_t*)php_uv_get_current_stream(uv));
-#if PHP_UV_DEBUG>=1
-	{
-		zend_rsrc_list_entry *le;
-		if (zend_hash_index_find(&EG(regular_list), uv->resource_id, (void **) &le)==SUCCESS) {
-			printf("# uv_read_stop del(%d): %d->%d\n", uv->resource_id, le->refcount, le->refcount-1);
-		} else {
-			printf("# can't find(uv_read_stop)");
-		}
-	}
-#endif
-
+	PHP_UV_DEBUG_RESOURCE_REFCOUNT(uv_read_stop, uv->resource_id);
 }
 /* }}} */
-
 
 /* {{{ */
 PHP_FUNCTION(uv_ip4_addr)
@@ -3827,9 +3713,7 @@ PHP_FUNCTION(uv_prepare_start)
 	php_uv_t *uv;
 	int r;
 
-#if PHP_UV_DEBUG>=1
-	fprintf(stderr,"uv_prepare_start");
-#endif
+	PHP_UV_DEBUG_PRINT("uv_prepare_start\n");
 
 	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
 		"rz",&handle, &callback) == FAILURE) {
@@ -3851,17 +3735,7 @@ PHP_FUNCTION(uv_prepare_start)
 	if (r) {
 		php_error_docref(NULL TSRMLS_CC, E_NOTICE, "read failed");
 	}
-#if PHP_UV_DEBUG>=1
-	{
-		zend_rsrc_list_entry *le;
-		if (zend_hash_index_find(&EG(regular_list), uv->resource_id, (void **) &le)==SUCCESS) {
-			printf("# uv_prepare_start del(%d): %d->%d\n", uv->resource_id, le->refcount, le->refcount-1);
-		} else {
-			printf("# can't find(uv_prepare_start)");
-		}
-	}
-#endif
-
+	PHP_UV_DEBUG_RESOURCE_REFCOUNT(uv_prepare_start, uv->resource_id);
 }
 /* }}} */
 
@@ -3878,17 +3752,7 @@ PHP_FUNCTION(uv_prepare_stop)
 
 	ZEND_FETCH_RESOURCE(uv, php_uv_t *, &handle, -1, PHP_UV_RESOURCE_NAME, uv_resource_handle);
 	uv_prepare_stop((uv_prepare_t*)php_uv_get_current_stream(uv));
-#if PHP_UV_DEBUG>=1
-	{
-		zend_rsrc_list_entry *le;
-		if (zend_hash_index_find(&EG(regular_list), uv->resource_id, (void **) &le)==SUCCESS) {
-			printf("# uv_prepare_stop del(%d): %d->%d\n", uv->resource_id, le->refcount, le->refcount-1);
-		} else {
-			printf("# can't find(uv_prepare_stop)");
-		}
-	}
-#endif
-
+	PHP_UV_DEBUG_RESOURCE_REFCOUNT(uv_prepare_stop, uv->resource_id);
 }
 /* }}} */
 
@@ -3939,9 +3803,7 @@ PHP_FUNCTION(uv_check_start)
 	php_uv_t *uv;
 	int r;
 
-#if PHP_UV_DEBUG>=1
-	fprintf(stderr,"uv_check_start");
-#endif
+	PHP_UV_DEBUG_PRINT("uv_check_start");
 
 	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
 		"rz",&handle, &callback) == FAILURE) {
@@ -3963,17 +3825,7 @@ PHP_FUNCTION(uv_check_start)
 	if (r) {
 		php_error_docref(NULL TSRMLS_CC, E_NOTICE, "read failed");
 	}
-#if PHP_UV_DEBUG>=1
-	{
-		zend_rsrc_list_entry *le;
-		if (zend_hash_index_find(&EG(regular_list), uv->resource_id, (void **) &le)==SUCCESS) {
-			printf("# uv_check_start del(%d): %d->%d\n", uv->resource_id, le->refcount, le->refcount-1);
-		} else {
-			printf("# can't find(uv_check_start)");
-		}
-	}
-#endif
-
+	PHP_UV_DEBUG_RESOURCE_REFCOUNT(uv_check_start, uv->resource_id);
 }
 /* }}} */
 
@@ -3990,17 +3842,7 @@ PHP_FUNCTION(uv_check_stop)
 
 	ZEND_FETCH_RESOURCE(uv, php_uv_t *, &handle, -1, PHP_UV_RESOURCE_NAME, uv_resource_handle);
 	uv_check_stop((uv_check_t*)php_uv_get_current_stream(uv));
-#if PHP_UV_DEBUG>=1
-	{
-		zend_rsrc_list_entry *le;
-		if (zend_hash_index_find(&EG(regular_list), uv->resource_id, (void **) &le)==SUCCESS) {
-			printf("# uv_check_stop del(%d): %d->%d\n", uv->resource_id, le->refcount, le->refcount-1);
-		} else {
-			printf("# can't find(uv_check_stop)");
-		}
-	}
-#endif
-
+	PHP_UV_DEBUG_RESOURCE_REFCOUNT(uv_check_stop, uv->resource_id);
 }
 /* }}} */
 
@@ -4061,17 +3903,7 @@ PHP_FUNCTION(uv_async_send)
 
 	ZEND_FETCH_RESOURCE(uv, php_uv_t *, &handle, -1, PHP_UV_RESOURCE_NAME, uv_resource_handle);
 	uv_async_send((uv_async_t*)php_uv_get_current_stream(uv));
-#if PHP_UV_DEBUG>=1
-	{
-		zend_rsrc_list_entry *le;
-		if (zend_hash_index_find(&EG(regular_list), uv->resource_id, (void **) &le)==SUCCESS) {
-			printf("# uv_async_send del(%d): %d->%d\n", uv->resource_id, le->refcount, le->refcount-1);
-		} else {
-			printf("# can't find(uv_async_send)");
-		}
-	}
-#endif
-
+	PHP_UV_DEBUG_RESOURCE_REFCOUNT(uv_async_send, uv->resource_id);
 }
 /* }}} */
 
