@@ -76,6 +76,12 @@
 		uv->fs_event_cb = NULL; \
 	}
 
+#if PHP_UV_DEBUG>=1
+#define PHP_UV_DEBUG_PRINT(format, ...)  fprintf(stderr,format, __VA_ARGS__);
+#else
+#define PHP_UV_DEBUG_PRINT(format, ...)
+#endif
+
 extern void php_uv_init(TSRMLS_D);
 extern zend_class_entry *uv_class_entry;
 
@@ -289,15 +295,9 @@ void static destruct_uv(zend_rsrc_list_entry *rsrc TSRMLS_DC)
 {
 	int base_id = -1;
 	php_uv_t *obj = (php_uv_t *)rsrc->ptr;
-#if PHP_UV_DEBUG>=1
-	fprintf(stderr,"# will be free: (resource_id: %d)", obj->resource_id);
-#endif
 
-	if (obj->in_free) {
-		/* TODO: why other php_uv_t has already set this? */
-		//fprintf(stderr, "resource_id: %d is freeing", obj->resource_id);
-		//return;
-	}
+	PHP_UV_DEBUG_PRINT("# will be free: (resource_id: %d)", obj->resource_id);
+
 	
 	obj->in_free = 1;
 	if (obj->address) {
@@ -511,9 +511,7 @@ static void php_uv_write_cb(uv_write_t* req, int status)
 	php_uv_t *uv = (php_uv_t*)req->data;
 	TSRMLS_FETCH_FROM_CTX(uv->thread_ctx);
 
-#if PHP_UV_DEBUG>=1
-	fprintf(stderr,"status: %d\n", status);
-#endif
+	PHP_UV_DEBUG_PRINT("uv_write_cb: status: %d\n", status);
 	MAKE_STD_ZVAL(stat);
 	ZVAL_LONG(stat, status);
 	
@@ -600,9 +598,8 @@ static void php_uv_close_cb2(uv_handle_t *handle)
 {
 	php_uv_t *uv = (php_uv_t*)handle->data;
 	TSRMLS_FETCH_FROM_CTX(uv->thread_ctx);
-#if PHP_UV_DEBUG>=1
-	fprintf(stderr,"closecb2");
-#endif
+	PHP_UV_DEBUG_PRINT("uv_close_cb2:\n");
+
 	zend_list_delete(uv->resource_id);
 }
 
@@ -621,9 +618,7 @@ static void php_uv_read_cb(uv_stream_t* handle, ssize_t nread, uv_buf_t buf)
 	php_uv_t *uv = (php_uv_t*)handle->data;
 	TSRMLS_FETCH_FROM_CTX(uv->thread_ctx);
 
-#if PHP_UV_DEBUG>=1
-	fprintf(stderr,"read_cb");
-#endif
+	PHP_UV_DEBUG_PRINT("uv_read_cb\n");
 
 	if (nread < 0) {
 		/* does this should be in user-land ? */
@@ -637,9 +632,8 @@ static void php_uv_read_cb(uv_stream_t* handle, ssize_t nread, uv_buf_t buf)
 		}
 		
 		//req = (uv_shutdown_t*) emalloc(sizeof *req);
-#if PHP_UV_DEBUG>=1
-		fprintf(stderr,"read close");
-#endif
+		PHP_UV_DEBUG_PRINT("uv_read_cb: read close\n");
+
 		uv_close((uv_handle_t *)handle, php_uv_close_cb2);
 		return;
 	}
@@ -691,9 +685,7 @@ static void php_uv_prepare_cb(uv_prepare_t* handle, int status)
 	php_uv_t *uv = (php_uv_t*)handle->data;
 	TSRMLS_FETCH_FROM_CTX(uv->thread_ctx);
 
-#if PHP_UV_DEBUG>=1
-	fprintf(stderr,"prepare_cb");
-#endif
+	PHP_UV_DEBUG_PRINT("prepare_cb\n");
 
 	MAKE_STD_ZVAL(zstat);
 	ZVAL_LONG(zstat, status);
@@ -725,9 +717,7 @@ static void php_uv_check_cb(uv_check_t* handle, int status)
 	php_uv_t *uv = (php_uv_t*)handle->data;
 	TSRMLS_FETCH_FROM_CTX(uv->thread_ctx);
 
-#if PHP_UV_DEBUG>=1
-	fprintf(stderr,"check_cb");
-#endif
+	PHP_UV_DEBUG_PRINT("check_cb\n");
 
 	MAKE_STD_ZVAL(zstat);
 	ZVAL_LONG(zstat, status);
@@ -760,9 +750,7 @@ static void php_uv_async_cb(uv_async_t* handle, int status)
 	php_uv_t *uv = (php_uv_t*)handle->data;
 	TSRMLS_FETCH_FROM_CTX(uv->thread_ctx);
 
-#if PHP_UV_DEBUG>=1
-	fprintf(stderr,"async_cb");
-#endif
+	PHP_UV_DEBUG_PRINT("async_cb\n");
 
 	MAKE_STD_ZVAL(zstat);
 	ZVAL_LONG(zstat, status);
@@ -795,9 +783,7 @@ static void php_uv_work_cb(uv_work_t* req)
 	uv = (php_uv_t*)req->data;
 	TSRMLS_FETCH_FROM_CTX(uv->thread_ctx);
 
-#if PHP_UV_DEBUG>=1
-	fprintf(stderr,"work_cb");
-#endif
+	PHP_UV_DEBUG_PRINT("work_cb\n");
 
 	php_uv_do_callback(&retval_ptr, uv->work_cb, NULL, 0 TSRMLS_CC);
 	zval_ptr_dtor(&retval_ptr);
@@ -820,9 +806,7 @@ static void php_uv_after_work_cb(uv_work_t* req)
 	php_uv_t *uv = (php_uv_t*)req->data;
 	TSRMLS_FETCH_FROM_CTX(uv->thread_ctx);
 
-#if PHP_UV_DEBUG>=1
-	fprintf(stderr,"after_work_cb");
-#endif
+	PHP_UV_DEBUG_PRINT("after_work_cb\n");
 
 	php_uv_do_callback(&retval_ptr, uv->after_work_cb, NULL, 0 TSRMLS_CC);
 	zval_ptr_dtor(&retval_ptr);
@@ -846,9 +830,7 @@ static void php_uv_fs_cb(uv_fs_t* req)
 	int argc = 2;
 	TSRMLS_FETCH_FROM_CTX(uv->thread_ctx);
 
-#if PHP_UV_DEBUG>=1
-	fprintf(stderr,"fs_cb");
-#endif
+	PHP_UV_DEBUG_PRINT("vc_cb\n");
 
 	MAKE_STD_ZVAL(result);
 	ZVAL_LONG(result, uv->uv.fs.result);
@@ -987,9 +969,7 @@ static void php_uv_fs_event_cb(uv_fs_event_t* req, const char* filename, int eve
 	zval *name,*ev,*stat;
 	TSRMLS_FETCH_FROM_CTX(uv->thread_ctx);
 
-#if PHP_UV_DEBUG>=1
-	fprintf(stderr,"fs_event_cb:%s, %d\n", filename, status);
-#endif
+	PHP_UV_DEBUG_PRINT("fs_event_cb: %s, %d\n", filename, status);
 
 	MAKE_STD_ZVAL(name);
 	MAKE_STD_ZVAL(ev);
@@ -2182,9 +2162,7 @@ PHP_FUNCTION(uv_read_start)
 	php_uv_t *uv;
 	int r;
 
-#if PHP_UV_DEBUG>=1
-	fprintf(stderr,"uv_read_start");
-#endif
+	PHP_UV_DEBUG_PRINT("uv_read_start\n");
 
 	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
 		"rz",&client, &callback) == FAILURE) {

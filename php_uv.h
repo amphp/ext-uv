@@ -30,24 +30,24 @@ extern zend_module_entry uv_module_entry;
 extern zend_class_entry *uv_class_entry;
 
 enum php_uv_resource_type{
-	IS_UV_TCP = 0,
-	IS_UV_UDP = 1,
-	IS_UV_PIPE = 2,
-	IS_UV_IDLE = 3,
-	IS_UV_TIMER = 4,
-	IS_UV_ASYNC = 5,
-	IS_UV_LOOP = 6,
-	IS_UV_HANDLE = 7,
-	IS_UV_STREAM = 8,
+	IS_UV_TCP      = 0,
+	IS_UV_UDP      = 1,
+	IS_UV_PIPE     = 2,
+	IS_UV_IDLE     = 3,
+	IS_UV_TIMER    = 4,
+	IS_UV_ASYNC    = 5,
+	IS_UV_LOOP     = 6,
+	IS_UV_HANDLE   = 7,
+	IS_UV_STREAM   = 8,
 	IS_UV_ADDRINFO = 9,
-	IS_UV_PROCESS = 10,
-	IS_UV_PREPARE = 11,
-	IS_UV_CHECK = 12,
-	IS_UV_WORK = 13,
-	IS_UV_FS = 14,
+	IS_UV_PROCESS  = 10,
+	IS_UV_PREPARE  = 11,
+	IS_UV_CHECK    = 12,
+	IS_UV_WORK     = 13,
+	IS_UV_FS       = 14,
 	IS_UV_FS_EVENT = 15,
-	IS_UV_TTY = 16,
-	IS_UV_MAX = 16
+	IS_UV_TTY      = 16,
+	IS_UV_MAX      = 16
 };
 
 typedef struct {
