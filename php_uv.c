@@ -21,7 +21,7 @@
 #include "ext/standard/info.h"
 
 #ifndef PHP_UV_DEBUG
-#define PHP_UV_DEBUG 1
+#define PHP_UV_DEBUG 0
 #endif
 
 #define PHP_UV_INIT_UV(uv, uv_type) \
