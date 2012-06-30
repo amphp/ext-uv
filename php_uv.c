@@ -77,7 +77,7 @@
 	}
 
 #if PHP_UV_DEBUG>=1
-#define PHP_UV_DEBUG_PRINT(format, ...)  fprintf(stderr,format, __VA_ARGS__);
+#define PHP_UV_DEBUG_PRINT(format, ...) fprintf(stderr, format, ## __VA_ARGS__)
 #else
 #define PHP_UV_DEBUG_PRINT(format, ...)
 #endif
@@ -87,9 +87,9 @@
 	{ \
 		zend_rsrc_list_entry *le; \
 		if (zend_hash_index_find(&EG(regular_list), resource_id, (void **) &le)==SUCCESS) { \
-			printf("# name del(%d): %d->%d\n", resource_id, le->refcount, le->refcount-1); \
+			printf("# %s del(%d): %d->%d\n", #name, resource_id, le->refcount, le->refcount-1); \
 		} else { \
-			printf("# can't find (write_cb)"); \
+			printf("# can't find (%s)", #name); \
 		} \
 	} 
 #else
@@ -1988,7 +1988,7 @@ PHP_FUNCTION(uv_write)
 	zval *z_cli,*callback;
 	char *data;
 	int data_len = 0;
-	php_uv_t *client;
+	php_uv_t *uv;
 	write_req_t *w;
 	
 	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
@@ -1996,16 +1996,16 @@ PHP_FUNCTION(uv_write)
 		return;
 	}
 	
-	ZEND_FETCH_RESOURCE(client, php_uv_t *, &z_cli, -1, PHP_UV_RESOURCE_NAME, uv_resource_handle);
+	ZEND_FETCH_RESOURCE(uv, php_uv_t *, &z_cli, -1, PHP_UV_RESOURCE_NAME, uv_resource_handle);
 	Z_ADDREF_P(callback);
-	client->write_cb = callback;
-	zend_list_addref(client->resource_id);
+	uv->write_cb = callback;
+	zend_list_addref(uv->resource_id);
 
 	w = emalloc(sizeof(write_req_t));
-	w->req.data = client;
+	w->req.data = uv;
 	w->buf = uv_buf_init(data, data_len);
 
-	uv_write(&w->req, (uv_stream_t*)php_uv_get_current_stream(client), &w->buf, 1, php_uv_write_cb);
+	uv_write(&w->req, (uv_stream_t*)php_uv_get_current_stream(uv), &w->buf, 1, php_uv_write_cb);
 	PHP_UV_DEBUG_RESOURCE_REFCOUNT(uv_write, uv->resource_id);
 }
 /* }}} */
