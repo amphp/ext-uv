@@ -8,7 +8,7 @@ $out = uv_pipe_init(uv_default_loop(), 1);
 echo "HELLO ";
 
 $process = uv_spawn(uv_default_loop(), "php", array('-r','echo $_ENV["HELLO"];'), array(
-    "cwd" => "/usr/bin/",
+    "cwd" => dirname(uv_exepath()),
     "pipes" => array(
 	$in,
         $out,

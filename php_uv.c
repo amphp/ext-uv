@@ -722,8 +722,8 @@ static void php_uv_read_cb(uv_stream_t* handle, ssize_t nread, uv_buf_t buf)
 
 static void php_uv_read2_cb(uv_pipe_t* handle, ssize_t nread, uv_buf_t buf, uv_handle_type pending)
 {
-	zval *rsc, *buffer, *err, *retval_ptr = NULL;
-	zval **params[3];
+	zval *rsc, *buffer, *err, *pend, *retval_ptr = NULL;
+	zval **params[4];
 	php_uv_t *uv = (php_uv_t*)handle->data;
 	TSRMLS_FETCH_FROM_CTX(uv->thread_ctx);
 
@@ -742,16 +742,21 @@ static void php_uv_read2_cb(uv_pipe_t* handle, ssize_t nread, uv_buf_t buf, uv_h
 	
 	MAKE_STD_ZVAL(err)
 	ZVAL_LONG(err, nread);
+	
+	MAKE_STD_ZVAL(pend);
+	ZVAL_LONG(pend, pending);
 
 	params[0] = &rsc;
 	params[1] = &buffer;
 	params[2] = &err;
+	params[3] = &pend;
 	
-	php_uv_do_callback(&retval_ptr, uv->read2_cb, params, 3 TSRMLS_CC);
+	php_uv_do_callback(&retval_ptr, uv->read2_cb, params, 4 TSRMLS_CC);
 
 	zval_ptr_dtor(&buffer);
 	zval_ptr_dtor(&rsc);
 	zval_ptr_dtor(&err);
+	zval_ptr_dtor(&pend);
 	zval_ptr_dtor(&retval_ptr);
 
 	if (buf.base) {
