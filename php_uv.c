@@ -3006,16 +3006,6 @@ static void php_ares_gethostbyname_cb( void *arg, int status, int timeouts, stru
 	zval_ptr_dtor(&addresses);
 }
 
-static void aresbyaddrcallback( void *arg,
-                          int status,
-                          int timeouts,
-                          struct hostent *hostent) {
-	int * iargs;
-	iargs = (int*)arg;
-	printf("aresbyaddrcallback %d\n",1);
-}
-
-
 /* {{{ */
 PHP_FUNCTION(uv_ares_init_options)
 {
@@ -3073,7 +3063,6 @@ PHP_FUNCTION(uv_ares_init_options)
 	if (zend_hash_find(h, "lookups", sizeof("lookups"), (void **)&data) == SUCCESS) {
 		uv->options.lookups = Z_STRVAL_PP(data);
 	}
-
 
 	uv->options.servers  = addresses;
 	uv->options.nservers = length;
@@ -3193,7 +3182,7 @@ PHP_FUNCTION(uv_exepath)
 }
 /* }}} */
 
-/* {{{ */
+/* {{{ proto string uv_cwd(void) */
 PHP_FUNCTION(uv_cwd)
 {
 	char buffer[1024] = {0};
@@ -3639,7 +3628,7 @@ PHP_FUNCTION(uv_rwlock_wrunlock)
 
 
 
-/* {{{ */
+/* {{{ proto uv_lock uv_mutex_init(void) */
 PHP_FUNCTION(uv_mutex_init)
 {
 	php_uv_lock_t *mutex;
@@ -3656,7 +3645,7 @@ PHP_FUNCTION(uv_mutex_init)
 }
 /* }}} */
 
-/* {{{ */
+/* {{{ proto void uv_mutex_lock(uv_lock $lock)*/
 PHP_FUNCTION(uv_mutex_lock)
 {
 	php_uv_lock_t *mutex;
@@ -3673,7 +3662,7 @@ PHP_FUNCTION(uv_mutex_lock)
 }
 /* }}} */
 
-/* {{{ */
+/* {{{ proto: bool uv_mutex_trylock(uv_lock $lock) */
 PHP_FUNCTION(uv_mutex_trylock)
 {
 	php_uv_lock_t *mutex;
@@ -3697,7 +3686,7 @@ PHP_FUNCTION(uv_mutex_trylock)
 }
 /* }}} */
 
-/* {{{ */
+/* {{{ void uv_mutex_unlock(uv_lock $lock) */
 PHP_FUNCTION(uv_mutex_unlock)
 {
 	php_uv_lock_t *mutex;
