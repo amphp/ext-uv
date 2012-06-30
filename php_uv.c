@@ -21,7 +21,7 @@
 #include "ext/standard/info.h"
 
 #ifndef PHP_UV_DEBUG
-#define PHP_UV_DEBUG 0
+#define PHP_UV_DEBUG 1
 #endif
 
 #define PHP_UV_INIT_UV(uv, uv_type) \
@@ -615,6 +615,9 @@ static void php_uv_close_cb2(uv_handle_t *handle)
 	PHP_UV_DEBUG_PRINT("uv_close_cb2:\n");
 
 	zend_list_delete(uv->resource_id);
+
+	// maybe we can't call efree at here.
+	//efree(handle);
 }
 
 static void php_uv_shutdown_cb(uv_shutdown_t* req, int status)
@@ -625,10 +628,8 @@ static void php_uv_shutdown_cb(uv_shutdown_t* req, int status)
 
 static void php_uv_read_cb(uv_stream_t* handle, ssize_t nread, uv_buf_t buf)
 {
-	zval *retval_ptr = NULL;
-	zval **params[2];
-	zval *buffer;
-	zval *rsc;
+	zval *rsc, *buffer, *err, *retval_ptr = NULL;
+	zval **params[3];
 	php_uv_t *uv = (php_uv_t*)handle->data;
 	TSRMLS_FETCH_FROM_CTX(uv->thread_ctx);
 
@@ -636,19 +637,18 @@ static void php_uv_read_cb(uv_stream_t* handle, ssize_t nread, uv_buf_t buf)
 
 	if (nread < 0) {
 		/* does this should be in user-land ? */
-		//uv_shutdown_t* req;
+		uv_shutdown_t* req;
 		
 		/* Error or EOF */
 		assert(uv_last_error(uv_default_loop()).code == UV_EOF);
-		//zend_list_delete(uv->resource_id);
 		if (buf.base) {
 			efree(buf.base);
 		}
 		
-		//req = (uv_shutdown_t*) emalloc(sizeof *req);
+		req = (uv_shutdown_t*) emalloc(sizeof *req);
 		PHP_UV_DEBUG_PRINT("uv_read_cb: read close\n");
 
-		uv_close((uv_handle_t *)handle, php_uv_close_cb2);
+		uv_shutdown(req, (uv_handle_t *)handle, php_uv_shutdown_cb);
 		return;
 	}
 	
@@ -665,14 +665,19 @@ static void php_uv_read_cb(uv_stream_t* handle, ssize_t nread, uv_buf_t buf)
 	MAKE_STD_ZVAL(rsc);
 	ZVAL_RESOURCE(rsc, uv->resource_id);
 	//zend_list_addref(uv->resource_id);
-
-	params[0] = &buffer;
-	params[1] = &rsc;
 	
-	php_uv_do_callback(&retval_ptr, uv->read_cb, params, 2 TSRMLS_CC);
+	MAKE_STD_ZVAL(err)
+	ZVAL_LONG(err, nread);
+
+	params[0] = &rsc;
+	params[1] = &buffer;
+	params[2] = &err;
+	
+	php_uv_do_callback(&retval_ptr, uv->read_cb, params, 3 TSRMLS_CC);
 
 	zval_ptr_dtor(&buffer);
 	zval_ptr_dtor(&rsc);
+	zval_ptr_dtor(&err);
 	zval_ptr_dtor(&retval_ptr);
 
 	if (buf.base) {

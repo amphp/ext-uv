@@ -18,7 +18,7 @@ function pad($str)
 uv_listen($tcp,100, function($server) use ($users){
     $client = uv_tcp_init();
     uv_accept($server, $client);
-    uv_read_start($client, function($buffer, $socket) use ($users){
+    uv_read_start($client, function($socket, $buffer, $nread) use ($users){
         $buffer = str_replace("/W","",$buffer);
         if ($buffer == "\r\n") {
             $data = "";

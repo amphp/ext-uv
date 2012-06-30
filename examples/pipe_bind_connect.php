@@ -4,7 +4,7 @@ uv_pipe_bind($a,"/tmp/test.sock");
 uv_listen($a,8192,function($a){
     $pipe = uv_pipe_init(0,0);
     uv_accept($a,$pipe);
-    uv_read_start($pipe,function($b,$p) use ($pipe){
+    uv_read_start($pipe,function($p, $b, $nread) use ($pipe){
         var_dump($b);
         var_dump($p);
         echo "'no2x'";

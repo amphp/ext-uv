@@ -25,7 +25,7 @@ $process = uv_spawn(uv_default_loop(), "php", array('-r','var_dump($_ENV);'), ar
     });
 });
 
-uv_read_start($out, function($buffer,$stat) use ($out){
+uv_read_start($out, function($out, $buffer,$stat){
     echo "read_start";
     var_dump($out);
     var_dump($stat);
