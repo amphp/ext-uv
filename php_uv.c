@@ -21,7 +21,7 @@
 #include "ext/standard/info.h"
 
 #ifndef PHP_UV_DEBUG
-#define PHP_UV_DEBUG 1
+#define PHP_UV_DEBUG 0
 #endif
 
 #define PHP_UV_INIT_UV(uv, uv_type) \
@@ -59,6 +59,7 @@
 		uv->read_cb     = NULL; \
 		uv->write_cb    = NULL; \
 		uv->close_cb    = NULL; \
+		uv->shutdown_cb = NULL; \
 		uv->timer_cb    = NULL; \
 		uv->idle_cb     = NULL; \
 		uv->connect_cb  = NULL; \
@@ -337,6 +338,11 @@ void static destruct_uv(zend_rsrc_list_entry *rsrc TSRMLS_DC)
 		//fprintf(stderr, "writecb: %d\n", Z_REFCOUNT_P(obj->write_cb));
 		zval_ptr_dtor(&obj->write_cb);
 		obj->write_cb = NULL;
+	}
+	if (obj->shutdown_cb) {
+		//fprintf(stderr, "closecb: %d\n", Z_REFCOUNT_P(obj->close_cb));
+		zval_ptr_dtor(&obj->shutdown_cb);
+		obj->shutdown_cb = NULL;
 	}
 	if (obj->close_cb) {
 		//fprintf(stderr, "closecb: %d\n", Z_REFCOUNT_P(obj->close_cb));
@@ -620,10 +626,27 @@ static void php_uv_close_cb2(uv_handle_t *handle)
 	//efree(handle);
 }
 
-static void php_uv_shutdown_cb(uv_shutdown_t* req, int status)
+static void php_uv_shutdown_cb(uv_shutdown_t* handle, int status)
 {
-	uv_close((uv_handle_t*)req->handle, php_uv_close_cb2);
-	efree(req);
+	zval *retval_ptr = NULL;
+	zval **params[1];
+	zval *h;
+	php_uv_t *uv = (php_uv_t*)handle->data;
+	TSRMLS_FETCH_FROM_CTX(uv->thread_ctx);
+
+	MAKE_STD_ZVAL(h);
+	ZVAL_RESOURCE(h, uv->resource_id);
+
+	if (uv->shutdown_cb != NULL) {
+		params[0] = &h;
+		php_uv_do_callback(&retval_ptr, uv->shutdown_cb, params, 1 TSRMLS_CC);
+		zval_ptr_dtor(&retval_ptr);
+	}
+
+	PHP_UV_DEBUG_RESOURCE_REFCOUNT(uv_shutdown_cb, uv->resource_id);
+	
+	zval_ptr_dtor(&h);
+	efree(handle);
 }
 
 static void php_uv_read_cb(uv_stream_t* handle, ssize_t nread, uv_buf_t buf)
@@ -637,30 +660,34 @@ static void php_uv_read_cb(uv_stream_t* handle, ssize_t nread, uv_buf_t buf)
 
 	if (nread < 0) {
 		/* does this should be in user-land ? */
-		uv_shutdown_t* req;
+		//uv_shutdown_t* req;
 		
 		/* Error or EOF */
-		assert(uv_last_error(uv_default_loop()).code == UV_EOF);
-		if (buf.base) {
-			efree(buf.base);
-		}
+		//assert(uv_last_error(uv_default_loop()).code == UV_EOF);
+		//if (buf.base) {
+		//	efree(buf.base);
+		//}
 		
-		req = (uv_shutdown_t*) emalloc(sizeof *req);
-		PHP_UV_DEBUG_PRINT("uv_read_cb: read close\n");
+		//req = (uv_shutdown_t*) emalloc(sizeof *req);
+		//PHP_UV_DEBUG_PRINT("uv_read_cb: read close\n");
 
-		uv_shutdown(req, (uv_handle_t *)handle, php_uv_shutdown_cb);
-		return;
+		//uv_shutdown(req, (uv_handle_t *)handle, php_uv_shutdown_cb);
+		//return;
 	}
 	
 	if (nread == 0) {
 		/* Everything OK, but nothing read. */
-		efree(buf.base);
-		return;
+		//efree(buf.base);
+		//return;
 	}
 	
 
 	MAKE_STD_ZVAL(buffer);
-	ZVAL_STRINGL(buffer,buf.base,nread, 1);
+	if (nread > 0) {
+		ZVAL_STRINGL(buffer,buf.base,nread, 1);
+	} else {
+		ZVAL_NULL(buffer);
+	}
 
 	MAKE_STD_ZVAL(rsc);
 	ZVAL_RESOURCE(rsc, uv->resource_id);
@@ -956,18 +983,18 @@ static void php_uv_udp_recv_cb(uv_udp_t* handle, ssize_t nread, uv_buf_t buf, st
 	
 	if (nread < 0) {
 		/* does this should be in user-land ? */
-		uv_shutdown_t* req;
+		//uv_shutdown_t* req;
 		
 		/* Error or EOF */
-		assert(uv_last_error(uv_default_loop()).code == UV_EOF);
+		///assert(uv_last_error(uv_default_loop()).code == UV_EOF);
 		
 		if (buf.base) {
-			efree(buf.base);
+			//efree(buf.base);
 		}
 		
-		req = (uv_shutdown_t*) emalloc(sizeof *req);
-		uv_shutdown(req, (uv_stream_t*)handle, php_uv_shutdown_cb);
-		return;
+		//req = (uv_shutdown_t*) emalloc(sizeof *req);
+		//uv_shutdown(req, (uv_stream_t*)handle, php_uv_shutdown_cb);
+		//return;
 	}
 	
 	if (nread == 0) {
@@ -1311,8 +1338,14 @@ ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_tcp_bind6, 0, 0, 1)
 	ZEND_ARG_INFO(0, address)
 ZEND_END_ARG_INFO()
 
-ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_close, 0, 0, 1)
+ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_shutdown, 0, 0, 2)
 	ZEND_ARG_INFO(0, stream)
+	ZEND_ARG_INFO(0, callback)
+ZEND_END_ARG_INFO()
+
+ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_close, 0, 0, 2)
+	ZEND_ARG_INFO(0, stream)
+	ZEND_ARG_INFO(0, callback)
 ZEND_END_ARG_INFO()
 
 ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_idle_init, 0, 0, 0)
@@ -2051,6 +2084,33 @@ PHP_FUNCTION(uv_accept)
 	if (r) {
 		php_error_docref(NULL TSRMLS_CC, E_NOTICE, "accept");
 	}
+}
+/* }}} */
+
+
+/* {{{ */
+PHP_FUNCTION(uv_shutdown)
+{
+	zval *client, *callback = NULL;
+	php_uv_t *uv;
+	uv_shutdown_t *shutdown;
+	
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
+		"r|z",&client, &callback) == FAILURE) {
+		return;
+	}
+
+	ZEND_FETCH_RESOURCE(uv, php_uv_t *, &client, -1, PHP_UV_RESOURCE_NAME, uv_resource_handle);
+	if (callback != NULL) {
+		Z_ADDREF_P(callback);
+		uv->shutdown_cb = callback;
+	}
+
+	zend_list_addref(uv->resource_id);
+	shutdown = emalloc(sizeof(uv_shutdown_t));
+	shutdown->data = uv;
+	
+	uv_shutdown(shutdown, (uv_stream_t*)php_uv_get_current_stream(uv), (uv_shutdown_cb)php_uv_shutdown_cb);
 }
 /* }}} */
 
@@ -5032,6 +5092,7 @@ static zend_function_entry uv_functions[] = {
 	PHP_FE(uv_ip4_name,                 arginfo_uv_ip4_name)
 	PHP_FE(uv_ip6_name,                 arginfo_uv_ip6_name)
 	PHP_FE(uv_write,                    arginfo_uv_write)
+	PHP_FE(uv_shutdown,                 arginfo_uv_shutdown)
 	PHP_FE(uv_close,                    arginfo_uv_close)
 	PHP_FE(uv_now,                      arginfo_uv_now)
 	PHP_FE(uv_loop_delete,              arginfo_uv_loop_delete)

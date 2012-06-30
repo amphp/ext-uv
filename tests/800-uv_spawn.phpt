@@ -22,7 +22,7 @@ $process = uv_spawn(uv_default_loop(), "php", array('-r','echo $_ENV["HELLO"];')
     });
 });
 
-uv_read_start($out, function($buffer,$stat) use ($out){
+uv_read_start($out, function($out, $buffer,$stat){
     echo $buffer . PHP_EOL;
 
     uv_close($out,function(){});
