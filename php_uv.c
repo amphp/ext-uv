@@ -3094,6 +3094,8 @@ PHP_FUNCTION(uv_ares_init_options)
 	}
 	
 	uv = (php_uv_ares_t*)emalloc(sizeof(php_uv_ares_t));
+	uv->gethostbyname_cb = NULL;
+	
 	h = Z_ARRVAL_P(zoptions);
 	if (zend_hash_find(h, "servers", sizeof("servers"), (void **)&data) == SUCCESS) {
 		HashTable *servers = Z_ARRVAL_P(*data);
