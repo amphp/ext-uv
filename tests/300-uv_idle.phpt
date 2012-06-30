@@ -14,7 +14,6 @@ uv_idle_start($idle, function($stat)
     
     if ($i > 3) {
         uv_idle_stop($idle);
-        uv_unref($idle);
     }
 });
 

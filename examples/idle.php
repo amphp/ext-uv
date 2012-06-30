@@ -9,7 +9,7 @@ uv_idle_start($idle, function($stat) use (&$i, $idle, $loop){
     
     if ($i > 3) {
         uv_idle_stop($idle);
-        uv_unref($loop);
+        uv_unref($idle);
     }
     sleep(1);
 });
