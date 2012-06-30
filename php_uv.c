@@ -3095,6 +3095,10 @@ PHP_FUNCTION(ares_gethostbyname)
 	}
 
 	ZEND_FETCH_RESOURCE(uv, php_uv_ares_t *, &handle, -1, PHP_UV_ARES_RESOURCE_NAME, uv_ares_handle);
+	if (uv->gethostbyname_cb != NULL) {
+		zval_ptr_dtor(&uv->gethostbyname_cb);
+		uv->gethostbyname_cb = NULL;
+	}
 	Z_ADDREF_P(byname_cb);
 	uv->gethostbyname_cb = byname_cb;
 	
