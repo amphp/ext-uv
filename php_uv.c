@@ -2384,6 +2384,7 @@ PHP_FUNCTION(uv_idle_start)
 
 	ZEND_FETCH_RESOURCE(uv, php_uv_t *, &idle, -1, PHP_UV_RESOURCE_NAME, uv_resource_handle);
 	Z_ADDREF_P(callback);
+	zend_list_addref(uv->resource_id);
 	
 	if (uv->idle_cb) {
 		zval_ptr_dtor(&uv->idle_cb);
