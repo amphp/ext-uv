@@ -85,6 +85,7 @@ typedef struct {
 	zval *address;
 	zval *listen_cb;
 	zval *read_cb;
+	zval *read2_cb;
 	zval *write_cb;
 	zval *shutdown_cb;
 	zval *close_cb;

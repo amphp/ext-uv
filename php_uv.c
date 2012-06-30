@@ -21,7 +21,7 @@
 #include "ext/standard/info.h"
 
 #ifndef PHP_UV_DEBUG
-#define PHP_UV_DEBUG 0
+#define PHP_UV_DEBUG 1
 #endif
 
 #define PHP_UV_INIT_UV(uv, uv_type) \
@@ -57,6 +57,7 @@
 		uv->address     = NULL; \
 		uv->listen_cb   = NULL; \
 		uv->read_cb     = NULL; \
+		uv->read2_cb     = NULL; \
 		uv->write_cb    = NULL; \
 		uv->close_cb    = NULL; \
 		uv->shutdown_cb = NULL; \
@@ -161,6 +162,8 @@ static void php_uv_close_cb2(uv_handle_t *handle);
 static void php_uv_shutdown_cb(uv_shutdown_t* req, int status);
 
 static void php_uv_read_cb(uv_stream_t* handle, ssize_t nread, uv_buf_t buf);
+
+static void php_uv_read2_cb(uv_pipe_t* handle, ssize_t nread, uv_buf_t buf, uv_handle_type pending);
 
 static uv_buf_t php_uv_read_alloc(uv_handle_t* handle, size_t suggested_size);
 
@@ -333,6 +336,10 @@ void static destruct_uv(zend_rsrc_list_entry *rsrc TSRMLS_DC)
 		//fprintf(stderr, "readcb: %d\n", Z_REFCOUNT_P(obj->read_cb));
 		zval_ptr_dtor(&obj->read_cb);
 		obj->read_cb = NULL;
+	}
+	if (obj->read2_cb) {
+		zval_ptr_dtor(&obj->read2_cb);
+		obj->read2_cb = NULL;
 	}
 	if (obj->write_cb) {
 		//fprintf(stderr, "writecb: %d\n", Z_REFCOUNT_P(obj->write_cb));
@@ -711,6 +718,46 @@ static void php_uv_read_cb(uv_stream_t* handle, ssize_t nread, uv_buf_t buf)
 		efree(buf.base);
 	}
 	PHP_UV_DEBUG_RESOURCE_REFCOUNT(uv_read_cb, uv->resource_id);
+}
+
+static void php_uv_read2_cb(uv_pipe_t* handle, ssize_t nread, uv_buf_t buf, uv_handle_type pending)
+{
+	zval *rsc, *buffer, *err, *retval_ptr = NULL;
+	zval **params[3];
+	php_uv_t *uv = (php_uv_t*)handle->data;
+	TSRMLS_FETCH_FROM_CTX(uv->thread_ctx);
+
+	PHP_UV_DEBUG_PRINT("uv_read2_cb\n");
+
+	MAKE_STD_ZVAL(buffer);
+	if (nread > 0) {
+		ZVAL_STRINGL(buffer,buf.base,nread, 1);
+	} else {
+		ZVAL_NULL(buffer);
+	}
+
+	MAKE_STD_ZVAL(rsc);
+	ZVAL_RESOURCE(rsc, uv->resource_id);
+	//zend_list_addref(uv->resource_id);
+	
+	MAKE_STD_ZVAL(err)
+	ZVAL_LONG(err, nread);
+
+	params[0] = &rsc;
+	params[1] = &buffer;
+	params[2] = &err;
+	
+	php_uv_do_callback(&retval_ptr, uv->read2_cb, params, 3 TSRMLS_CC);
+
+	zval_ptr_dtor(&buffer);
+	zval_ptr_dtor(&rsc);
+	zval_ptr_dtor(&err);
+	zval_ptr_dtor(&retval_ptr);
+
+	if (buf.base) {
+		efree(buf.base);
+	}
+	PHP_UV_DEBUG_RESOURCE_REFCOUNT(uv_read2_cb, uv->resource_id);
 }
 
 static void php_uv_prepare_cb(uv_prepare_t* handle, int status)
@@ -1262,6 +1309,11 @@ ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_accept, 0, 0, 2)
 ZEND_END_ARG_INFO()
 
 ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_read_start, 0, 0, 2)
+	ZEND_ARG_INFO(0, server)
+	ZEND_ARG_INFO(0, callback)
+ZEND_END_ARG_INFO()
+
+ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_read2_start, 0, 0, 2)
 	ZEND_ARG_INFO(0, server)
 	ZEND_ARG_INFO(0, callback)
 ZEND_END_ARG_INFO()
@@ -2168,6 +2220,41 @@ PHP_FUNCTION(uv_read_start)
 		php_error_docref(NULL TSRMLS_CC, E_NOTICE, "read failed");
 	}
 	PHP_UV_DEBUG_RESOURCE_REFCOUNT(uv_read_start, uv->resource_id);
+}
+/* }}} */
+
+/* {{{ */
+PHP_FUNCTION(uv_read2_start)
+{
+	zval *client, *callback;
+	php_uv_t *uv;
+	int r;
+
+	PHP_UV_DEBUG_PRINT("uv_read2_start\n");
+
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
+		"rz",&client, &callback) == FAILURE) {
+		return;
+	}
+
+	ZEND_FETCH_RESOURCE(uv, php_uv_t *, &client, -1, PHP_UV_RESOURCE_NAME, uv_resource_handle);
+	Z_ADDREF_P(callback);
+	zend_list_addref(uv->resource_id);
+
+	uv->read2_cb = callback;
+	if(uv->type == IS_UV_TCP) {
+		uv->uv.tcp.data = uv;
+	} else if(uv->type == IS_UV_PIPE) {
+		uv->uv.pipe.data = uv;
+	} else {
+		php_error_docref(NULL TSRMLS_CC, E_NOTICE, "this type does not support yet");
+	}
+
+	r = uv_read2_start((uv_stream_t*)php_uv_get_current_stream(uv), php_uv_read_alloc, php_uv_read2_cb);
+	if (r) {
+		php_error_docref(NULL TSRMLS_CC, E_NOTICE, "read2 failed");
+	}
+	PHP_UV_DEBUG_RESOURCE_REFCOUNT(uv_read2_start, uv->resource_id);
 }
 /* }}} */
 
@@ -5099,6 +5186,7 @@ static zend_function_entry uv_functions[] = {
 	PHP_FE(uv_now,                      arginfo_uv_now)
 	PHP_FE(uv_loop_delete,              arginfo_uv_loop_delete)
 	PHP_FE(uv_read_start,               arginfo_uv_read_start)
+	PHP_FE(uv_read2_start,              arginfo_uv_read2_start)
 	PHP_FE(uv_read_stop,                arginfo_uv_read_stop)
 	PHP_FE(uv_last_error,               arginfo_uv_last_error)
 	PHP_FE(uv_err_name,                 arginfo_uv_err_name)
