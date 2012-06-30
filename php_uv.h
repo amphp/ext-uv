@@ -116,11 +116,21 @@ typedef struct {
 	} addr;
 } php_uv_sockaddr_t;
 
+typedef struct {
+	int locked;
+	int resource_id;
+	union {
+		uv_rwlock_t rwlock;
+		uv_mutex_t mutex;
+	} lock;
+} php_uv_lock_t;
+
+
 #define PHP_UV_RESOURCE_NAME "uv"
 #define PHP_UV_SOCKADDR_RESOURCE_NAME "uv_sockaddr"
 #define PHP_UV_LOOP_RESOURCE_NAME "uv_loop"
 #define PHP_UV_ARES_RESOURCE_NAME "uv_ares"
-#define PHP_UV_RWLOCK_RESOURCE_NAME "uv_rwlock"
+#define PHP_UV_LOCK_RESOURCE_NAME "uv_lock"
 #define PHP_UV_MUTEX_RESOURCE_NAME "uv_mutex"
 
 

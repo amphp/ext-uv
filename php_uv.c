@@ -124,7 +124,7 @@ static int uv_loop_handle;
 
 static int uv_sockaddr_handle;
 
-static int uv_rwlock_handle;
+static int uv_lock_handle;
 
 static int uv_mutex_handle;
 
@@ -251,11 +251,21 @@ void static destruct_uv_mutex(zend_rsrc_list_entry *rsrc TSRMLS_DC)
 	efree(mutex);
 }
 
-void static destruct_uv_rwlock(zend_rsrc_list_entry *rsrc TSRMLS_DC)
+void static destruct_uv_lock(zend_rsrc_list_entry *rsrc TSRMLS_DC)
 {
-	uv_rwlock_t *rwlock = (uv_rwlock_t *)rsrc->ptr;
-	uv_rwlock_destroy(rwlock);
-	efree(rwlock);
+	php_uv_lock_t *lock = (php_uv_lock_t *)rsrc->ptr;
+	if (lock->locked == 0x01) {
+		php_error_docref(NULL TSRMLS_CC, E_NOTICE, "uv_rw_lock: unlocked resoruce detected. force rdunlock resource.");
+		uv_rwlock_rdunlock(&lock->lock.rwlock);
+		lock->locked = 0x00;
+	} else if (lock->locked == 0x02) {
+		php_error_docref(NULL TSRMLS_CC, E_NOTICE, "uv_rw_lock: unlocked resoruce detected. force wrunlock resource.");
+		uv_rwlock_wrunlock(&lock->lock.rwlock);
+		lock->locked = 0x00;
+	}
+
+	uv_rwlock_destroy(&lock->lock.rwlock);
+	efree(lock);
 }
 
 void static destruct_uv_loop(zend_rsrc_list_entry *rsrc TSRMLS_DC)
@@ -1167,7 +1177,7 @@ PHP_MINIT_FUNCTION(uv) {
 	uv_ares_handle     = zend_register_list_destructors_ex(destruct_uv_ares, NULL, PHP_UV_ARES_RESOURCE_NAME, module_number);
 	uv_loop_handle     = zend_register_list_destructors_ex(destruct_uv_loop, NULL, PHP_UV_LOOP_RESOURCE_NAME, module_number);
 	uv_sockaddr_handle = zend_register_list_destructors_ex(destruct_uv_sockaddr, NULL, PHP_UV_SOCKADDR_RESOURCE_NAME, module_number);
-	uv_rwlock_handle   = zend_register_list_destructors_ex(destruct_uv_rwlock, NULL, PHP_UV_RWLOCK_RESOURCE_NAME, module_number);
+	uv_lock_handle   = zend_register_list_destructors_ex(destruct_uv_lock, NULL, PHP_UV_LOCK_RESOURCE_NAME, module_number);
 	uv_mutex_handle    = zend_register_list_destructors_ex(destruct_uv_mutex, NULL, PHP_UV_MUTEX_RESOURCE_NAME, module_number);
 
 	rc = ares_library_init(ARES_LIB_INIT_ALL);
@@ -3496,13 +3506,13 @@ PHP_FUNCTION(uv_chdir)
 /* {{{ */
 PHP_FUNCTION(uv_rwlock_init)
 {
-	uv_rwlock_t *lock;
+	php_uv_lock_t *lock;
 	int error;
 	
-	lock = emalloc(sizeof(uv_rwlock_t));
-	error = uv_rwlock_init(lock);
+	lock = emalloc(sizeof(php_uv_lock_t));
+	error = uv_rwlock_init(&lock->lock.rwlock);
 	if (error == 0) {
-		ZEND_REGISTER_RESOURCE(return_value, lock, uv_rwlock_handle);
+		ZEND_REGISTER_RESOURCE(return_value, lock, uv_lock_handle);
 	} else {
 		RETURN_FALSE;
 	}
@@ -3512,7 +3522,7 @@ PHP_FUNCTION(uv_rwlock_init)
 /* {{{ */
 PHP_FUNCTION(uv_rwlock_rdlock)
 {
-	uv_rwlock_t *lock;
+	php_uv_lock_t *lock;
 	zval *handle;
 	
 	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
@@ -3520,31 +3530,39 @@ PHP_FUNCTION(uv_rwlock_rdlock)
 		return;
 	}
 
-	ZEND_FETCH_RESOURCE(lock, uv_rwlock_t *, &handle, -1, PHP_UV_RWLOCK_RESOURCE_NAME, uv_rwlock_handle);
-	uv_rwlock_rdlock(lock);
+	ZEND_FETCH_RESOURCE(lock, php_uv_lock_t *, &handle, -1, PHP_UV_LOCK_RESOURCE_NAME, uv_lock_handle);
+	lock->locked = 0x01;
+	uv_rwlock_rdlock(&lock->lock.rwlock);
 }
 /* }}} */
 
 /* {{{ */
 PHP_FUNCTION(uv_rwlock_tryrdlock)
 {
-	uv_rwlock_t *lock;
+	php_uv_lock_t *lock;
 	zval *handle;
+	int error = 0;
 	
 	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
 		"z", &handle) == FAILURE) {
 		return;
 	}
 
-	ZEND_FETCH_RESOURCE(lock, uv_rwlock_t *, &handle, -1, PHP_UV_RWLOCK_RESOURCE_NAME, uv_rwlock_handle);
-	RETURN_LONG(uv_rwlock_tryrdlock(lock));
+	ZEND_FETCH_RESOURCE(lock, php_uv_lock_t *, &handle, -1, PHP_UV_LOCK_RESOURCE_NAME, uv_lock_handle);
+	error = uv_rwlock_tryrdlock(&lock->lock.rwlock);
+	if (error == 0) {
+		lock->locked = 0x01;
+		RETURN_TRUE;
+	} else {
+		RETURN_FALSE;
+	}
 }
 /* }}} */
 
 /* {{{ */
 PHP_FUNCTION(uv_rwlock_rdunlock)
 {
-	uv_rwlock_t *lock;
+	php_uv_lock_t *lock;
 	zval *handle;
 	
 	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
@@ -3552,15 +3570,18 @@ PHP_FUNCTION(uv_rwlock_rdunlock)
 		return;
 	}
 
-	ZEND_FETCH_RESOURCE(lock, uv_rwlock_t *, &handle, -1, PHP_UV_RWLOCK_RESOURCE_NAME, uv_rwlock_handle);
-	uv_rwlock_rdunlock(lock);
+	ZEND_FETCH_RESOURCE(lock, php_uv_lock_t *, &handle, -1, PHP_UV_LOCK_RESOURCE_NAME, uv_lock_handle);
+	if (lock->locked == 0x01) {
+		uv_rwlock_rdunlock(&lock->lock.rwlock);
+		lock->locked = 0x00;
+	}
 }
 /* }}} */
 
 /* {{{ */
 PHP_FUNCTION(uv_rwlock_wrlock)
 {
-	uv_rwlock_t *lock;
+	php_uv_lock_t *lock;
 	zval *handle;
 	
 	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
@@ -3568,31 +3589,39 @@ PHP_FUNCTION(uv_rwlock_wrlock)
 		return;
 	}
 
-	ZEND_FETCH_RESOURCE(lock, uv_rwlock_t *, &handle, -1, PHP_UV_RWLOCK_RESOURCE_NAME, uv_rwlock_handle);
-	uv_rwlock_wrlock(lock);
+	ZEND_FETCH_RESOURCE(lock, php_uv_lock_t *, &handle, -1, PHP_UV_LOCK_RESOURCE_NAME, uv_lock_handle);
+	lock->locked = 0x02;
+	uv_rwlock_wrlock(&lock->lock.rwlock);
 }
 /* }}} */
 
 /* {{{ */
 PHP_FUNCTION(uv_rwlock_trywrlock)
 {
-	uv_rwlock_t *lock;
+	php_uv_lock_t *lock;
 	zval *handle;
+	int error = 0;
 	
 	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
 		"z", &handle) == FAILURE) {
 		return;
 	}
 
-	ZEND_FETCH_RESOURCE(lock, uv_rwlock_t *, &handle, -1, PHP_UV_RWLOCK_RESOURCE_NAME, uv_rwlock_handle);
-	RETURN_LONG(uv_rwlock_trywrlock(lock));
+	ZEND_FETCH_RESOURCE(lock, php_uv_lock_t *, &handle, -1, PHP_UV_LOCK_RESOURCE_NAME, uv_lock_handle);
+	error = uv_rwlock_trywrlock(&lock->lock.rwlock);
+	if (error == 0) {
+		lock->locked = 0x02;
+		RETURN_TRUE;
+	} else {
+		RETURN_FALSE;
+	}
 }
 /* }}} */
 
 /* {{{ */
 PHP_FUNCTION(uv_rwlock_wrunlock)
 {
-	uv_rwlock_t *lock;
+	php_uv_lock_t *lock;
 	zval *handle;
 	
 	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
@@ -3600,8 +3629,11 @@ PHP_FUNCTION(uv_rwlock_wrunlock)
 		return;
 	}
 
-	ZEND_FETCH_RESOURCE(lock, uv_rwlock_t *, &handle, -1, PHP_UV_RWLOCK_RESOURCE_NAME, uv_rwlock_handle);
-	uv_rwlock_wrunlock(lock);
+	ZEND_FETCH_RESOURCE(lock, php_uv_lock_t *, &handle, -1, PHP_UV_LOCK_RESOURCE_NAME, uv_lock_handle);
+	if (lock->locked == 0x02) {
+		uv_rwlock_wrunlock(&lock->lock.rwlock);
+		lock->locked = 0x00;
+	}
 }
 /* }}} */
 
