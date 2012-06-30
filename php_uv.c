@@ -126,8 +126,6 @@ static int uv_sockaddr_handle;
 
 static int uv_lock_handle;
 
-static int uv_mutex_handle;
-
 static char uv_fs_read_buf[10];
 
 /* declarations */
@@ -244,27 +242,29 @@ static zval *php_uv_make_stat(const uv_statbuf_t *s)
 
 /* destructor */
 
-void static destruct_uv_mutex(zend_rsrc_list_entry *rsrc TSRMLS_DC)
-{
-	uv_mutex_t *mutex = (uv_mutex_t *)rsrc->ptr;
-	uv_mutex_destroy(mutex);
-	efree(mutex);
-}
-
 void static destruct_uv_lock(zend_rsrc_list_entry *rsrc TSRMLS_DC)
 {
 	php_uv_lock_t *lock = (php_uv_lock_t *)rsrc->ptr;
-	if (lock->locked == 0x01) {
-		php_error_docref(NULL TSRMLS_CC, E_NOTICE, "uv_rw_lock: unlocked resoruce detected. force rdunlock resource.");
-		uv_rwlock_rdunlock(&lock->lock.rwlock);
-		lock->locked = 0x00;
-	} else if (lock->locked == 0x02) {
-		php_error_docref(NULL TSRMLS_CC, E_NOTICE, "uv_rw_lock: unlocked resoruce detected. force wrunlock resource.");
-		uv_rwlock_wrunlock(&lock->lock.rwlock);
-		lock->locked = 0x00;
+	if (lock->type == IS_UV_RWLOCK) {
+		if (lock->locked == 0x01) {
+			php_error_docref(NULL TSRMLS_CC, E_NOTICE, "uv_rwlock: unlocked resoruce detected. force rdunlock resource.");
+			uv_rwlock_rdunlock(&lock->lock.rwlock);
+			lock->locked = 0x00;
+		} else if (lock->locked == 0x02) {
+			php_error_docref(NULL TSRMLS_CC, E_NOTICE, "uv_rwlock: unlocked resoruce detected. force wrunlock resource.");
+			uv_rwlock_wrunlock(&lock->lock.rwlock);
+			lock->locked = 0x00;
+		}
+		uv_rwlock_destroy(&lock->lock.rwlock);
+	} else if (lock->type == IS_UV_MUTEX) {
+		if (lock->locked == 0x01) {
+			php_error_docref(NULL TSRMLS_CC, E_NOTICE, "uv_mutex: unlocked resoruce detected. force unlock resource.");
+			uv_mutex_unlock(&lock->lock.mutex);
+			lock->locked = 0x00;
+		}
+		uv_mutex_destroy(&lock->lock.mutex);
 	}
 
-	uv_rwlock_destroy(&lock->lock.rwlock);
 	efree(lock);
 }
 
@@ -1178,7 +1178,6 @@ PHP_MINIT_FUNCTION(uv) {
 	uv_loop_handle     = zend_register_list_destructors_ex(destruct_uv_loop, NULL, PHP_UV_LOOP_RESOURCE_NAME, module_number);
 	uv_sockaddr_handle = zend_register_list_destructors_ex(destruct_uv_sockaddr, NULL, PHP_UV_SOCKADDR_RESOURCE_NAME, module_number);
 	uv_lock_handle   = zend_register_list_destructors_ex(destruct_uv_lock, NULL, PHP_UV_LOCK_RESOURCE_NAME, module_number);
-	uv_mutex_handle    = zend_register_list_destructors_ex(destruct_uv_mutex, NULL, PHP_UV_MUTEX_RESOURCE_NAME, module_number);
 
 	rc = ares_library_init(ARES_LIB_INIT_ALL);
 	if (rc != 0) {
@@ -3513,6 +3512,7 @@ PHP_FUNCTION(uv_rwlock_init)
 	error = uv_rwlock_init(&lock->lock.rwlock);
 	if (error == 0) {
 		ZEND_REGISTER_RESOURCE(return_value, lock, uv_lock_handle);
+		lock->type = IS_UV_RWLOCK;
 	} else {
 		RETURN_FALSE;
 	}
@@ -3642,13 +3642,14 @@ PHP_FUNCTION(uv_rwlock_wrunlock)
 /* {{{ */
 PHP_FUNCTION(uv_mutex_init)
 {
-	uv_mutex_t *mutex;
+	php_uv_lock_t *mutex;
 	int error;
 	
-	mutex = emalloc(sizeof(uv_mutex_t));
-	error = uv_mutex_init(mutex);
+	mutex = emalloc(sizeof(php_uv_t));
+	error = uv_mutex_init(&mutex->lock.mutex);
 	if (error == 0) {
-		ZEND_REGISTER_RESOURCE(return_value, mutex, uv_mutex_handle);
+		ZEND_REGISTER_RESOURCE(return_value, mutex, uv_lock_handle);
+		mutex->type = IS_UV_MUTEX;
 	} else {
 		RETURN_FALSE;
 	}
@@ -3658,7 +3659,7 @@ PHP_FUNCTION(uv_mutex_init)
 /* {{{ */
 PHP_FUNCTION(uv_mutex_lock)
 {
-	uv_mutex_t *mutex;
+	php_uv_lock_t *mutex;
 	zval *handle;
 	
 	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
@@ -3666,31 +3667,40 @@ PHP_FUNCTION(uv_mutex_lock)
 		return;
 	}
 
-	ZEND_FETCH_RESOURCE(mutex, uv_mutex_t *, &handle, -1, PHP_UV_MUTEX_RESOURCE_NAME, uv_mutex_handle);
-	uv_mutex_lock(mutex);
+	ZEND_FETCH_RESOURCE(mutex, php_uv_lock_t*, &handle, -1, PHP_UV_LOCK_RESOURCE_NAME, uv_lock_handle);
+	uv_mutex_lock(&mutex->lock.mutex);
+	mutex->locked = 0x01;
 }
 /* }}} */
 
 /* {{{ */
 PHP_FUNCTION(uv_mutex_trylock)
 {
-	uv_mutex_t *mutex;
+	php_uv_lock_t *mutex;
 	zval *handle;
+	int error = 0;
 	
 	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
 		"z", &handle) == FAILURE) {
 		return;
 	}
 
-	ZEND_FETCH_RESOURCE(mutex, uv_mutex_t *, &handle, -1, PHP_UV_MUTEX_RESOURCE_NAME, uv_mutex_handle);
-	RETURN_LONG(uv_mutex_trylock(mutex));
+	ZEND_FETCH_RESOURCE(mutex, php_uv_lock_t *, &handle, -1, PHP_UV_LOCK_RESOURCE_NAME, uv_lock_handle);
+	error = uv_mutex_trylock(&mutex->lock.mutex);
+
+	if (error == 0) {
+		mutex->locked = 0x01;
+		RETURN_TRUE;
+	} else {
+		RETURN_FALSE;
+	}
 }
 /* }}} */
 
 /* {{{ */
 PHP_FUNCTION(uv_mutex_unlock)
 {
-	uv_mutex_t *mutex;
+	php_uv_lock_t *mutex;
 	zval *handle;
 	
 	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
@@ -3698,8 +3708,11 @@ PHP_FUNCTION(uv_mutex_unlock)
 		return;
 	}
 
-	ZEND_FETCH_RESOURCE(mutex, uv_mutex_t *, &handle, -1, PHP_UV_MUTEX_RESOURCE_NAME, uv_mutex_handle);
-	uv_mutex_unlock(mutex);
+	ZEND_FETCH_RESOURCE(mutex, php_uv_lock_t *, &handle, -1, PHP_UV_LOCK_RESOURCE_NAME, uv_lock_handle);
+	if (mutex->locked == 0x01) {
+		uv_mutex_unlock(&mutex->lock.mutex);
+		mutex->locked = 0x00;
+	}
 }
 /* }}} */
 

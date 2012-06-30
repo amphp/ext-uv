@@ -29,6 +29,11 @@ extern zend_module_entry uv_module_entry;
 
 extern zend_class_entry *uv_class_entry;
 
+enum php_uv_lock_type{
+	IS_UV_RWLOCK = 1,
+	IS_UV_MUTEX = 2
+};
+
 enum php_uv_resource_type{
 	IS_UV_TCP      = 0,
 	IS_UV_UDP      = 1,
@@ -118,6 +123,7 @@ typedef struct {
 
 typedef struct {
 	int locked;
+	enum php_uv_lock_type type;
 	int resource_id;
 	union {
 		uv_rwlock_t rwlock;
