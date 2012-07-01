@@ -2173,6 +2173,7 @@ PHP_FUNCTION(uv_write)
 	int data_len = 0;
 	php_uv_t *uv;
 	write_req_t *w;
+	int r = 0;
 	
 	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
 		"zsz",&z_cli, &data, &data_len,&callback) == FAILURE) {
@@ -2188,7 +2189,11 @@ PHP_FUNCTION(uv_write)
 	w->req.data = uv;
 	w->buf = uv_buf_init(data, data_len);
 
-	uv_write(&w->req, (uv_stream_t*)php_uv_get_current_stream(uv), &w->buf, 1, php_uv_write_cb);
+	r = uv_write(&w->req, (uv_stream_t*)php_uv_get_current_stream(uv), &w->buf, 1, php_uv_write_cb);
+	if (r) {
+		php_error_docref(NULL TSRMLS_CC, E_ERROR, "write failed");
+	}
+
 	PHP_UV_DEBUG_RESOURCE_REFCOUNT(uv_write, uv->resource_id);
 }
 /* }}} */
@@ -2239,6 +2244,7 @@ PHP_FUNCTION(uv_shutdown)
 	zval *client, *callback = NULL;
 	php_uv_t *uv;
 	uv_shutdown_t *shutdown;
+	int r = 0;
 	
 	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
 		"r|z",&client, &callback) == FAILURE) {
@@ -2255,7 +2261,11 @@ PHP_FUNCTION(uv_shutdown)
 	shutdown = emalloc(sizeof(uv_shutdown_t));
 	shutdown->data = uv;
 	
-	uv_shutdown(shutdown, (uv_stream_t*)php_uv_get_current_stream(uv), (uv_shutdown_cb)php_uv_shutdown_cb);
+	r = uv_shutdown(shutdown, (uv_stream_t*)php_uv_get_current_stream(uv), (uv_shutdown_cb)php_uv_shutdown_cb);
+	if (r) {
+		php_error_docref(NULL TSRMLS_CC, E_ERROR, "shutdown failed");
+	}
+
 }
 /* }}} */
 
@@ -2434,7 +2444,7 @@ PHP_FUNCTION(uv_listen)
 
 	r = uv_listen((uv_stream_t*)php_uv_get_current_stream(uv), backlog, php_uv_listen_cb);
 	if (r) {
-		php_error_docref(NULL TSRMLS_CC, E_ERROR, "listen failed");
+		php_error_docref(NULL TSRMLS_CC, E_ERROR, "%s", uv_strerror(uv_last_error(uv_default_loop())));
 	}
 }
 /* }}} */
