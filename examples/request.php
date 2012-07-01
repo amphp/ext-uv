@@ -18,7 +18,7 @@ ares_gethostbyname($uv,$domain, AF_INET, function($name, $addr) use ($path, $hos
     $address = uv_ip4_addr($a,"80");
     $tcp = uv_tcp_init();
 
-    uv_tcp_connect($tcp, $address, function($stat, $client) use ($path, $host){
+    uv_tcp_connect($tcp, $address, function($client, $stat) use ($path, $host){
     var_dump(uv_tcp_getpeername($client));
     
     $request = <<<EOF
@@ -29,10 +29,10 @@ Host: {$host}
 EOF;
         echo $request;
         var_dump($client);
-        uv_write($client,$request,function($stat, $client){
+        uv_write($client,$request,function($client, $stat){
         	echo "write";
             if ($stat == 0) {
-                uv_read_start($client,function($client, $buffer, $nread){
+                uv_read_start($client,function($client, $nread, $buffer){
                 	echo "\n1\n";
                     //var_dump($buffer);
                     uv_close($client);

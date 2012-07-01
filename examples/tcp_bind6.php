@@ -8,16 +8,16 @@ uv_listen($tcp,100, function($server){
     uv_accept($server, $client);
     var_dump(uv_tcp_getsockname($server));
 
-    uv_read_start($client, function($socket, $buffer, $nread){
+    uv_read_start($client, function($socket, $nread, $buffer){
         echo $buffer;
         uv_close($socket);
     });
 });
 
 $c = uv_tcp_init();
-uv_tcp_connect6($c, uv_ip6_addr('::1',9999), function($stat, $client){
+uv_tcp_connect6($c, uv_ip6_addr('::1',9999), function($client, $stat){
     if ($stat == 0) {
-        uv_write($client,"Hello",function($stat,$socket){
+        uv_write($client,"Hello",function($socket, $stat){
             uv_close($socket);
         });
     }

@@ -23,7 +23,7 @@ $process = uv_spawn(uv_default_loop(), "php", array('-r','echo "WORLD";'), array
     });
 });
 
-uv_read_start($out, function($out, $buffer,$stat){
+uv_read_start($out, function($out, $nread, $buffer){
     echo $buffer . PHP_EOL;
 
     uv_close($out,function(){});

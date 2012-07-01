@@ -70,7 +70,7 @@ class HttpServer
         $this->closure = $closure;
     }
 
-    public function onShutdown($handle)
+    public function onShutdown($handle, $status)
     {
         uv_close($handle, array($this, "onClose"));
     }
@@ -82,7 +82,7 @@ class HttpServer
 
     }
 
-    public function onWrite($status, $client)
+    public function onWrite($client, $status)
     {
         if ($status == 0) {
             uv_shutdown($client, array($this, "onShutdown"));
@@ -92,7 +92,7 @@ class HttpServer
 
     }
 
-    public function onRead($client, $buffer, $nread)
+    public function onRead($client, $nread, $buffer)
     {
         //echo $buffer;
         //echo "--Error: " . uv_err_name(uv_last_error(uv_default_loop())) . PHP_EOL;
@@ -117,7 +117,7 @@ class HttpServer
         }
     }
 
-    public function onConnect($server)
+    public function onConnect($server, $status)
     {
         $client = uv_tcp_init();
         uv_tcp_nodelay($client, 1);
