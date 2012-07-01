@@ -130,7 +130,10 @@ static int uv_lock_handle;
 
 static int uv_httpparser_handle;
 
-static char uv_fs_read_buf[10];
+static int uv_ares_initialized;
+
+/* TODO: fix this */
+static char uv_fs_read_buf[8192];
 
 /* declarations */
 
@@ -176,6 +179,27 @@ static void php_uv_timer_cb(uv_timer_t *handle, int status);
 static void php_uv_idle_cb(uv_timer_t *handle, int status);
 
 /* util */
+
+static void php_uv_ares_destroy()
+{
+	if (uv_ares_initialized == 1) {
+		ares_library_cleanup();
+	}
+}
+
+static void php_uv_ares_init(TSRMLS_D)
+{
+	int rc = 0;
+
+	if (uv_ares_initialized == 0) {
+		rc = ares_library_init(ARES_LIB_INIT_ALL);
+		if (rc != 0) {
+			php_error_docref(NULL TSRMLS_CC, E_ERROR, "failed to initialize ares library");
+			return;
+		}
+		uv_ares_initialized = 1;
+	}
+}
 
 static zval *php_uv_address_to_zval(const struct sockaddr *addr)
 {
@@ -1332,7 +1356,8 @@ int on_body_cb(http_parser *p, const char *at, size_t len)
 
 /* zend */
 
-PHP_MINIT_FUNCTION(uv) {
+PHP_MINIT_FUNCTION(uv)
+{
 	int rc;
 
 	php_uv_init(TSRMLS_C);
@@ -1343,14 +1368,15 @@ PHP_MINIT_FUNCTION(uv) {
 	uv_lock_handle   = zend_register_list_destructors_ex(destruct_uv_lock, NULL, PHP_UV_LOCK_RESOURCE_NAME, module_number);
 	uv_httpparser_handle = zend_register_list_destructors_ex(destruct_httpparser, NULL, PHP_UV_HTTPPARSER_RESOURCE_NAME, module_number);
 
-	rc = ares_library_init(ARES_LIB_INIT_ALL);
-	if (rc != 0) {
-		printf("ares library init fails %d\n", rc);
-		return FAILURE;
-	}
-
 	return SUCCESS;
 }
+
+PHP_RSHUTDOWN_FUNCTION(uv)
+{
+	php_uv_ares_destroy();
+	return SUCCESS;
+}
+
 
 ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_run_once, 0, 0, 1)
 	ZEND_ARG_INFO(0, loop)
@@ -3316,6 +3342,10 @@ PHP_FUNCTION(uv_ares_init_options)
 	uv->options.servers  = addresses;
 	uv->options.nservers = length;
 	uv->options.flags    = ARES_FLAG_USEVC;
+
+	if (uv_ares_initialized == 0) {
+		php_uv_ares_init(TSRMLS_C);
+	}
 
 	rc = uv_ares_init_options(loop, &uv->channel, &uv->options, optmask);
 	if (rc) {
@@ -5522,7 +5552,7 @@ zend_module_entry uv_module_entry = {
 	PHP_MINIT(uv),	/* MINIT */
 	NULL,					/* MSHUTDOWN */
 	NULL,					/* RINIT */
-	NULL,					/* RSHUTDOWN */
+	PHP_RSHUTDOWN(uv),		/* RSHUTDOWN */
 	PHP_MINFO(uv),	/* MINFO */
 #if ZEND_MODULE_API_NO >= 20010901
 	PHP_UV_EXTVER,
