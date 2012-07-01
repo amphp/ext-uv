@@ -3,9 +3,7 @@
 * implement all test cases.
 * improve source code.(avoids copy and paste)
 * error handling
-* make continuous build box (linux and windows)
-* re-consider function signatures. (I'd like to provide libuv same api)
-* adjust config.m4 (currently, this ext supports osx and windows only. i'll fix this soon)
+* make continuous build box (windows)
 
 # Not tested
 
@@ -14,7 +12,6 @@
 
 # functions
 
-* UV_EXTERN int uv_read2_start(uv_stream_t*, uv_alloc_cb alloc_cb,uv_read2_cb read_cb);
 * UV_EXTERN int uv_write2(uv_write_t* req, uv_stream_t* handle, uv_buf_t bufs[],int bufcnt, uv_stream_t* send_handle, uv_write_cb cb);
 
 * UV_EXTERN int uv_queue_work(uv_loop_t* loop, uv_work_t* req, uv_work_cb work_cb, uv_after_work_cb after_work_cb);
