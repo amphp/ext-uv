@@ -3,7 +3,7 @@
 #define PHP_UV_H
 
 #define PHP_UV_EXTNAME "uv"
-#define PHP_UV_EXTVER "0.1"
+#define PHP_UV_EXTVER "0.0.1"
 
 #ifdef HAVE_CONFIG_H
 #include "config.h"
