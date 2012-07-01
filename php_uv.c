@@ -2263,7 +2263,7 @@ PHP_FUNCTION(uv_shutdown)
 	
 	r = uv_shutdown(shutdown, (uv_stream_t*)php_uv_get_current_stream(uv), (uv_shutdown_cb)php_uv_shutdown_cb);
 	if (r) {
-		php_error_docref(NULL TSRMLS_CC, E_ERROR, "shutdown failed");
+		php_error_docref(NULL TSRMLS_CC, E_ERROR, "%s (ERRNO: %d)", uv_strerror(uv_last_error(uv_default_loop())), r);
 	}
 
 }
