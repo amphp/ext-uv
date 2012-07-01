@@ -18,6 +18,7 @@
 
 #include "php.h"
 #include "uv.h"
+#include "http_parser.h"
 
 #include "zend_interfaces.h"
 
@@ -133,6 +134,20 @@ typedef struct {
 	} lock;
 } php_uv_lock_t;
 
+
+typedef struct {
+	struct http_parser parser;
+	struct http_parser_url handle;
+	struct http_parser_settings settings;
+	int is_response;
+	int was_header_value;
+	int finished;
+	zval *data;
+	zval *headers;
+	char *tmp;
+} php_http_parser_context;
+
+#define PHP_UV_HTTPPARSER_RESOURCE_NAME "uv_httpparser"
 
 #define PHP_UV_RESOURCE_NAME "uv"
 #define PHP_UV_SOCKADDR_RESOURCE_NAME "uv_sockaddr"

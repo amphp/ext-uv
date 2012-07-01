@@ -1,6 +1,9 @@
 PHP_ARG_ENABLE(uv, Whether to enable the "uv" extension,
 [  --enable-uv     Enable "uv" extension support])
 
+PHP_ARG_ENABLE(httpparser, Whether to enable the "httpparser" module,
+    [ --enable-httpparser     Enable "httpparser" module support])
+
 if test -z "$PHP_DEBUG"; then
     AC_ARG_ENABLE(debug,
     [  --enable-debug          compile with debugging symbols],[
@@ -10,8 +13,18 @@ if test -z "$PHP_DEBUG"; then
 fi
 
 if test $PHP_UV != "no"; then
-    PHP_NEW_EXTENSION(uv, php_uv.c uv.c, $ext_shared)
+    SOURCES=""
 
+    if test $PHP_HTTPPARSER != "no"; then
+        SOURCES=" http-parser/http_parser.c"
+        AC_DEFINE([ENABLE_HTTPPARSER], [1], [ Enable http parser])
+    fi
+
+    PHP_NEW_EXTENSION(uv, php_uv.c uv.c $SOURCES, $ext_shared)
+
+    if test $PHP_HTTPPARSER != "no"; then
+        PHP_ADD_INCLUDE([$ext_srcdir/http-parser])
+    fi
     PHP_ADD_INCLUDE([$ext_srcdir/libuv/include])
  
     CFLAGS=" -g -O0 -Wunused-variable -Wpointer-sign -Wimplicit-function-declaration -Wl,libuv/uv.a"
