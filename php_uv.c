@@ -588,8 +588,8 @@ static void php_uv_udp_send_cb(uv_udp_send_t* req, int status)
 	MAKE_STD_ZVAL(client);
 	ZVAL_RESOURCE(client, uv->resource_id);
 
-	params[0] = &stat;
-	params[1] = &client;
+	params[0] = &client;
+	params[1] = &stat;
 	
 	php_uv_do_callback(&retval_ptr, uv->udp_send_cb, params, 2 TSRMLS_CC);
 
@@ -880,7 +880,7 @@ static void php_uv_fs_cb(uv_fs_t* req)
 	int argc = 2;
 	TSRMLS_FETCH_FROM_CTX(uv->thread_ctx);
 
-	PHP_UV_DEBUG_PRINT("vc_cb\n");
+	PHP_UV_DEBUG_PRINT("fs_cb\n");
 
 	MAKE_STD_ZVAL(result);
 	ZVAL_LONG(result, uv->uv.fs.result);
@@ -1039,47 +1039,29 @@ static void php_uv_udp_recv_cb(uv_udp_t* handle, ssize_t nread, uv_buf_t buf, st
 {
 	/* TODO: is this implment correct? */
 	zval *retval_ptr = NULL;
-	zval **params[2];
-	zval *buffer;
-	zval *rsc;
+	zval **params[3];
+	zval *buffer, *rsc, *read;
 	php_uv_t *uv = (php_uv_t*)handle->data;
 	TSRMLS_FETCH_FROM_CTX(uv->thread_ctx);
-	
-	if (nread < 0) {
-		/* does this should be in user-land ? */
-		//uv_shutdown_t* req;
-		
-		/* Error or EOF */
-		///assert(uv_last_error(uv_default_loop()).code == UV_EOF);
-		
-		if (buf.base) {
-			//efree(buf.base);
-		}
-		
-		//req = (uv_shutdown_t*) emalloc(sizeof *req);
-		//uv_shutdown(req, (uv_stream_t*)handle, php_uv_shutdown_cb);
-		//return;
-	}
-	
-	if (nread == 0) {
-		/* Everything OK, but nothing read. */
-		efree(buf.base);
-		return;
-	}
 	
 	MAKE_STD_ZVAL(buffer);
 	ZVAL_STRINGL(buffer,buf.base,nread, 1);
 
 	MAKE_STD_ZVAL(rsc);
 	ZVAL_RESOURCE(rsc, uv->resource_id);
-
-	params[0] = &buffer;
-	params[1] = &rsc;
 	
-	php_uv_do_callback(&retval_ptr, uv->udp_recv_cb, params, 2 TSRMLS_CC);
+	MAKE_STD_ZVAL(read);
+	ZVAL_LONG(read, nread);
+
+	params[0] = &rsc;
+	params[1] = &read;
+	params[2] = &buffer;
+	
+	php_uv_do_callback(&retval_ptr, uv->udp_recv_cb, params, 3 TSRMLS_CC);
 
 	zval_ptr_dtor(&buffer);
 	zval_ptr_dtor(&rsc);
+	zval_ptr_dtor(&read);
 	zval_ptr_dtor(&retval_ptr);
 
 	if (buf.base) {
