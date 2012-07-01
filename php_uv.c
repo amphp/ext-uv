@@ -698,7 +698,7 @@ static void php_uv_read_cb(uv_stream_t* handle, ssize_t nread, uv_buf_t buf)
 
 	MAKE_STD_ZVAL(rsc);
 	ZVAL_RESOURCE(rsc, uv->resource_id);
-	//zend_list_addref(uv->resource_id);
+	zend_list_addref(uv->resource_id);
 	
 	MAKE_STD_ZVAL(err)
 	ZVAL_LONG(err, nread);
@@ -1098,6 +1098,7 @@ static void php_uv_close_cb(uv_handle_t *handle)
 		zval_ptr_dtor(&retval_ptr);
 	}
 	PHP_UV_DEBUG_RESOURCE_REFCOUNT(uv_close_cb, uv->resource_id);
+	zend_hash_index_del(&EG(regular_list), uv->resource_id);
 
 	zval_ptr_dtor(&h); /* call destruct_uv */
 }
