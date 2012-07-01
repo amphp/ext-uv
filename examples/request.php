@@ -32,7 +32,7 @@ EOF;
         uv_write($client,$request,function($stat, $client){
         	echo "write";
             if ($stat == 0) {
-                uv_read_start($client,function($buffer, $client){
+                uv_read_start($client,function($client, $buffer, $nread){
                 	echo "\n1\n";
                     //var_dump($buffer);
                     uv_close($client);
