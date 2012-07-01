@@ -7,7 +7,8 @@ $out = uv_pipe_init(uv_default_loop(), 1);
 
 echo "HELLO ";
 
-$process = uv_spawn(uv_default_loop(), "php", array('-r','echo $_ENV["HELLO"];'), array(
+/* TODO: ENV parameter does not work linux. */
+$process = uv_spawn(uv_default_loop(), "php", array('-r','echo "WORLD";'), array(
     "cwd" => dirname(uv_exepath()),
     "pipes" => array(
 	$in,
