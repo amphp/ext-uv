@@ -920,7 +920,7 @@ static void php_uv_after_work_cb(uv_work_t* req)
 
 static void php_uv_fs_cb(uv_fs_t* req)
 {
-	zval **params[2], *result, *retval_ptr = NULL;
+	zval **params[3], *result, *retval_ptr = NULL;
 	php_uv_t *uv = (php_uv_t*)req->data;
 	int argc = 2;
 	TSRMLS_FETCH_FROM_CTX(uv->thread_ctx);
@@ -995,15 +995,21 @@ static void php_uv_fs_cb(uv_fs_t* req)
 		}
 		case UV_FS_READ:
 		{
+			argc = 3;
 			zval *buffer;
-			
+			zval *nread;
 			MAKE_STD_ZVAL(buffer);
+			MAKE_STD_ZVAL(nread);
+			
 			if (uv->uv.fs.result > 0) {
 				ZVAL_STRINGL(buffer, uv_fs_read_buf, uv->uv.fs.result, 1);
 			} else {
 				ZVAL_NULL(buffer);
 			}
-			params[1] = &buffer;
+			ZVAL_LONG(nread, uv->uv.fs.result);
+			
+			params[1] = &nread;
+			params[2] = &buffer;
 			break;
 		}
 		case UV_FS_SENDFILE:
@@ -1038,6 +1044,9 @@ static void php_uv_fs_cb(uv_fs_t* req)
 	
 	if (argc == 2) {
 		zval_ptr_dtor(params[1]);
+	} else if (argc == 3) {
+		zval_ptr_dtor(params[1]);
+		zval_ptr_dtor(params[2]);
 	}
 
 	if (retval_ptr != NULL) {

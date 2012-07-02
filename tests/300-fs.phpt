@@ -1,5 +1,10 @@
+--TEST--
+Check for tcp bind
+--FILE--
 <?php
-uv_fs_open(uv_default_loop(),__FILE__, UV::O_RDONLY, 0, function($r){
+define("FIXTURE_PATH", dirname(__FILE__) . "/fixtures/hello.data");
+
+uv_fs_open(uv_default_loop(),FIXTURE_PATH, UV::O_RDONLY, 0, function($r){
     uv_fs_read(uv_default_loop(),$r,function($stream, $nread, $data) {
         if ($nread <= 0) {
             if ($nread < 0) {
@@ -15,3 +20,5 @@ uv_fs_open(uv_default_loop(),__FILE__, UV::O_RDONLY, 0, function($r){
 });
 
 uv_run();
+--EXPECT--
+Hello
