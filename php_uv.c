@@ -1358,8 +1358,6 @@ int on_body_cb(http_parser *p, const char *at, size_t len)
 
 PHP_MINIT_FUNCTION(uv)
 {
-	int rc;
-
 	php_uv_init(TSRMLS_C);
 	uv_resource_handle = zend_register_list_destructors_ex(destruct_uv, NULL, PHP_UV_RESOURCE_NAME, module_number);
 	uv_ares_handle     = zend_register_list_destructors_ex(destruct_uv_ares, NULL, PHP_UV_ARES_RESOURCE_NAME, module_number);
