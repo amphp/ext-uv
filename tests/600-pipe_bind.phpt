@@ -1,4 +1,6 @@
-<?php
+--TEST--
+Check for pipe bind
+--FILE--
 <?php
 define("PIPE_PATH", dirname(__FILE__) . "/pipe_test.sock");
 @unlink(PIPE_PATH);
@@ -25,4 +27,6 @@ uv_pipe_connect($b, PIPE_PATH, function($a,$b){
 });
 
 uv_run();
-exit
+exit;
+--EXPECT--
+Hello

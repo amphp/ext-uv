@@ -3227,14 +3227,18 @@ PHP_FUNCTION(uv_pipe_bind)
 	php_uv_t *uv;
 	zval *handle;
 	char *name;
-	int name_len = 0;
+	int error, name_len = 0;
 
 	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
 		"zs",&handle, &name, &name_len) == FAILURE) {
 		return;
 	}
 	ZEND_FETCH_RESOURCE(uv, php_uv_t *, &handle, -1, PHP_UV_RESOURCE_NAME, uv_resource_handle);
-	uv_pipe_bind(&uv->uv.pipe, name);
+	error = uv_pipe_bind(&uv->uv.pipe, name);
+	if (error) {
+		php_error_docref(NULL TSRMLS_CC, E_WARNING, "%s", uv_strerror(uv_last_error(uv_default_loop())));
+	}
+	RETURN_LONG(error);
 }
 /* }}} */
 
