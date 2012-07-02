@@ -9,6 +9,7 @@ uv_listen($tcp,100, function($server){
     var_dump(uv_tcp_getsockname($server));
 
     uv_read_start($client, function($socket, $nread, $buffer){
+	trigger_error("a", E_USER_ERROR);
         var_dump($buffer);
         uv_close($socket);
     });

@@ -617,9 +617,12 @@ static void php_uv_udp_send_cb(uv_udp_send_t* req, int status)
 	
 	php_uv_do_callback(&retval_ptr, uv->udp_send_cb, params, 2 TSRMLS_CC);
 
-	zval_ptr_dtor(&retval_ptr);
 	zval_ptr_dtor(&stat);
 	zval_ptr_dtor(&client);
+
+	if (retval_ptr != NULL) {
+		zval_ptr_dtor(&retval_ptr);
+	}
 
 	if (wr->buf.base) {
 		efree(wr->buf.base);
@@ -647,9 +650,11 @@ static void php_uv_listen_cb(uv_stream_t* server, int status)
 
 	php_uv_do_callback(&retval_ptr, uv->listen_cb, params, 2 TSRMLS_CC);
 	
-	zval_ptr_dtor(&retval_ptr);
 	zval_ptr_dtor(&svr);
 	zval_ptr_dtor(&stat);
+	if (retval_ptr != NULL) {
+		zval_ptr_dtor(&retval_ptr);
+	}
 }
 
 static void php_uv_close_cb2(uv_handle_t *handle)
@@ -682,7 +687,9 @@ static void php_uv_shutdown_cb(uv_shutdown_t* handle, int status)
 		params[0] = &h;
 		params[1] = &stat;
 		php_uv_do_callback(&retval_ptr, uv->shutdown_cb, params, 2 TSRMLS_CC);
-		zval_ptr_dtor(&retval_ptr);
+		if (retval_ptr != NULL) {
+			zval_ptr_dtor(&retval_ptr);
+		}
 	}
 
 	PHP_UV_DEBUG_RESOURCE_REFCOUNT(uv_shutdown_cb, uv->resource_id);
@@ -748,11 +755,15 @@ static void php_uv_read_cb(uv_stream_t* handle, ssize_t nread, uv_buf_t buf)
 	zval_ptr_dtor(&buffer);
 	zval_ptr_dtor(&rsc);
 	zval_ptr_dtor(&err);
-	zval_ptr_dtor(&retval_ptr);
+	
+	if (retval_ptr != NULL) {
+		zval_ptr_dtor(&retval_ptr);
+	}
 
 	if (buf.base) {
 		efree(buf.base);
 	}
+	
 	PHP_UV_DEBUG_RESOURCE_REFCOUNT(uv_read_cb, uv->resource_id);
 }
 
@@ -793,7 +804,9 @@ static void php_uv_read2_cb(uv_pipe_t* handle, ssize_t nread, uv_buf_t buf, uv_h
 	zval_ptr_dtor(&rsc);
 	zval_ptr_dtor(&err);
 	zval_ptr_dtor(&pend);
-	zval_ptr_dtor(&retval_ptr);
+	if (retval_ptr != NULL) {
+		zval_ptr_dtor(&retval_ptr);
+	}
 
 	if (buf.base) {
 		efree(buf.base);
@@ -819,7 +832,9 @@ static void php_uv_prepare_cb(uv_prepare_t* handle, int status)
 	php_uv_do_callback(&retval_ptr, uv->prepare_cb, params, 1 TSRMLS_CC);
 
 	zval_ptr_dtor(&zstat);
-	zval_ptr_dtor(&retval_ptr);
+	if (retval_ptr != NULL) {
+		zval_ptr_dtor(&retval_ptr);
+	}
 	PHP_UV_DEBUG_RESOURCE_REFCOUNT(uv_prepare_cb, uv->resource_id);
 }
 
@@ -841,7 +856,9 @@ static void php_uv_check_cb(uv_check_t* handle, int status)
 	php_uv_do_callback(&retval_ptr, uv->check_cb, params, 1 TSRMLS_CC);
 
 	zval_ptr_dtor(&zstat);
-	zval_ptr_dtor(&retval_ptr);
+	if (retval_ptr != NULL) {
+		zval_ptr_dtor(&retval_ptr);
+	}
 	PHP_UV_DEBUG_RESOURCE_REFCOUNT(uv_check_cb, uv->resource_id);
 }
 
@@ -864,7 +881,9 @@ static void php_uv_async_cb(uv_async_t* handle, int status)
 	php_uv_do_callback(&retval_ptr, uv->async_cb, params, 1 TSRMLS_CC);
 
 	zval_ptr_dtor(&zstat);
-	zval_ptr_dtor(&retval_ptr);
+	if (retval_ptr != NULL) {
+		zval_ptr_dtor(&retval_ptr);
+	}
 	PHP_UV_DEBUG_RESOURCE_REFCOUNT(uv_async_cb, uv->resource_id);
 }
 
@@ -880,7 +899,9 @@ static void php_uv_work_cb(uv_work_t* req)
 	PHP_UV_DEBUG_PRINT("work_cb\n");
 
 	php_uv_do_callback(&retval_ptr, uv->work_cb, NULL, 0 TSRMLS_CC);
-	zval_ptr_dtor(&retval_ptr);
+	if (retval_ptr != NULL) {
+		zval_ptr_dtor(&retval_ptr);
+	}
 	PHP_UV_DEBUG_RESOURCE_REFCOUNT(uv_work_cb, uv->resource_id);
 }
 
@@ -1019,7 +1040,9 @@ static void php_uv_fs_cb(uv_fs_t* req)
 		zval_ptr_dtor(params[1]);
 	}
 
-	zval_ptr_dtor(&retval_ptr);
+	if (retval_ptr != NULL) {
+		zval_ptr_dtor(&retval_ptr);
+	}
 	zval_ptr_dtor(&result);
 	uv_fs_req_cleanup(req);
 	PHP_UV_DEBUG_RESOURCE_REFCOUNT(uv_fs_cb, uv->resource_id);
@@ -1051,7 +1074,9 @@ static void php_uv_fs_event_cb(uv_fs_event_t* req, const char* filename, int eve
 	params[2] = &stat;
 
 	php_uv_do_callback(&retval_ptr, uv->fs_event_cb, params, 3 TSRMLS_CC);
-	zval_ptr_dtor(&retval_ptr);
+	if (retval_ptr != NULL) {
+		zval_ptr_dtor(&retval_ptr);
+	}
 	zval_ptr_dtor(params[0]);
 	zval_ptr_dtor(params[1]);
 	zval_ptr_dtor(params[2]);
@@ -1086,7 +1111,9 @@ static void php_uv_udp_recv_cb(uv_udp_t* handle, ssize_t nread, uv_buf_t buf, st
 	zval_ptr_dtor(&buffer);
 	zval_ptr_dtor(&rsc);
 	zval_ptr_dtor(&read);
-	zval_ptr_dtor(&retval_ptr);
+	if (retval_ptr != NULL) {
+		zval_ptr_dtor(&retval_ptr);
+	}
 
 	if (buf.base) {
 		efree(buf.base);
@@ -1113,7 +1140,9 @@ static void php_uv_close_cb(uv_handle_t *handle)
 	if (uv->close_cb != NULL) {
 		params[0] = &h;
 		php_uv_do_callback(&retval_ptr, uv->close_cb, params, 1 TSRMLS_CC);
-		zval_ptr_dtor(&retval_ptr);
+		if (retval_ptr != NULL) {
+			zval_ptr_dtor(&retval_ptr);
+		}
 	}
 	PHP_UV_DEBUG_RESOURCE_REFCOUNT(uv_close_cb, uv->resource_id);
 	zend_hash_index_del(&EG(regular_list), uv->resource_id);
@@ -1136,7 +1165,9 @@ static void php_uv_idle_cb(uv_timer_t *handle, int status)
 	
 	php_uv_do_callback(&retval_ptr, uv->idle_cb, params, 1 TSRMLS_CC);
 
-	zval_ptr_dtor(&retval_ptr);
+	if (retval_ptr != NULL) {
+		zval_ptr_dtor(&retval_ptr);
+	}
 	zval_ptr_dtor(&stat);
 }
 
@@ -1188,7 +1219,9 @@ static void php_uv_getaddrinfo_cb(uv_getaddrinfo_t* handle, int status, struct a
 	
 	php_uv_do_callback(&retval_ptr, uv->getaddr_cb, params, 2 TSRMLS_CC);
 	
-	zval_ptr_dtor(&retval_ptr);
+	if (retval_ptr != NULL) {
+		zval_ptr_dtor(&retval_ptr);
+	}
 	zval_ptr_dtor(&stat);
 	zval_ptr_dtor(&tmp);
 	
@@ -1214,7 +1247,9 @@ static void php_uv_timer_cb(uv_timer_t *handle, int status)
 	
 	php_uv_do_callback(&retval_ptr, uv->timer_cb, params, 2 TSRMLS_CC);
 
-	zval_ptr_dtor(&retval_ptr);
+	if (retval_ptr != NULL) {
+		zval_ptr_dtor(&retval_ptr);
+	}
 	zval_ptr_dtor(&stat);
 	zval_ptr_dtor(&client);
 }
