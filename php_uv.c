@@ -349,10 +349,15 @@ void static destruct_uv(zend_rsrc_list_entry *rsrc TSRMLS_DC)
 	int base_id = -1;
 	php_uv_t *obj = (php_uv_t *)rsrc->ptr;
 
-	PHP_UV_DEBUG_PRINT("# will be free: (resource_id: %d)", obj->resource_id);
-
+	PHP_UV_DEBUG_PRINT("# will be free: (resource_id: %d)\n", obj->resource_id);
 	
+	if (obj->in_free == 1) {
+		PHP_UV_DEBUG_PRINT("# resource_id: %d is freeing. prevent double free.\n", obj->resource_id);
+		return;
+	}
+
 	obj->in_free = 1;
+
 	if (obj->address) {
 		//fprintf(stderr, "address: %d\n", Z_REFCOUNT_P(obj->read_cb));
 		zval_ptr_dtor(&obj->address);
@@ -1059,14 +1064,14 @@ static void php_uv_fs_cb(uv_fs_t* req)
 
 static void php_uv_fs_event_cb(uv_fs_event_t* req, const char* filename, int events, int status)
 {
-	zval *retval_ptr = NULL;
-	php_uv_t *uv = (php_uv_t*)req->data;
 	zval **params[3];
-	zval *name,*ev,*stat;
+	zval *name,*ev,*stat,*rsc,*retval_ptr = NULL;
+	php_uv_t *uv = (php_uv_t*)req->data;
 	TSRMLS_FETCH_FROM_CTX(uv->thread_ctx);
 
 	PHP_UV_DEBUG_PRINT("fs_event_cb: %s, %d\n", filename, status);
 
+	MAKE_STD_ZVAL(rsc);
 	MAKE_STD_ZVAL(name);
 	MAKE_STD_ZVAL(ev);
 	MAKE_STD_ZVAL(stat);
@@ -1077,18 +1082,24 @@ static void php_uv_fs_event_cb(uv_fs_event_t* req, const char* filename, int eve
 	}
 	ZVAL_LONG(ev, events);
 	ZVAL_LONG(stat, status);
+	ZVAL_RESOURCE(rsc, uv->resource_id);
+	zend_list_addref(uv->resource_id);
 	
-	params[0] = &name;
-	params[1] = &ev;
-	params[2] = &stat;
+	params[0] = &rsc;
+	params[1] = &name;
+	params[2] = &ev;
+	params[3] = &stat;
 
-	php_uv_do_callback(&retval_ptr, uv->fs_event_cb, params, 3 TSRMLS_CC);
+	php_uv_do_callback(&retval_ptr, uv->fs_event_cb, params, 4 TSRMLS_CC);
+
 	if (retval_ptr != NULL) {
 		zval_ptr_dtor(&retval_ptr);
 	}
+
 	zval_ptr_dtor(params[0]);
 	zval_ptr_dtor(params[1]);
 	zval_ptr_dtor(params[2]);
+	zval_ptr_dtor(params[3]);
 	PHP_UV_DEBUG_RESOURCE_REFCOUNT(uv_fs_event_cb, uv->resource_id);
 }
 
@@ -1302,6 +1313,9 @@ static inline uv_stream_t* php_uv_get_current_stream(php_uv_t *uv)
 		break;
 		case IS_UV_CHECK:
 			stream = (uv_stream_t*)&uv->uv.check;
+		break;
+		case IS_UV_FS_EVENT:
+			stream = (uv_stream_t*)&uv->uv.fs_event;
 		break;
 		default: {
 			TSRMLS_FETCH();
@@ -2191,7 +2205,7 @@ PHP_FUNCTION(uv_tcp_bind)
 	
 	ZEND_FETCH_RESOURCE(uv, php_uv_t *, &resource, -1, PHP_UV_RESOURCE_NAME, uv_resource_handle);
 	ZEND_FETCH_RESOURCE(addr, php_uv_sockaddr_t *, &address, -1, PHP_UV_SOCKADDR_RESOURCE_NAME, uv_sockaddr_handle);
-\	
+
 	r = uv_tcp_bind((uv_tcp_t*)&uv->uv.tcp, addr->addr.ipv4);
 	if (r) {
 		php_error_docref(NULL TSRMLS_CC, E_ERROR, "bind failed");
@@ -5106,12 +5120,13 @@ PHP_FUNCTION(uv_fs_event_init)
 
 	PHP_UV_INIT_UV(uv, IS_UV_FS_EVENT);
 	PHP_UV_FETCH_UV_DEFAULT_LOOP(loop, zloop);
-
+	PHP_UV_LIST_INSERT(uv, uv_resource_handle);
+	
 	uv->fs_event_cb = callback;
 	Z_ADDREF_P(callback);
 	uv->uv.fs_event.data = uv;
 
-	error = uv_fs_event_init(loop, (uv_fs_event_t*)&uv->uv.fs_event, path, php_uv_fs_event_cb, flags); \
+	error = uv_fs_event_init(loop, (uv_fs_event_t*)&uv->uv.fs_event, path, php_uv_fs_event_cb, flags);
 	if (error) {
 		php_error_docref(NULL TSRMLS_CC, E_ERROR, "uv_fs_event_init failed"); \
 		return;
