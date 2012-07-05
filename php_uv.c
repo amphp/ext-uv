@@ -54,6 +54,7 @@
 
 #define PHP_UV_INIT_ZVALS(uv) \
 	{ \
+		uv->in_free     = 0;\
 		uv->address     = NULL; \
 		uv->listen_cb   = NULL; \
 		uv->read_cb     = NULL; \
@@ -1076,7 +1077,7 @@ static void php_uv_fs_cb(uv_fs_t* req)
 
 static void php_uv_fs_event_cb(uv_fs_event_t* req, const char* filename, int events, int status)
 {
-	zval **params[3];
+	zval **params[4];
 	zval *name,*ev,*stat,*rsc,*retval_ptr = NULL;
 	php_uv_t *uv = (php_uv_t*)req->data;
 	TSRMLS_FETCH_FROM_CTX(uv->thread_ctx);
@@ -1088,7 +1089,7 @@ static void php_uv_fs_event_cb(uv_fs_event_t* req, const char* filename, int eve
 	MAKE_STD_ZVAL(ev);
 	MAKE_STD_ZVAL(stat);
 	if (filename) {
-		ZVAL_STRING(name,filename,1);
+		ZVAL_STRING(name, filename, 1);
 	} else {
 		ZVAL_NULL(name);
 	}
