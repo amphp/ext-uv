@@ -347,11 +347,20 @@ void static destruct_uv_ares(zend_rsrc_list_entry *rsrc TSRMLS_DC)
 void static destruct_uv(zend_rsrc_list_entry *rsrc TSRMLS_DC)
 {
 	int base_id = -1;
-	php_uv_t *obj = (php_uv_t *)rsrc->ptr;
+	php_uv_t *obj = NULL;
+
+	if (rsrc->ptr == NULL) {
+		return;
+	}
+	
+	obj = (php_uv_t *)rsrc->ptr;
+	if (obj == NULL) {
+		return;
+	}
 
 	PHP_UV_DEBUG_PRINT("# will be free: (resource_id: %d)\n", obj->resource_id);
 	
-	if (obj->in_free == 1) {
+	if (obj->in_free > 0) {
 		PHP_UV_DEBUG_PRINT("# resource_id: %d is freeing. prevent double free.\n", obj->resource_id);
 		return;
 	}
@@ -359,106 +368,107 @@ void static destruct_uv(zend_rsrc_list_entry *rsrc TSRMLS_DC)
 	obj->in_free = 1;
 
 	if (obj->address) {
-		//fprintf(stderr, "address: %d\n", Z_REFCOUNT_P(obj->read_cb));
+		PHP_UV_DEBUG_PRINT("zval_ptr_dtor: address\n");
 		zval_ptr_dtor(&obj->address);
 		obj->address = NULL;
 	}
 	if (obj->read_cb) {
-		//fprintf(stderr, "readcb: %d\n", Z_REFCOUNT_P(obj->read_cb));
+		PHP_UV_DEBUG_PRINT("zval_ptr_dtor: read_cb\n");
 		zval_ptr_dtor(&obj->read_cb);
 		obj->read_cb = NULL;
 	}
 	if (obj->read2_cb) {
+		PHP_UV_DEBUG_PRINT("zval_ptr_dtor: read2_cb\n");
 		zval_ptr_dtor(&obj->read2_cb);
 		obj->read2_cb = NULL;
 	}
 	if (obj->write_cb) {
-		//fprintf(stderr, "writecb: %d\n", Z_REFCOUNT_P(obj->write_cb));
+		PHP_UV_DEBUG_PRINT("zval_ptr_dtor: write_cb\n");
 		zval_ptr_dtor(&obj->write_cb);
 		obj->write_cb = NULL;
 	}
 	if (obj->shutdown_cb) {
-		//fprintf(stderr, "closecb: %d\n", Z_REFCOUNT_P(obj->close_cb));
+		PHP_UV_DEBUG_PRINT("zval_ptr_dtor: shutdown_cb\n");
 		zval_ptr_dtor(&obj->shutdown_cb);
 		obj->shutdown_cb = NULL;
 	}
 	if (obj->close_cb) {
-		//fprintf(stderr, "closecb: %d\n", Z_REFCOUNT_P(obj->close_cb));
+		PHP_UV_DEBUG_PRINT("zval_ptr_dtor: close_cb\n");
 		zval_ptr_dtor(&obj->close_cb);
 		obj->close_cb = NULL;
 	}
 	if (obj->listen_cb) {
-		//fprintf(stderr, "listen_cb: %d\n", Z_REFCOUNT_P(obj->listen_cb));
+		PHP_UV_DEBUG_PRINT("zval_ptr_dtor: listen_cb\n");
 		zval_ptr_dtor(&obj->listen_cb);
 		obj->listen_cb = NULL;
 	}
 	if (obj->idle_cb) {
-		//fprintf(stderr, "idle_cb: %d\n", Z_REFCOUNT_P(obj->listen_cb));
+		PHP_UV_DEBUG_PRINT("zval_ptr_dtor: idle_cb\n");
 		zval_ptr_dtor(&obj->idle_cb);
 		obj->idle_cb = NULL;
 	}
 	if (obj->connect_cb) {
-		//fprintf(stderr, "connect_cb: %d\n", Z_REFCOUNT_P(obj->listen_cb));
+		PHP_UV_DEBUG_PRINT("zval_ptr_dtor: connect_cb\n");
 		zval_ptr_dtor(&obj->connect_cb);
 		obj->connect_cb = NULL;
 	}
 	if (obj->udp_recv_cb) {
-		//fprintf(stderr, "udp_recv_cb: %d\n", Z_REFCOUNT_P(obj->listen_cb));
+		PHP_UV_DEBUG_PRINT("zval_ptr_dtor: udp_recb_cb\n");
 		zval_ptr_dtor(&obj->udp_recv_cb);
 		obj->udp_recv_cb = NULL;
 	}
 	if (obj->udp_send_cb) {
-		//fprintf(stderr, "udp_send_cb: %d\n", Z_REFCOUNT_P(obj->listen_cb));
+		PHP_UV_DEBUG_PRINT("zval_ptr_dtor: udp_send_cb\n");
 		zval_ptr_dtor(&obj->udp_send_cb);
 		obj->udp_send_cb = NULL;
 	}
 	if (obj->pipe_connect_cb) {
-		//fprintf(stderr, "udp_send_cb: %d\n", Z_REFCOUNT_P(obj->listen_cb));
+		PHP_UV_DEBUG_PRINT("zval_ptr_dtor: pipe_connect_cb\n");
 		zval_ptr_dtor(&obj->pipe_connect_cb);
 		obj->pipe_connect_cb = NULL;
 	}
 	if (obj->proc_close_cb) {
-		//fprintf(stderr, "uv_spawn: %d\n", Z_REFCOUNT_P(obj->proc_close_cb));
+		PHP_UV_DEBUG_PRINT("zval_ptr_dtor: proc_close_cb\n");
 		zval_ptr_dtor(&obj->proc_close_cb);
 		obj->proc_close_cb = NULL;
 	}
 	if (obj->prepare_cb) {
-		//fprintf(stderr, "uv_prepare: %d\n", Z_REFCOUNT_P(obj->prepare_cb));
+		PHP_UV_DEBUG_PRINT("zval_ptr_dtor: prepare_cb\n");
 		zval_ptr_dtor(&obj->prepare_cb);
 		obj->prepare_cb = NULL;
 	}
 	if (obj->check_cb) {
-		//fprintf(stderr, "uv_prepare: %d\n", Z_REFCOUNT_P(obj->prepare_cb));
+		PHP_UV_DEBUG_PRINT("zval_ptr_dtor: check_cb\n");
 		zval_ptr_dtor(&obj->check_cb);
 		obj->check_cb = NULL;
 	}
 	if (obj->async_cb) {
-		//fprintf(stderr, "uv_async: %d\n", Z_REFCOUNT_P(obj->async_cb));
+		PHP_UV_DEBUG_PRINT("zval_ptr_dtor: async_cb\n");
 		zval_ptr_dtor(&obj->async_cb);
 		obj->async_cb = NULL;
 	}
 	if (obj->work_cb) {
-		//fprintf(stderr, "uv_async: %d\n", Z_REFCOUNT_P(obj->async_cb));
+		PHP_UV_DEBUG_PRINT("zval_ptr_dtor: work_cb\n");
 		zval_ptr_dtor(&obj->work_cb);
 		obj->work_cb = NULL;
 	}
 	if (obj->after_work_cb) {
-		//fprintf(stderr, "uv_async: %d\n", Z_REFCOUNT_P(obj->async_cb));
+		PHP_UV_DEBUG_PRINT("zval_ptr_dtor: after_work_cb\n");
 		zval_ptr_dtor(&obj->after_work_cb);
 		obj->after_work_cb = NULL;
 	}
 	if (obj->fs_cb) {
-		//fprintf(stderr, "uv_fs: %d\n", Z_REFCOUNT_P(obj->fs_cb));
+		PHP_UV_DEBUG_PRINT("zval_ptr_dtor: fs_cb\n");
 		zval_ptr_dtor(&obj->fs_cb);
 		obj->fs_cb = NULL;
 	}
 	if (obj->getaddr_cb) {
-		//fprintf(stderr, "uv_fs: %d\n", Z_REFCOUNT_P(obj->fs_cb));
+		PHP_UV_DEBUG_PRINT("zval_ptr_dtor: getaddr_cb\n");
 		zval_ptr_dtor(&obj->getaddr_cb);
 		obj->getaddr_cb = NULL;
 	}
 	if (obj->timer_cb) {
-		//fprintf(stderr, "uv_timer: %d\n", Z_REFCOUNT_P(obj->timer_cb));
+		PHP_UV_DEBUG_PRINT("zval_ptr_dtor: timer_cb\n");
 		zval_ptr_dtor(&obj->timer_cb);
 		obj->timer_cb = NULL;
 	}
@@ -471,6 +481,7 @@ void static destruct_uv(zend_rsrc_list_entry *rsrc TSRMLS_DC)
 	if (obj != NULL) {
 		efree(obj);
 		obj = NULL;
+		rsrc->ptr = NULL;
 	}
 }
 
@@ -930,7 +941,7 @@ static void php_uv_fs_cb(uv_fs_t* req)
 	int argc = 2;
 	TSRMLS_FETCH_FROM_CTX(uv->thread_ctx);
 
-	PHP_UV_DEBUG_PRINT("fs_cb\n");
+	PHP_UV_DEBUG_PRINT("# php_uv_fs_cb %d\n", uv->resource_id);
 
 	MAKE_STD_ZVAL(result);
 	ZVAL_LONG(result, uv->uv.fs.result);
@@ -1046,6 +1057,7 @@ static void php_uv_fs_cb(uv_fs_t* req)
 	}
 
 	php_uv_do_callback(&retval_ptr, uv->fs_cb, params, argc TSRMLS_CC);
+	PHP_UV_DEBUG_RESOURCE_REFCOUNT(uv_fs_cb, uv->resource_id);
 	
 	if (argc == 2) {
 		zval_ptr_dtor(params[1]);
@@ -1058,8 +1070,8 @@ static void php_uv_fs_cb(uv_fs_t* req)
 		zval_ptr_dtor(&retval_ptr);
 	}
 	zval_ptr_dtor(&result);
+
 	uv_fs_req_cleanup(req);
-	PHP_UV_DEBUG_RESOURCE_REFCOUNT(uv_fs_cb, uv->resource_id);
 }
 
 static void php_uv_fs_event_cb(uv_fs_event_t* req, const char* filename, int events, int status)
@@ -1096,11 +1108,11 @@ static void php_uv_fs_event_cb(uv_fs_event_t* req, const char* filename, int eve
 		zval_ptr_dtor(&retval_ptr);
 	}
 
+	PHP_UV_DEBUG_RESOURCE_REFCOUNT(uv_fs_event_cb, uv->resource_id);
 	zval_ptr_dtor(params[0]);
 	zval_ptr_dtor(params[1]);
 	zval_ptr_dtor(params[2]);
 	zval_ptr_dtor(params[3]);
-	PHP_UV_DEBUG_RESOURCE_REFCOUNT(uv_fs_event_cb, uv->resource_id);
 }
 
 
