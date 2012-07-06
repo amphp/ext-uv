@@ -1,5 +1,5 @@
 --TEST--
-Check for ares_gethostbyname
+Check for ares_getaddrinfo
 --FILE--
 <?php
 uv_getaddrinfo(uv_default_loop(),function($status,$names){
