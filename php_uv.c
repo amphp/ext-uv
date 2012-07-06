@@ -1012,9 +1012,9 @@ static void php_uv_fs_cb(uv_fs_t* req)
 		}
 		case UV_FS_READ:
 		{
+			zval *nread,*buffer;
 			argc = 3;
-			zval *buffer;
-			zval *nread;
+			
 			MAKE_STD_ZVAL(buffer);
 			MAKE_STD_ZVAL(nread);
 			
