@@ -5615,13 +5615,17 @@ static zend_function_entry uv_functions[] = {
 PHP_MINFO_FUNCTION(uv)
 {
 	char uv_version[20];
+	char http_parser_version[20];
+
 	sprintf(uv_version, "%d.%d",UV_VERSION_MAJOR, UV_VERSION_MINOR);
+	sprintf(http_parser_version, "%d.%d",HTTP_PARSER_VERSION_MAJOR, HTTP_PARSER_VERSION_MINOR);
 	
 	php_printf("PHP libuv Extension\n");
 	php_info_print_table_start();
 	php_info_print_table_header(2,"libuv Support",  "enabled");
 	php_info_print_table_row(2,"Version", PHP_UV_EXTVER);
 	php_info_print_table_row(2,"bundled libuv Version", uv_version);
+	php_info_print_table_row(2,"bundled http-parser Version", http_parser_version);
 	php_info_print_table_end();
 }
 
