@@ -1344,17 +1344,17 @@ void static destruct_httpparser(zend_rsrc_list_entry *rsrc TSRMLS_DC)
 }
 
 /*  http parser callbacks */
-int on_message_begin(http_parser *p)
+static int on_message_begin(http_parser *p)
 {
 	return 0;
 }
 
-int on_headers_complete(http_parser *p)
+static int on_headers_complete(http_parser *p)
 {
 	return 0;
 }
 
-int on_message_complete(http_parser *p)
+static int on_message_complete(http_parser *p)
 {
 	php_http_parser_context *result = p->data;
 	result->finished = 1;
@@ -1369,7 +1369,7 @@ int on_message_complete(http_parser *p)
 		add_assoc_stringl(data, #name, (char*)name, length, 1); \
 	} 
 
-int on_url_cb(http_parser *p, const char *at, size_t len)
+static int on_url_cb(http_parser *p, const char *at, size_t len)
 {
 	php_http_parser_context *result = p->data;
 	zval *data = result->data;
@@ -1388,7 +1388,7 @@ int on_url_cb(http_parser *p, const char *at, size_t len)
 	return 0;
 }
 
-int header_field_cb(http_parser *p, const char *at, size_t len)
+static int header_field_cb(http_parser *p, const char *at, size_t len)
 {
 	php_http_parser_context *result = p->data;
 	/* TODO: */
@@ -1397,7 +1397,7 @@ int header_field_cb(http_parser *p, const char *at, size_t len)
 	return 0;
 }
 
-int header_value_cb(http_parser *p, const char *at, size_t len)
+static int header_value_cb(http_parser *p, const char *at, size_t len)
 {
 	php_http_parser_context *result = p->data;
 	zval *data = result->headers;
@@ -1409,7 +1409,7 @@ int header_value_cb(http_parser *p, const char *at, size_t len)
 	return 0;
 }
 
-int on_body_cb(http_parser *p, const char *at, size_t len)
+static int on_body_cb(http_parser *p, const char *at, size_t len)
 {
 	php_http_parser_context *result = p->data;
 	zval *data = result->headers;
@@ -1502,11 +1502,12 @@ static void php_uv_socket_bind(int ip_type, INTERNAL_FUNCTION_PARAMETERS)
 PHP_MINIT_FUNCTION(uv)
 {
 	php_uv_init(TSRMLS_C);
-	uv_resource_handle = zend_register_list_destructors_ex(destruct_uv, NULL, PHP_UV_RESOURCE_NAME, module_number);
-	uv_ares_handle     = zend_register_list_destructors_ex(destruct_uv_ares, NULL, PHP_UV_ARES_RESOURCE_NAME, module_number);
-	uv_loop_handle     = zend_register_list_destructors_ex(destruct_uv_loop, NULL, PHP_UV_LOOP_RESOURCE_NAME, module_number);
-	uv_sockaddr_handle = zend_register_list_destructors_ex(destruct_uv_sockaddr, NULL, PHP_UV_SOCKADDR_RESOURCE_NAME, module_number);
-	uv_lock_handle   = zend_register_list_destructors_ex(destruct_uv_lock, NULL, PHP_UV_LOCK_RESOURCE_NAME, module_number);
+
+	uv_resource_handle   = zend_register_list_destructors_ex(destruct_uv, NULL, PHP_UV_RESOURCE_NAME, module_number);
+	uv_ares_handle       = zend_register_list_destructors_ex(destruct_uv_ares, NULL, PHP_UV_ARES_RESOURCE_NAME, module_number);
+	uv_loop_handle       = zend_register_list_destructors_ex(destruct_uv_loop, NULL, PHP_UV_LOOP_RESOURCE_NAME, module_number);
+	uv_sockaddr_handle   = zend_register_list_destructors_ex(destruct_uv_sockaddr, NULL, PHP_UV_SOCKADDR_RESOURCE_NAME, module_number);
+	uv_lock_handle       = zend_register_list_destructors_ex(destruct_uv_lock, NULL, PHP_UV_LOCK_RESOURCE_NAME, module_number);
 	uv_httpparser_handle = zend_register_list_destructors_ex(destruct_httpparser, NULL, PHP_UV_HTTPPARSER_RESOURCE_NAME, module_number);
 
 	return SUCCESS;
@@ -1517,7 +1518,6 @@ PHP_RSHUTDOWN_FUNCTION(uv)
 	php_uv_ares_destroy();
 	return SUCCESS;
 }
-
 
 ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_run_once, 0, 0, 1)
 	ZEND_ARG_INFO(0, loop)
@@ -1775,7 +1775,6 @@ ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_spawn, 0, 0, 5)
 	ZEND_ARG_INFO(0, callback)
 ZEND_END_ARG_INFO()
 
-
 ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_kill, 0, 0, 2)
 	ZEND_ARG_INFO(0, pid)
 	ZEND_ARG_INFO(0, signal)
@@ -1785,7 +1784,6 @@ ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_process_kill, 0, 0, 2)
 	ZEND_ARG_INFO(0, process)
 	ZEND_ARG_INFO(0, signal)
 ZEND_END_ARG_INFO()
-
 
 ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_chdir, 0, 0, 1)
 	ZEND_ARG_INFO(0, dir)
@@ -2673,7 +2671,6 @@ PHP_FUNCTION(uv_timer_init)
 /* {{{ */
 PHP_FUNCTION(uv_timer_start)
 {
-//int uv_timer_start(uv_timer_t* handle, uv_timer_cb timer_cb, int64_t timeout,int64_t repeat) {
 	zval *timer, *callback;
 	php_uv_t *uv;
 	long timeout, repeat = 0;
@@ -3084,6 +3081,11 @@ PHP_FUNCTION(uv_udp_set_multicast_ttl)
 	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
 		"rl",&client, &ttl) == FAILURE) {
 		return;
+	}
+	
+	if (ttl > 255) {
+		php_error_docref(NULL TSRMLS_CC, E_NOTICE, "uv_udp_set_muticast_ttl: ttl parameter expected less than 255.");
+		ttl = 255;
 	}
 
 	ZEND_FETCH_RESOURCE(uv, php_uv_t *, &client, -1, PHP_UV_RESOURCE_NAME, uv_resource_handle);
