@@ -14,4 +14,4 @@ $b = function(){
 $queue = uv_queue_work($loop, $a, $b);
 uv_run();
 --EXPECT--
-[finished][queue]
+[queue][finished]
