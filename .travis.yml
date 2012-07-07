@@ -5,10 +5,13 @@ php:
   - 5.4
 
 before_script:
-    - cd libuv && make -s && cd ..
-    - phpize && ./configure && make && sudo make install
-    - echo "extension=uv.so" >> `php --ini | grep "Loaded Configuration" | sed -e "s|.*:\s*||"`
+  - cd libuv && make -s && cd ..
+  - phpize && ./configure && make && sudo make install
+  - echo "extension=uv.so" >> `php --ini | grep "Loaded Configuration" | sed -e "s|.*:\s*||"`
 
 email: false
 irc:
-  - "irc.freenode.net#php-uv"
+  channels:
+    - "irc.freenode.net#php-uv"
+  skip_join: true
+  use_notice: true 
