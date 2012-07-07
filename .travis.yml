@@ -9,9 +9,10 @@ before_script:
   - phpize && ./configure && make && sudo make install
   - echo "extension=uv.so" >> `php --ini | grep "Loaded Configuration" | sed -e "s|.*:\s*||"`
 
-email: false
-irc:
-  channels:
-    - "irc.freenode.org#php-uv"
-  skip_join: true
-  use_notice: true 
+notifications:
+  email: false
+  irc:
+    channels:
+      - "irc.freenode.org#php-uv"
+    skip_join: true
+    use_notice: true 
