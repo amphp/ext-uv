@@ -1424,6 +1424,35 @@ int on_body_cb(http_parser *p, const char *at, size_t len)
 }
 /* end of callback */
 
+static void php_uv_ip_common(int ip_type, INTERNAL_FUNCTION_PARAMETERS)
+{
+	int error = 0;
+	zval *address;
+	php_uv_sockaddr_t *addr;
+	char ip[INET6_ADDRSTRLEN];
+	
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
+		"z",&address) == FAILURE) {
+		return;
+	}
+	
+	ZEND_FETCH_RESOURCE(addr, php_uv_sockaddr_t *, &address, -1, PHP_UV_SOCKADDR_RESOURCE_NAME, uv_sockaddr_handle);
+	if (ip_type == 1) {
+		if (addr->is_ipv4 != 1) {
+			RETURN_FALSE;
+		}
+		error = uv_ip4_name(&addr->addr.ipv4, ip, INET6_ADDRSTRLEN);
+		RETVAL_STRING(ip,1);
+	} else if (ip_type == 2) {
+		if (addr->is_ipv4 == 1) {
+			RETURN_FALSE;
+		}
+		error = uv_ip6_name(&addr->addr.ipv6, ip, INET6_ADDRSTRLEN);
+		RETVAL_STRING(ip,1);
+	}
+}
+
+
 
 /* zend */
 
@@ -5325,54 +5354,22 @@ PHP_FUNCTION(uv_resident_set_memory)
 }
 /* }}} */
 
-/* {{{ */
+/* {{{ proto string uv_ip4_name(resource uv_sockaddr $address)
+*/
 PHP_FUNCTION(uv_ip4_name)
 {
-	int error = 0;
-	zval *address;
-	php_uv_sockaddr_t *addr;
-	char ip[INET6_ADDRSTRLEN];
-	
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
-		"z",&address) == FAILURE) {
-		return;
-	}
-	
-	ZEND_FETCH_RESOURCE(addr, php_uv_sockaddr_t *, &address, -1, PHP_UV_SOCKADDR_RESOURCE_NAME, uv_sockaddr_handle);
-
-	if (addr->is_ipv4 != 1) {
-		RETURN_FALSE;
-	}
-	
-	error = uv_ip4_name(&addr->addr.ipv4, ip, INET6_ADDRSTRLEN);
-	RETVAL_STRING(ip,1);
+	php_uv_ip_common(1, INTERNAL_FUNCTION_PARAM_PASSTHRU);
 }
 /* }}} */
 
-/* {{{ */
+/* {{{  proto string uv_ip6_name(resource uv_sockaddr $address)
+*/
 PHP_FUNCTION(uv_ip6_name)
 {
-	int error = 0;
-	zval *address;
-	php_uv_sockaddr_t *addr;
-	char ip[INET6_ADDRSTRLEN];
-	
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
-		"z",&address) == FAILURE) {
-		return;
-	}
-	
-	ZEND_FETCH_RESOURCE(addr, php_uv_sockaddr_t *, &address, -1, PHP_UV_SOCKADDR_RESOURCE_NAME, uv_sockaddr_handle);
-
-	if (addr->is_ipv4 == 1) {
-		RETURN_FALSE;
-	}
-	
-	
-	error = uv_ip6_name(&addr->addr.ipv6, ip, INET6_ADDRSTRLEN);
-	RETVAL_STRING(ip,1);
+	php_uv_ip_common(2, INTERNAL_FUNCTION_PARAM_PASSTHRU);
 }
 /* }}} */
+
 
 /* HTTP PARSER */
 ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_http_parser_init, 0, 0, 1)
