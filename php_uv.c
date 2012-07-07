@@ -925,8 +925,8 @@ static void php_uv_async_cb(uv_async_t* handle, int status)
 static void php_uv_work_cb(uv_work_t* req)
 {
 	zval *retval_ptr = NULL;
-	php_uv_t *uv;
-	TSRMLS_FETCH_FROM_CTX(uv->thread_ctx);
+	php_uv_t *uv = (php_uv_t*)req->data;
+	TSRMLS_FETCH_FROM_CTX(uv != NULL ? uv->thread_ctx : NULL);
 
 	uv = (php_uv_t*)req->data;
 
@@ -943,7 +943,7 @@ static void php_uv_after_work_cb(uv_work_t* req)
 {
 	zval *retval_ptr = NULL;
 	php_uv_t *uv = (php_uv_t*)req->data;
-	TSRMLS_FETCH_FROM_CTX(uv->thread_ctx);
+	TSRMLS_FETCH_FROM_CTX(uv != NULL ? uv->thread_ctx : NULL);
 
 	PHP_UV_DEBUG_PRINT("after_work_cb\n");
 
@@ -4389,7 +4389,7 @@ PHP_FUNCTION(uv_queue_work)
 	r = uv_queue_work(loop, (uv_work_t*)&uv->uv.work, php_uv_work_cb, php_uv_after_work_cb);
 
 	if (r) {
-		php_error_docref(NULL TSRMLS_CC, E_ERROR, "uv_async_init failed");
+		php_error_docref(NULL TSRMLS_CC, E_ERROR, "uv_queue_work failed");
 		return;
 	}
 	
@@ -4418,7 +4418,7 @@ PHP_FUNCTION(uv_fs_open)
 
 	uv = (php_uv_t *)emalloc(sizeof(php_uv_t));
 	if (!uv) {
-		php_error_docref(NULL TSRMLS_CC, E_ERROR, "uv_queue_work emalloc failed");
+		php_error_docref(NULL TSRMLS_CC, E_ERROR, "uv_fs_open emalloc failed");
 		return;
 	}
 	
@@ -4524,7 +4524,7 @@ PHP_FUNCTION(uv_fs_close)
 
 	uv = (php_uv_t *)emalloc(sizeof(php_uv_t));
 	if (!uv) {
-		php_error_docref(NULL TSRMLS_CC, E_ERROR, "uv_queue_work emalloc failed");
+		php_error_docref(NULL TSRMLS_CC, E_ERROR, "uv_fs_close emalloc failed");
 		return;
 	}
 	
