@@ -1496,6 +1496,35 @@ static void php_uv_socket_bind(int ip_type, INTERNAL_FUNCTION_PARAMETERS)
 	}
 }
 
+static void php_uv_socket_getname(int type, INTERNAL_FUNCTION_PARAMETERS)
+{
+	php_uv_t *uv;
+	zval *handle, *result;
+	int addr_len, error = 0;
+	struct sockaddr_storage addr;
+	addr_len = sizeof(struct sockaddr_storage);
+	
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
+		"z", &handle) == FAILURE) {
+		return;
+	}
+
+	ZEND_FETCH_RESOURCE(uv, php_uv_t*, &handle, -1, PHP_UV_RESOURCE_NAME, uv_resource_handle);
+	switch (type) {
+		case 1:
+			error  = uv_tcp_getsockname(&uv->uv.tcp, (struct sockaddr*)&addr, &addr_len);
+			break;
+		case 2:
+			error  = uv_tcp_getpeername(&uv->uv.tcp, (struct sockaddr*)&addr, &addr_len);
+			break;
+		case 3:
+			error  = uv_udp_getsockname(&uv->uv.udp, (struct sockaddr*)&addr, &addr_len);
+			break;
+	}
+	
+	result = php_uv_address_to_zval((struct sockaddr*)&addr);
+	RETURN_ZVAL(result, 0, 1);
+}
 
 /* zend */
 
@@ -5261,66 +5290,21 @@ PHP_FUNCTION(uv_tcp_simultaneous_accepts)
 /* {{{ */
 PHP_FUNCTION(uv_tcp_getsockname)
 {
-	php_uv_t *uv;
-	zval *handle, *result;
-	int addr_len, error = 0;
-	struct sockaddr_storage addr;
-	addr_len = sizeof(struct sockaddr_storage);
-	
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
-		"z", &handle) == FAILURE) {
-		return;
-	}
-
-	ZEND_FETCH_RESOURCE(uv, php_uv_t*, &handle, -1, PHP_UV_RESOURCE_NAME, uv_resource_handle);
-	error  = uv_tcp_getsockname(&uv->uv.tcp, (struct sockaddr*)&addr, &addr_len);
-	
-	result = php_uv_address_to_zval((struct sockaddr*)&addr);
-	RETURN_ZVAL(result, 0, 1);
+	php_uv_socket_getname(1, INTERNAL_FUNCTION_PARAM_PASSTHRU);
 }
 /* }}} */
 
 /* {{{ */
 PHP_FUNCTION(uv_tcp_getpeername)
 {
-	php_uv_t *uv;
-	zval *handle, *result;
-	int addr_len, error = 0;
-	struct sockaddr_storage addr;
-	addr_len = sizeof(struct sockaddr_storage);
-	
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
-		"z", &handle) == FAILURE) {
-		return;
-	}
-
-	ZEND_FETCH_RESOURCE(uv, php_uv_t*, &handle, -1, PHP_UV_RESOURCE_NAME, uv_resource_handle);
-	error  = uv_tcp_getpeername(&uv->uv.tcp, (struct sockaddr*)&addr, &addr_len);
-	
-	result = php_uv_address_to_zval((struct sockaddr*)&addr);
-	RETURN_ZVAL(result, 0, 1);
+	php_uv_socket_getname(2, INTERNAL_FUNCTION_PARAM_PASSTHRU);
 }
 /* }}} */
 
 /* {{{ */
 PHP_FUNCTION(uv_udp_getsockname)
 {
-	php_uv_t *uv;
-	zval *handle, *result;
-	int addr_len, error = 0;
-	struct sockaddr_storage addr;
-	addr_len = sizeof(struct sockaddr_storage);
-	
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
-		"z", &handle) == FAILURE) {
-		return;
-	}
-
-	ZEND_FETCH_RESOURCE(uv, php_uv_t*, &handle, -1, PHP_UV_RESOURCE_NAME, uv_resource_handle);
-	error  = uv_udp_getsockname(&uv->uv.udp, (struct sockaddr*)&addr, &addr_len);
-	
-	result = php_uv_address_to_zval((struct sockaddr*)&addr);
-	RETURN_ZVAL(result, 0, 1);
+	php_uv_socket_getname(3, INTERNAL_FUNCTION_PARAM_PASSTHRU);
 }
 /* }}} */
 
