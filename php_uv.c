@@ -939,7 +939,7 @@ static void php_uv_fs_cb(uv_fs_t* req)
 {
 	zval **params[3], *result, *retval_ptr = NULL;
 	php_uv_t *uv = (php_uv_t*)req->data;
-	int argc = 2;
+	int argc = 2, i = 0;
 	TSRMLS_FETCH_FROM_CTX(uv->thread_ctx);
 
 	PHP_UV_DEBUG_PRINT("# php_uv_fs_cb %d\n", uv->resource_id);
@@ -1043,7 +1043,7 @@ static void php_uv_fs_cb(uv_fs_t* req)
 		case UV_FS_WRITE:
 		{
 			zval *res;
-			argc = 1;
+			argc = 2;
 			MAKE_STD_ZVAL(res);
 			ZVAL_LONG(res, uv->uv.fs.result);
 
@@ -1052,7 +1052,7 @@ static void php_uv_fs_cb(uv_fs_t* req)
 			break;
 		}
 		default: {
-			fprintf(stderr,"type; %d does not support yet.", uv->uv.fs.fs_type);
+			php_error_docref(NULL TSRMLS_CC, E_ERROR, "type; %d does not support yet.", uv->uv.fs.fs_type);
 			break;
 		}
 	}
@@ -1060,17 +1060,13 @@ static void php_uv_fs_cb(uv_fs_t* req)
 	php_uv_do_callback(&retval_ptr, uv->fs_cb, params, argc TSRMLS_CC);
 	PHP_UV_DEBUG_RESOURCE_REFCOUNT(uv_fs_cb, uv->resource_id);
 	
-	if (argc == 2) {
-		zval_ptr_dtor(params[1]);
-	} else if (argc == 3) {
-		zval_ptr_dtor(params[1]);
-		zval_ptr_dtor(params[2]);
-	}
-
 	if (retval_ptr != NULL) {
 		zval_ptr_dtor(&retval_ptr);
 	}
-	zval_ptr_dtor(&result);
+
+	for (i = 0; i < argc; i++) {
+		zval_ptr_dtor(params[i]);
+	}
 
 	uv_fs_req_cleanup(req);
 }
