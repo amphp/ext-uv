@@ -834,8 +834,8 @@ static void php_uv_read2_cb(uv_pipe_t* handle, ssize_t nread, uv_buf_t buf, uv_h
 static void php_uv_prepare_cb(uv_prepare_t* handle, int status)
 {
 	zval *retval_ptr = NULL;
-	zval **params[1];
-	zval *zstat;
+	zval **params[2];
+	zval *rsc, *zstat;
 	php_uv_t *uv = (php_uv_t*)handle->data;
 	TSRMLS_FETCH_FROM_CTX(uv->thread_ctx);
 
@@ -843,11 +843,17 @@ static void php_uv_prepare_cb(uv_prepare_t* handle, int status)
 
 	MAKE_STD_ZVAL(zstat);
 	ZVAL_LONG(zstat, status);
-
-	params[0] = &zstat;
 	
-	php_uv_do_callback(&retval_ptr, uv->prepare_cb, params, 1 TSRMLS_CC);
+	MAKE_STD_ZVAL(rsc);
+	ZVAL_RESOURCE(rsc, uv->resource_id);
+	zend_list_addref(uv->resource_id);
 
+	params[0] = &rsc;
+	params[1] = &zstat;
+	
+	php_uv_do_callback(&retval_ptr, uv->prepare_cb, params, 2 TSRMLS_CC);
+
+	zval_ptr_dtor(&rsc);
 	zval_ptr_dtor(&zstat);
 	if (retval_ptr != NULL) {
 		zval_ptr_dtor(&retval_ptr);
@@ -858,8 +864,8 @@ static void php_uv_prepare_cb(uv_prepare_t* handle, int status)
 static void php_uv_check_cb(uv_check_t* handle, int status)
 {
 	zval *retval_ptr = NULL;
-	zval **params[1];
-	zval *zstat;
+	zval **params[2];
+	zval *rsc, *zstat;
 	php_uv_t *uv = (php_uv_t*)handle->data;
 	TSRMLS_FETCH_FROM_CTX(uv->thread_ctx);
 
@@ -867,11 +873,17 @@ static void php_uv_check_cb(uv_check_t* handle, int status)
 
 	MAKE_STD_ZVAL(zstat);
 	ZVAL_LONG(zstat, status);
-
-	params[0] = &zstat;
 	
-	php_uv_do_callback(&retval_ptr, uv->check_cb, params, 1 TSRMLS_CC);
+	MAKE_STD_ZVAL(rsc);
+	ZVAL_RESOURCE(rsc, uv->resource_id);
+	zend_list_addref(uv->resource_id);
 
+	params[0] = &rsc;
+	params[1] = &zstat;
+	
+	php_uv_do_callback(&retval_ptr, uv->check_cb, params, 2 TSRMLS_CC);
+
+	zval_ptr_dtor(&rsc);
 	zval_ptr_dtor(&zstat);
 	if (retval_ptr != NULL) {
 		zval_ptr_dtor(&retval_ptr);
