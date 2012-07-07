@@ -8,10 +8,10 @@ uv_listen($tcp,100, function($server){
     uv_accept($server, $client);
     var_dump(uv_tcp_getsockname($server));
 
-    uv_read_start($client, function($socket, $nread, $buffer){
-	trigger_error("a", E_USER_ERROR);
+    uv_read_start($client, function($socket, $nread, $buffer) use ($server){
         var_dump($buffer);
         uv_close($socket);
+        uv_close($server);
     });
 });
 

@@ -1420,6 +1420,8 @@ int on_body_cb(http_parser *p, const char *at, size_t len)
 }
 /* end of callback */
 
+/* common functions */
+
 static void php_uv_ip_common(int ip_type, INTERNAL_FUNCTION_PARAMETERS)
 {
 	int error = 0;
@@ -1448,6 +1450,33 @@ static void php_uv_ip_common(int ip_type, INTERNAL_FUNCTION_PARAMETERS)
 	}
 }
 
+static void php_uv_socket_bind(int ip_type, INTERNAL_FUNCTION_PARAMETERS)
+{
+	zval *resource, *address;
+	php_uv_sockaddr_t *addr;
+	php_uv_t *uv;
+	int r;
+	
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
+		"zz",&resource, &address) == FAILURE) {
+		return;
+	}
+	
+	ZEND_FETCH_RESOURCE(uv, php_uv_t *, &resource, -1, PHP_UV_RESOURCE_NAME, uv_resource_handle);
+	ZEND_FETCH_RESOURCE(addr, php_uv_sockaddr_t *, &address, -1, PHP_UV_SOCKADDR_RESOURCE_NAME, uv_sockaddr_handle);
+
+	if (ip_type == 1) {
+		r = uv_tcp_bind((uv_tcp_t*)&uv->uv.tcp, addr->addr.ipv4);
+		if (r) {
+			php_error_docref(NULL TSRMLS_CC, E_ERROR, "bind failed");
+		}
+	} else if (ip_type == 2) {
+		r = uv_tcp_bind6((uv_tcp_t*)&uv->uv.tcp, addr->addr.ipv6);
+		if (r) {
+			php_error_docref(NULL TSRMLS_CC, E_ERROR, "bind failed");
+		}
+	}
+}
 
 
 /* zend */
@@ -2228,49 +2257,19 @@ PHP_FUNCTION(uv_now)
 /* }}} */
 
 
-/* {{{ */
+/* {{{ proto void uv_tcp_bind(resource $uv_sockaddr)
+*/
 PHP_FUNCTION(uv_tcp_bind)
 {
-	zval *resource, *address;
-	php_uv_sockaddr_t *addr;
-	php_uv_t *uv;
-	int r;
-	
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
-		"zz",&resource, &address) == FAILURE) {
-		return;
-	}
-	
-	ZEND_FETCH_RESOURCE(uv, php_uv_t *, &resource, -1, PHP_UV_RESOURCE_NAME, uv_resource_handle);
-	ZEND_FETCH_RESOURCE(addr, php_uv_sockaddr_t *, &address, -1, PHP_UV_SOCKADDR_RESOURCE_NAME, uv_sockaddr_handle);
-
-	r = uv_tcp_bind((uv_tcp_t*)&uv->uv.tcp, addr->addr.ipv4);
-	if (r) {
-		php_error_docref(NULL TSRMLS_CC, E_ERROR, "bind failed");
-	}
+	php_uv_socket_bind(1, INTERNAL_FUNCTION_PARAM_PASSTHRU);
 }
 /* }}} */
 
-/* {{{ */
+/* {{{ proto void uv_tcp_bind6(resource $uv_sockaddr)
+*/
 PHP_FUNCTION(uv_tcp_bind6)
 {
-	zval *resource, *address;
-	php_uv_sockaddr_t *addr;
-	php_uv_t *uv;
-	int r;
-	
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
-		"zz",&resource, &address) == FAILURE) {
-		return;
-	}
-	
-	ZEND_FETCH_RESOURCE(uv, php_uv_t *, &resource, -1, PHP_UV_RESOURCE_NAME, uv_resource_handle);
-	ZEND_FETCH_RESOURCE(addr, php_uv_sockaddr_t *, &address, -1, PHP_UV_SOCKADDR_RESOURCE_NAME, uv_sockaddr_handle);
-	
-	r = uv_tcp_bind6((uv_tcp_t*)&uv->uv.tcp, addr->addr.ipv6);
-	if (r) {
-		php_error_docref(NULL TSRMLS_CC, E_ERROR, "bind failed");
-	}
+	php_uv_socket_bind(2, INTERNAL_FUNCTION_PARAM_PASSTHRU);
 }
 /* }}} */
 
