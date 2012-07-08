@@ -3943,6 +3943,7 @@ PHP_FUNCTION(uv_rwlock_init)
 		ZEND_REGISTER_RESOURCE(return_value, lock, uv_lock_handle);
 		lock->type = IS_UV_RWLOCK;
 	} else {
+		efree(lock);
 		RETURN_FALSE;
 	}
 }
@@ -4078,6 +4079,7 @@ PHP_FUNCTION(uv_mutex_init)
 		ZEND_REGISTER_RESOURCE(return_value, mutex, uv_lock_handle);
 		mutex->type = IS_UV_MUTEX;
 	} else {
+		efree(mutex);
 		RETURN_FALSE;
 	}
 }
