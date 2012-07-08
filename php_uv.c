@@ -1543,6 +1543,37 @@ static void php_uv_socket_getname(int type, INTERNAL_FUNCTION_PARAMETERS)
 	RETURN_ZVAL(result, 0, 1);
 }
 
+static void php_uv_udp_send(int type, INTERNAL_FUNCTION_PARAMETERS)
+{
+	zval *z_cli,*z_addr, *callback;
+	char *data;
+	int data_len = 0;
+	php_uv_t *client;
+	send_req_t *w;
+	php_uv_sockaddr_t *addr;
+	
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
+		"zszz",&z_cli, &data, &data_len, &z_addr, &callback) == FAILURE) {
+		return;
+	}
+	
+	ZEND_FETCH_RESOURCE(client, php_uv_t *, &z_cli, -1, PHP_UV_RESOURCE_NAME, uv_resource_handle);
+	ZEND_FETCH_RESOURCE(addr, php_uv_sockaddr_t *, &z_addr, -1, PHP_UV_SOCKADDR_RESOURCE_NAME, uv_sockaddr_handle);
+
+	Z_ADDREF_P(callback);
+	client->udp_send_cb = callback;
+	zend_list_addref(client->resource_id);
+
+	w = emalloc(sizeof(send_req_t));
+	w->req.data = client;
+	w->buf = uv_buf_init(estrndup(data,data_len), data_len);
+	if (type == 1) {
+		uv_udp_send(&w->req, &client->uv.udp, &w->buf, 1, addr->addr.ipv4, php_uv_udp_send_cb);
+	} else if (type == 2) {
+		uv_udp_send6(&w->req, &client->uv.udp, &w->buf, 1, addr->addr.ipv6, php_uv_udp_send_cb);
+	}
+}
+
 /* zend */
 
 PHP_MINIT_FUNCTION(uv)
@@ -1782,6 +1813,13 @@ ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_udp_set_broadcast, 0, 0, 2)
 ZEND_END_ARG_INFO()
 
 ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_udp_send, 0, 0, 4)
+	ZEND_ARG_INFO(0, server)
+	ZEND_ARG_INFO(0, buffer)
+	ZEND_ARG_INFO(0, address)
+	ZEND_ARG_INFO(0, callback)
+ZEND_END_ARG_INFO()
+
+ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_udp_send6, 0, 0, 4)
 	ZEND_ARG_INFO(0, server)
 	ZEND_ARG_INFO(0, buffer)
 	ZEND_ARG_INFO(0, address)
@@ -3168,29 +3206,14 @@ PHP_FUNCTION(uv_udp_set_broadcast)
 /* {{{ */
 PHP_FUNCTION(uv_udp_send)
 {
-	zval *z_cli,*z_addr, *callback;
-	char *data;
-	int data_len = 0;
-	php_uv_t *client;
-	send_req_t *w;
-	php_uv_sockaddr_t *addr;
-	
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
-		"zszz",&z_cli, &data, &data_len, &z_addr, &callback) == FAILURE) {
-		return;
-	}
-	
-	ZEND_FETCH_RESOURCE(client, php_uv_t *, &z_cli, -1, PHP_UV_RESOURCE_NAME, uv_resource_handle);
-	ZEND_FETCH_RESOURCE(addr, php_uv_sockaddr_t *, &z_addr, -1, PHP_UV_SOCKADDR_RESOURCE_NAME, uv_sockaddr_handle);
+	php_uv_udp_send(1, INTERNAL_FUNCTION_PARAM_PASSTHRU);
+}
+/* }}} */
 
-	Z_ADDREF_P(callback);
-	client->udp_send_cb = callback;
-	zend_list_addref(client->resource_id);
-
-	w = emalloc(sizeof(send_req_t));
-	w->req.data = client;
-	w->buf = uv_buf_init(estrndup(data,data_len), data_len);
-	uv_udp_send(&w->req, &client->uv.udp, &w->buf, 1, addr->addr.ipv4, php_uv_udp_send_cb);
+/* {{{ */
+PHP_FUNCTION(uv_udp_send6)
+{
+	php_uv_udp_send(2, INTERNAL_FUNCTION_PARAM_PASSTHRU);
 }
 /* }}} */
 
@@ -5202,7 +5225,8 @@ PHP_FUNCTION(uv_fs_event_init)
 }
 /* }}} */
 
-/* {{{ */
+/* {{{ proto resource uv_tty_init(resource $loop, long $fd, long $readable)
+*/
 PHP_FUNCTION(uv_tty_init)
 {
 	int error;
@@ -5234,12 +5258,13 @@ PHP_FUNCTION(uv_tty_init)
 /* }}} */
 
 
-/* {{{ */
+/* {{{ proto long uv_tty_get_winsize(resource $tty, long &$width, ong &$height)
+*/
 PHP_FUNCTION(uv_tty_get_winsize)
 {
 	php_uv_t *uv;
 	zval *handle, *w, *h = NULL;
-	int error, width, height;
+	int error, width, height = 0;
 	
 	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
 		"zzz", &handle, &w, &h) == FAILURE) {
@@ -5257,13 +5282,13 @@ PHP_FUNCTION(uv_tty_get_winsize)
 /* }}} */
 
 
-/* {{{ */
+/* {{{ proto long uv_tty_set_mode(resource $tty, long $mode)
+*/
 PHP_FUNCTION(uv_tty_set_mode)
 {
 	php_uv_t *uv;
 	zval *handle;
-	long mode;
-	long error = 0;
+	long mode, error = 0;
 	
 	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
 		"zl", &handle, &mode) == FAILURE) {
@@ -5276,7 +5301,8 @@ PHP_FUNCTION(uv_tty_set_mode)
 }
 /* }}} */
 
-/* {{{ */
+/* {{{ proto void uv_tty_reset_mode(void)
+*/
 PHP_FUNCTION(uv_tty_reset_mode)
 {
 	uv_tty_reset_mode();
@@ -5289,8 +5315,7 @@ PHP_FUNCTION(uv_tcp_simultaneous_accepts)
 {
 	php_uv_t *uv;
 	zval *handle, *result;
-	long enable;
-	long error = 0;
+	long enable, error = 0;
 	
 	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
 		"zl", &handle, &enable) == FAILURE) {
@@ -5304,21 +5329,24 @@ PHP_FUNCTION(uv_tcp_simultaneous_accepts)
 /* }}} */
 #endif
 
-/* {{{ */
+/* {{{ proto string uv_tcp_getsockname(resource $uv_sockaddr)
+*/
 PHP_FUNCTION(uv_tcp_getsockname)
 {
 	php_uv_socket_getname(1, INTERNAL_FUNCTION_PARAM_PASSTHRU);
 }
 /* }}} */
 
-/* {{{ */
+/* {{{ proto string uv_tcp_getpeername(resource $uv_sockaddr)
+*/
 PHP_FUNCTION(uv_tcp_getpeername)
 {
 	php_uv_socket_getname(2, INTERNAL_FUNCTION_PARAM_PASSTHRU);
 }
 /* }}} */
 
-/* {{{ */
+/* {{{ proto string uv_udp_getsockname(resource $uv_sockaddr)
+*/
 PHP_FUNCTION(uv_udp_getsockname)
 {
 	php_uv_socket_getname(3, INTERNAL_FUNCTION_PARAM_PASSTHRU);
@@ -5326,7 +5354,8 @@ PHP_FUNCTION(uv_udp_getsockname)
 /* }}} */
 
 
-/* {{{ */
+/* {{{ proto long uv_resident_set_memory(void)
+*/
 PHP_FUNCTION(uv_resident_set_memory)
 {
 	size_t rss;
@@ -5489,6 +5518,7 @@ static zend_function_entry uv_functions[] = {
 	PHP_FE(uv_udp_set_multicast_loop,   arginfo_uv_udp_set_multicast_loop)
 	PHP_FE(uv_udp_set_multicast_ttl,    arginfo_uv_udp_set_multicast_ttl)
 	PHP_FE(uv_udp_send,                 arginfo_uv_udp_send)
+	PHP_FE(uv_udp_send6,                arginfo_uv_udp_send6)
 	PHP_FE(uv_udp_recv_start,           arginfo_uv_udp_recv_start)
 	PHP_FE(uv_udp_recv_stop,            arginfo_uv_udp_recv_stop)
 	PHP_FE(uv_udp_set_membership,       arginfo_uv_udp_set_membership)
