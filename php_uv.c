@@ -77,6 +77,7 @@
 		uv->after_work_cb = NULL; \
 		uv->fs_cb = NULL; \
 		uv->fs_event_cb = NULL; \
+		uv->fs_poll_cb  = NULL; \
 	}
 
 #if PHP_UV_DEBUG>=1
@@ -479,6 +480,11 @@ void static destruct_uv(zend_rsrc_list_entry *rsrc TSRMLS_DC)
 		PHP_UV_DEBUG_PRINT("zval_ptr_dtor: timer_cb\n");
 		zval_ptr_dtor(&obj->timer_cb);
 		obj->timer_cb = NULL;
+	}
+	if (obj->fs_poll_cb) {
+		PHP_UV_DEBUG_PRINT("zval_ptr_dtor: fs_poll_cb\n");
+		zval_ptr_dtor(&obj->fs_poll_cb);
+		obj->fs_poll_cb = NULL;
 	}
 
 	if (obj->resource_id) {
@@ -1136,6 +1142,60 @@ static void php_uv_fs_event_cb(uv_fs_event_t* req, const char* filename, int eve
 	zval_ptr_dtor(params[3]);
 }
 
+static void php_uv_statbuf_to_zval(zval *result, const uv_statbuf_t *stat)
+{
+	array_init(result);
+	
+	add_assoc_long_ex(result, "st_dev",     sizeof("st_dev"),     stat->st_dev);
+	add_assoc_long_ex(result, "st_ino",     sizeof("st_ino"),     stat->st_ino);
+	add_assoc_long_ex(result, "st_mode",    sizeof("st_mode"),    stat->st_mode);
+	add_assoc_long_ex(result, "st_nlink",   sizeof("st_nlink"),   stat->st_nlink);
+	add_assoc_long_ex(result, "st_uid",     sizeof("st_uid"),     stat->st_uid);
+	add_assoc_long_ex(result, "st_gid",     sizeof("st_gid"),     stat->st_gid);
+	add_assoc_long_ex(result, "st_rdev",    sizeof("st_rdev"),    stat->st_rdev);
+	add_assoc_long_ex(result, "st_size",    sizeof("st_size"),    stat->st_size);
+	add_assoc_long_ex(result, "st_blksize", sizeof("st_blksize"), stat->st_blksize);
+	add_assoc_long_ex(result, "st_blocks",  sizeof("st_blocks"),  stat->st_blocks);
+	add_assoc_long_ex(result, "st_atime",   sizeof("st_atime"),   stat->st_atime);
+	add_assoc_long_ex(result, "st_mtime",   sizeof("st_mtime"),   stat->st_mtime);
+	add_assoc_long_ex(result, "st_ctime",   sizeof("st_ctime"),   stat->st_ctime);
+}
+
+static void php_uv_fs_poll_cb(uv_fs_poll_t* handle, int status, const uv_statbuf_t* prev, const uv_statbuf_t* curr)
+{
+	zval **params[4], *retval_ptr, *rsc, *stat, *p, *c = NULL;
+	php_uv_t *uv = (php_uv_t*)handle->data;
+	TSRMLS_FETCH_FROM_CTX(uv->thread_ctx);
+	
+	MAKE_STD_ZVAL(rsc);
+	ZVAL_RESOURCE(rsc, uv->resource_id);
+	zend_list_addref(uv->resource_id);
+	
+	MAKE_STD_ZVAL(stat);
+	ZVAL_LONG(stat, status);
+	
+	MAKE_STD_ZVAL(p);
+	php_uv_statbuf_to_zval(p, prev);
+	MAKE_STD_ZVAL(c);
+	php_uv_statbuf_to_zval(c, curr);
+	
+	params[0] = &rsc;
+	params[1] = &stat;
+	params[2] = &p;
+	params[3] = &c;
+	
+	php_uv_do_callback(&retval_ptr, uv->fs_poll_cb, params, 4 TSRMLS_CC);
+	
+	zval_ptr_dtor(&rsc);
+	zval_ptr_dtor(&stat);
+	zval_ptr_dtor(&p);
+	zval_ptr_dtor(&c);
+	
+	if (retval_ptr != NULL) {
+		zval_ptr_dtor(&retval_ptr);
+	}
+}
+
 
 static void php_uv_udp_recv_cb(uv_udp_t* handle, ssize_t nread, uv_buf_t buf, struct sockaddr* addr, unsigned flags)
 {
@@ -1349,6 +1409,9 @@ static inline uv_stream_t* php_uv_get_current_stream(php_uv_t *uv)
 		break;
 		case IS_UV_FS_EVENT:
 			stream = (uv_stream_t*)&uv->uv.fs_event;
+		break;
+		case IS_UV_FS_POLL:
+			stream = (uv_stream_t*)&uv->uv.fs_poll;
 		break;
 		default: {
 			TSRMLS_FETCH();
@@ -5479,6 +5542,82 @@ PHP_FUNCTION(uv_ip6_name)
 }
 /* }}} */
 
+/* {{{ proto uv uv_fs_poll_init(void)
+*/
+PHP_FUNCTION(uv_fs_poll_init)
+{
+	zval *zloop = NULL;
+	uv_loop_t *loop;
+	php_uv_t *uv;
+	int error;
+	
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
+		"z", &zloop) == FAILURE) {
+		return;
+	}
+
+	PHP_UV_INIT_UV(uv, IS_UV_FS_POLL);
+	PHP_UV_FETCH_UV_DEFAULT_LOOP(loop, zloop);
+	
+	error = uv_fs_poll_init(loop, &uv->uv.fs_poll);
+	if (error) {
+		php_error_docref(NULL TSRMLS_CC, E_ERROR, "uv_fs_poll_init failed");
+		return;
+	}
+	
+	ZEND_REGISTER_RESOURCE(return_value, uv, uv_resource_handle);
+	uv->resource_id = Z_LVAL_P(return_value);
+}
+/* }}} */
+
+/* {{{ proto uv uv_fs_poll_start(void)
+*/
+PHP_FUNCTION(uv_fs_poll_start)
+{
+	zval *handle, *zloop, *callback = NULL;
+	php_uv_t *uv;
+	char *path;
+	unsigned long interval = 0;
+	int error, path_len = 0;
+	
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
+		"zzsl", &handle, &callback, &path, &path_len, &interval) == FAILURE) {
+		return;
+	}
+
+	ZEND_FETCH_RESOURCE(uv, php_uv_t *, &handle, -1, PHP_UV_RESOURCE_NAME, uv_resource_handle);
+
+	Z_ADDREF_P(callback);
+	uv->fs_poll_cb = callback;
+	uv->uv.fs_poll.data = uv;
+	zend_list_addref(uv->resource_id);
+	
+	error = uv_fs_poll_start(&uv->uv.fs_poll, php_uv_fs_poll_cb, (const char*)path, interval);
+	if (error) {
+		php_error_docref(NULL TSRMLS_CC, E_ERROR, "uv_fs_poll_start failed");
+		return;
+	}
+}
+/* }}} */
+
+/* {{{ void uv_fs_poll_stop(resource $poll)
+*/
+PHP_FUNCTION(uv_fs_poll_stop)
+{
+	zval *poll;
+	php_uv_t *uv;
+	
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
+		"r", &poll) == FAILURE) {
+		return;
+	}
+
+	ZEND_FETCH_RESOURCE(uv, php_uv_t *, &poll, -1, PHP_UV_RESOURCE_NAME, uv_resource_handle);
+	uv_fs_poll_stop(&uv->uv.fs_poll);
+	PHP_UV_DEBUG_RESOURCE_REFCOUNT(uv_fs_poll_stop, uv->resource_id);
+}
+/* }}} */
+
 
 /* HTTP PARSER */
 ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_http_parser_init, 0, 0, 1)
@@ -5620,6 +5759,10 @@ static zend_function_entry uv_functions[] = {
 	PHP_FE(uv_udp_recv_start,           arginfo_uv_udp_recv_start)
 	PHP_FE(uv_udp_recv_stop,            arginfo_uv_udp_recv_stop)
 	PHP_FE(uv_udp_set_membership,       arginfo_uv_udp_set_membership)
+	/* poll */
+	PHP_FE(uv_fs_poll_init,             NULL)
+	PHP_FE(uv_fs_poll_start,            NULL)
+	PHP_FE(uv_fs_poll_stop,            NULL)
 	/* other network functions */
 	PHP_FE(uv_tcp_getsockname,          arginfo_uv_tcp_getsockname)
 	PHP_FE(uv_tcp_getpeername,          arginfo_uv_tcp_getpeername)

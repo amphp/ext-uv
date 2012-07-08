@@ -54,7 +54,8 @@ enum php_uv_resource_type{
 	IS_UV_FS       = 14,
 	IS_UV_FS_EVENT = 15,
 	IS_UV_TTY      = 16,
-	IS_UV_MAX      = 16
+	IS_UV_FS_POLL  = 17,
+	IS_UV_MAX      = 17
 };
 
 typedef struct {
@@ -82,6 +83,7 @@ typedef struct {
 		uv_fs_t fs;
 		uv_fs_event_t fs_event;
 		uv_tty_t tty;
+		uv_fs_poll_t fs_poll;
 	} uv;
 	char *buffer;
 	zval *address;
@@ -106,6 +108,7 @@ typedef struct {
 	zval *after_work_cb;
 	zval *fs_cb;
 	zval *fs_event_cb;
+	zval *fs_poll_cb;
 } php_uv_t;
 
 typedef struct {

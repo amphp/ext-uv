@@ -36,6 +36,8 @@ static int php_uv_class_init(TSRMLS_D)
 
 	zend_declare_class_constant_long(uv_class_entry, "CHANGE",  sizeof("CHANGE")-1, UV_CHANGE TSRMLS_CC);
 	zend_declare_class_constant_long(uv_class_entry, "RENAME",  sizeof("RENAME")-1, UV_RENAME TSRMLS_CC);
+	zend_declare_class_constant_long(uv_class_entry, "READABLE",sizeof("READABLE"), UV_READABLE TSRMLS_CC);
+	zend_declare_class_constant_long(uv_class_entry, "WRITABLE",sizeof("WRITABLE"), UV_WRITABLE TSRMLS_CC);
 
 	zend_declare_class_constant_long(uv_class_entry, "O_RDONLY",  sizeof("O_RDONLY")-1, O_RDONLY TSRMLS_CC);
 	zend_declare_class_constant_long(uv_class_entry, "O_WRONLY", sizeof("O_WRONLY")-1, O_WRONLY TSRMLS_CC);
