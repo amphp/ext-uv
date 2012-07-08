@@ -2112,6 +2112,18 @@ ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_sem_init, 0, 0, 1)
 	ZEND_ARG_INFO(0, val)
 ZEND_END_ARG_INFO()
 
+ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_sem_post, 0, 0, 1)
+	ZEND_ARG_INFO(0, resource)
+ZEND_END_ARG_INFO()
+
+ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_sem_wait, 0, 0, 1)
+	ZEND_ARG_INFO(0, resource)
+ZEND_END_ARG_INFO()
+
+ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_sem_trywait, 0, 0, 1)
+	ZEND_ARG_INFO(0, resource)
+ZEND_END_ARG_INFO()
+
 ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_prepare_init, 0, 0, 1)
 	ZEND_ARG_INFO(0, loop)
 ZEND_END_ARG_INFO()
@@ -4170,6 +4182,55 @@ PHP_FUNCTION(uv_sem_init)
 }
 /* }}} */
 
+/* {{{ void uv_sem_post(uv_lock $sem) */
+PHP_FUNCTION(uv_sem_post)
+{
+	php_uv_lock_t *lock;
+	zval *handle;
+	
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
+		"z", &handle) == FAILURE) {
+		return;
+	}
+
+	ZEND_FETCH_RESOURCE(lock, php_uv_lock_t *, &handle, -1, PHP_UV_LOCK_RESOURCE_NAME, uv_lock_handle);
+	uv_sem_post(&lock->lock.semaphore);
+}
+/* }}} */
+
+/* {{{ void uv_sem_wait(uv_lock $sem) */
+PHP_FUNCTION(uv_sem_wait)
+{
+	php_uv_lock_t *lock;
+	zval *handle;
+	
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
+		"z", &handle) == FAILURE) {
+		return;
+	}
+
+	ZEND_FETCH_RESOURCE(lock, php_uv_lock_t *, &handle, -1, PHP_UV_LOCK_RESOURCE_NAME, uv_lock_handle);
+	uv_sem_wait(&lock->lock.semaphore);
+}
+/* }}} */
+
+/* {{{ void uv_sem_trywait(uv_lock $sem) */
+PHP_FUNCTION(uv_sem_trywait)
+{
+	php_uv_lock_t *lock;
+	zval *handle;
+	int error = 0;
+	
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
+		"z", &handle) == FAILURE) {
+		return;
+	}
+
+	ZEND_FETCH_RESOURCE(lock, php_uv_lock_t *, &handle, -1, PHP_UV_LOCK_RESOURCE_NAME, uv_lock_handle);
+	error = uv_sem_trywait(&lock->lock.semaphore);
+	RETURN_LONG(error);
+}
+/* }}} */
 
 /* {{{ */
 PHP_FUNCTION(uv_prepare_init)
@@ -5594,7 +5655,10 @@ static zend_function_entry uv_functions[] = {
 	PHP_FE(uv_mutex_trylock,            arginfo_uv_mutex_trylock)
 	PHP_FE(uv_mutex_unlock,             arginfo_uv_mutex_unlock)
 	/* semaphore */
-	PHP_FE(uv_sem_init,                 NULL)
+	PHP_FE(uv_sem_init,                 arginfo_uv_sem_init)
+	PHP_FE(uv_sem_post,                 arginfo_uv_sem_post)
+	PHP_FE(uv_sem_wait,                 arginfo_uv_sem_wait)
+	PHP_FE(uv_sem_trywait,              arginfo_uv_sem_trywait)
 	/* prepare (before poll hook) */
 	PHP_FE(uv_prepare_init,             NULL)
 	PHP_FE(uv_prepare_start,            arginfo_uv_prepare_start)
