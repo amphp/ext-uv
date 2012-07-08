@@ -32,7 +32,8 @@ extern zend_class_entry *uv_class_entry;
 
 enum php_uv_lock_type{
 	IS_UV_RWLOCK = 1,
-	IS_UV_MUTEX = 2
+	IS_UV_MUTEX = 2,
+	IS_UV_SEMAPHORE = 3,
 };
 
 enum php_uv_resource_type{
@@ -131,6 +132,7 @@ typedef struct {
 	union {
 		uv_rwlock_t rwlock;
 		uv_mutex_t mutex;
+		uv_sem_t semaphore;
 	} lock;
 } php_uv_lock_t;
 

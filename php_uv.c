@@ -294,6 +294,13 @@ void static destruct_uv_lock(zend_rsrc_list_entry *rsrc TSRMLS_DC)
 			lock->locked = 0x00;
 		}
 		uv_mutex_destroy(&lock->lock.mutex);
+	} else if (lock->type == IS_UV_SEMAPHORE) {
+		if (lock->locked == 0x01) {
+			php_error_docref(NULL TSRMLS_CC, E_NOTICE, "uv_sem: unlocked resoruce detected. force unlock resource.");
+			uv_sem_post(&lock->lock.semaphore);
+			lock->locked = 0x00;
+		}
+		uv_sem_destroy(&lock->lock.semaphore);
 	}
 
 	efree(lock);
@@ -2099,6 +2106,10 @@ ZEND_END_ARG_INFO()
 
 ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_mutex_unlock, 0, 0, 1)
 	ZEND_ARG_INFO(0, handle)
+ZEND_END_ARG_INFO()
+
+ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_sem_init, 0, 0, 1)
+	ZEND_ARG_INFO(0, val)
 ZEND_END_ARG_INFO()
 
 ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_prepare_init, 0, 0, 1)
@@ -4055,15 +4066,13 @@ PHP_FUNCTION(uv_rwlock_wrunlock)
 }
 /* }}} */
 
-
-
 /* {{{ proto uv_lock uv_mutex_init(void) */
 PHP_FUNCTION(uv_mutex_init)
 {
 	php_uv_lock_t *mutex;
 	int error;
 	
-	mutex = emalloc(sizeof(php_uv_t));
+	mutex = emalloc(sizeof(php_uv_lock_t));
 	error = uv_mutex_init(&mutex->lock.mutex);
 	if (error == 0) {
 		ZEND_REGISTER_RESOURCE(return_value, mutex, uv_lock_handle);
@@ -4133,6 +4142,32 @@ PHP_FUNCTION(uv_mutex_unlock)
 	}
 }
 /* }}} */
+
+/* {{{ proto uv_lock uv_sem_init(void) */
+PHP_FUNCTION(uv_sem_init)
+{
+	php_uv_lock_t *semaphore;
+	int error = 0;
+	unsigned long val = 0;
+
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
+		"l", &val) == FAILURE) {
+		return;
+	}
+	
+	semaphore = emalloc(sizeof(php_uv_lock_t));
+	error = uv_sem_init(&semaphore->lock.semaphore, val);
+
+	if (error == 0) {
+		ZEND_REGISTER_RESOURCE(return_value, semaphore, uv_lock_handle);
+		semaphore->type = IS_UV_SEMAPHORE;
+	} else {
+		efree(semaphore);
+		RETURN_FALSE;
+	}
+}
+/* }}} */
+
 
 /* {{{ */
 PHP_FUNCTION(uv_prepare_init)
@@ -5556,6 +5591,8 @@ static zend_function_entry uv_functions[] = {
 	PHP_FE(uv_mutex_lock,               arginfo_uv_mutex_lock)
 	PHP_FE(uv_mutex_trylock,            arginfo_uv_mutex_trylock)
 	PHP_FE(uv_mutex_unlock,             arginfo_uv_mutex_unlock)
+	/* semaphore */
+	PHP_FE(uv_sem_init,                 NULL)
 	/* prepare (before poll hook) */
 	PHP_FE(uv_prepare_init,             NULL)
 	PHP_FE(uv_prepare_start,            arginfo_uv_prepare_start)
