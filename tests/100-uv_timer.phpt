@@ -6,9 +6,8 @@ $loop = uv_default_loop();
 $timer = uv_timer_init();
 
 $i = 0;
-uv_timer_start($timer, 10, 10, function($stat)
-   use (&$i, $timer, $loop) {
-    /* should I pass the timer parameter? */
+uv_timer_start($timer, 10, 10, function($timer, $stat)
+   use (&$i) {
 
     echo "count: {$i}" . PHP_EOL;
     $i++;

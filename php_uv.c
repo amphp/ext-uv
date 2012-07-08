@@ -1295,8 +1295,8 @@ static void php_uv_timer_cb(uv_timer_t *handle, int status)
 	ZVAL_RESOURCE(client, uv->resource_id);
 	zend_list_addref(uv->resource_id);
 
-	params[0] = &stat;
-	params[1] = &client;
+	params[0] = &client;
+	params[1] = &stat;
 	
 	php_uv_do_callback(&retval_ptr, uv->timer_cb, params, 2 TSRMLS_CC);
 
