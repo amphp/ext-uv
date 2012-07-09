@@ -1147,19 +1147,25 @@ static void php_uv_statbuf_to_zval(zval *result, const uv_statbuf_t *stat)
 {
 	array_init(result);
 	
-	add_assoc_long_ex(result, "st_dev",     sizeof("st_dev"),     stat->st_dev);
-	add_assoc_long_ex(result, "st_ino",     sizeof("st_ino"),     stat->st_ino);
-	add_assoc_long_ex(result, "st_mode",    sizeof("st_mode"),    stat->st_mode);
-	add_assoc_long_ex(result, "st_nlink",   sizeof("st_nlink"),   stat->st_nlink);
-	add_assoc_long_ex(result, "st_uid",     sizeof("st_uid"),     stat->st_uid);
-	add_assoc_long_ex(result, "st_gid",     sizeof("st_gid"),     stat->st_gid);
-	add_assoc_long_ex(result, "st_rdev",    sizeof("st_rdev"),    stat->st_rdev);
-	add_assoc_long_ex(result, "st_size",    sizeof("st_size"),    stat->st_size);
-	add_assoc_long_ex(result, "st_blksize", sizeof("st_blksize"), stat->st_blksize);
-	add_assoc_long_ex(result, "st_blocks",  sizeof("st_blocks"),  stat->st_blocks);
-	add_assoc_long_ex(result, "st_atime",   sizeof("st_atime"),   stat->st_atime);
-	add_assoc_long_ex(result, "st_mtime",   sizeof("st_mtime"),   stat->st_mtime);
-	add_assoc_long_ex(result, "st_ctime",   sizeof("st_ctime"),   stat->st_ctime);
+	add_assoc_long_ex(result, "dev", sizeof("dev"), stat->st_dev);
+	add_assoc_long_ex(result, "ino", sizeof("ino"), stat->st_ino);
+	add_assoc_long_ex(result, "mode", sizeof("mode"), stat->st_mode);
+	add_assoc_long_ex(result, "nlink", sizeof("nlink"), stat->st_nlink);
+	add_assoc_long_ex(result, "uid", sizeof("uid"), stat->st_uid);
+	add_assoc_long_ex(result, "gid", sizeof("gid"), stat->st_gid);
+	add_assoc_long_ex(result, "rdev", sizeof("rdev"), stat->st_rdev);
+	add_assoc_long_ex(result, "size", sizeof("size"), stat->st_size);
+
+#ifndef PHP_WIN32
+	add_assoc_long_ex(result, "blksize", sizeof("blksize"), stat->st_blksize);
+	add_assoc_long_ex(result, "blocks", sizeof("blocks"), stat->st_blocks);
+#endif
+
+	add_assoc_long_ex(result, "atime", sizeof("atime"), stat->st_atime);
+	add_assoc_long_ex(result, "mtime", sizeof("mtime"), stat->st_mtime);
+	add_assoc_long_ex(result, "ctime", sizeof("ctime"), stat->st_ctime);
+
+
 }
 
 static void php_uv_fs_poll_cb(uv_fs_poll_t* handle, int status, const uv_statbuf_t* prev, const uv_statbuf_t* curr)
