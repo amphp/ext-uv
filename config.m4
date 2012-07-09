@@ -4,12 +4,20 @@ PHP_ARG_ENABLE(uv, Whether to enable the "uv" extension,
 PHP_ARG_ENABLE(httpparser, Whether to enable the "httpparser" module,
     [ --enable-httpparser     Enable "httpparser" module support])
 
+PHP_ARG_ENABLE(uv-debug, for uv debug support,
+    [ --enable-uv-debugEnable enable uv deubg support], no, no)
+
 if test -z "$PHP_DEBUG"; then
     AC_ARG_ENABLE(debug,
     [  --enable-debug          compile with debugging symbols],[
         PHP_DEBUG=$enableval
     ],[    PHP_DEBUG=no
     ])
+fi
+
+if test "$PHP_UV_DEBUG" != "no"; then
+    CFLAGS="$CFLAGS -Wall -g -ggdb -O0 -DPHP_UV_DEBUG=1"
+    AC_DEFINE(PHP_UV_DEBUG, 1, [Enable uv debug support])
 fi
 
 if test $PHP_UV != "no"; then
@@ -27,11 +35,7 @@ if test $PHP_UV != "no"; then
     fi
     PHP_ADD_INCLUDE([$ext_srcdir/libuv/include])
  
-    CFLAGS=" -g -O0 -Wunused-variable -Wpointer-sign -Wimplicit-function-declaration -Wl,libuv/uv.a"
-
-    dnl if test $PHP_DEBUG != "no"; then
-    dnl    CFLAGS="$CFLAGS -DPHP_UV_DEBUG=1"
-    dnl fi
+    CFLAGS=" $CFLAGS -Wunused-variable -Wpointer-sign -Wimplicit-function-declaration -Wl,libuv/uv.a"
 
     case $host in
         *darwin*)
