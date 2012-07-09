@@ -55,7 +55,8 @@ enum php_uv_resource_type{
 	IS_UV_FS_EVENT = 15,
 	IS_UV_TTY      = 16,
 	IS_UV_FS_POLL  = 17,
-	IS_UV_MAX      = 17
+	IS_UV_POLL     = 18,
+	IS_UV_MAX      = 18
 };
 
 typedef struct {
@@ -65,6 +66,7 @@ typedef struct {
 #endif
 	int resource_id;
 	int type;
+	uv_os_sock_t sock;
 	union {
 		uv_tcp_t tcp;
 		uv_udp_t udp;
@@ -84,6 +86,7 @@ typedef struct {
 		uv_fs_event_t fs_event;
 		uv_tty_t tty;
 		uv_fs_poll_t fs_poll;
+		uv_poll_t poll;
 	} uv;
 	char *buffer;
 	zval *address;
@@ -109,6 +112,7 @@ typedef struct {
 	zval *fs_cb;
 	zval *fs_event_cb;
 	zval *fs_poll_cb;
+	zval *poll_cb;
 } php_uv_t;
 
 typedef struct {

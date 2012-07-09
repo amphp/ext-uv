@@ -78,6 +78,7 @@
 		uv->fs_cb = NULL; \
 		uv->fs_event_cb = NULL; \
 		uv->fs_poll_cb  = NULL; \
+		uv->poll_cb = NULL; \
 	}
 
 #if PHP_UV_DEBUG>=1
@@ -1196,6 +1197,42 @@ static void php_uv_fs_poll_cb(uv_fs_poll_t* handle, int status, const uv_statbuf
 	}
 }
 
+static void php_uv_poll_cb(uv_poll_t* handle, int status, int events)
+{
+	zval **params[4], *retval_ptr, *rsc, *stat, *ev, *fd = NULL;
+	php_uv_t *uv = (php_uv_t*)handle->data;
+	TSRMLS_FETCH_FROM_CTX(uv->thread_ctx);
+	
+	MAKE_STD_ZVAL(rsc);
+	ZVAL_RESOURCE(rsc, uv->resource_id);
+	zend_list_addref(uv->resource_id);
+	
+	MAKE_STD_ZVAL(stat);
+	ZVAL_LONG(stat, status);
+	
+	MAKE_STD_ZVAL(ev);
+	ZVAL_LONG(ev, events);
+	
+	MAKE_STD_ZVAL(fd);
+	ZVAL_LONG(fd, uv->sock);
+	
+	params[0] = &rsc;
+	params[1] = &stat;
+	params[2] = &ev;
+	params[3] = &fd;
+	
+	php_uv_do_callback(&retval_ptr, uv->poll_cb, params, 4 TSRMLS_CC);
+	
+	zval_ptr_dtor(&rsc);
+	zval_ptr_dtor(&stat);
+	zval_ptr_dtor(&ev);
+	zval_ptr_dtor(&fd);
+	
+	if (retval_ptr != NULL) {
+		zval_ptr_dtor(&retval_ptr);
+	}
+}
+
 
 static void php_uv_udp_recv_cb(uv_udp_t* handle, ssize_t nread, uv_buf_t buf, struct sockaddr* addr, unsigned flags)
 {
@@ -1412,6 +1449,9 @@ static inline uv_stream_t* php_uv_get_current_stream(php_uv_t *uv)
 		break;
 		case IS_UV_FS_POLL:
 			stream = (uv_stream_t*)&uv->uv.fs_poll;
+		break;
+		case IS_UV_POLL:
+			stream = (uv_stream_t*)&uv->uv.poll;
 		break;
 		default: {
 			TSRMLS_FETCH();
@@ -2274,6 +2314,21 @@ ZEND_END_ARG_INFO()
 
 ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_fs_poll_stop, 0, 0, 1)
 	ZEND_ARG_INFO(0, loop)
+ZEND_END_ARG_INFO()
+
+ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_poll_init, 0, 0, 1)
+	ZEND_ARG_INFO(0, loop)
+	ZEND_ARG_INFO(0, fd)
+ZEND_END_ARG_INFO()
+
+ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_poll_start, 0, 0, 1)
+	ZEND_ARG_INFO(0, handle)
+	ZEND_ARG_INFO(0, events)
+	ZEND_ARG_INFO(0, callback)
+ZEND_END_ARG_INFO()
+
+ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_poll_stop, 0, 0, 1)
+	ZEND_ARG_INFO(0, handle)
 ZEND_END_ARG_INFO()
 
 /* PHP Functions */
@@ -5557,6 +5612,84 @@ PHP_FUNCTION(uv_ip6_name)
 }
 /* }}} */
 
+/* {{{ proto uv uv_poll_init([resource $uv_loop])
+*/
+PHP_FUNCTION(uv_poll_init)
+{
+	zval *zloop = NULL;
+	uv_loop_t *loop;
+	php_uv_t *uv;
+	int error;
+	unsigned long fd = 0;
+	
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
+		"zl", &zloop, &fd) == FAILURE) {
+		return;
+	}
+
+	PHP_UV_INIT_UV(uv, IS_UV_POLL);
+	PHP_UV_FETCH_UV_DEFAULT_LOOP(loop, zloop);
+	
+	error = uv_poll_init(loop, &uv->uv.poll, fd);
+	if (error) {
+		php_error_docref(NULL TSRMLS_CC, E_ERROR, "uv_poll_init failed");
+		return;
+	}
+	
+	uv->sock = fd;
+	ZEND_REGISTER_RESOURCE(return_value, uv, uv_resource_handle);
+	uv->resource_id = Z_LVAL_P(return_value);
+}
+/* }}} */
+
+
+/* {{{ proto uv uv_poll_start(resource $handle, $events, $callback)
+*/
+PHP_FUNCTION(uv_poll_start)
+{
+	zval *handle, *callback = NULL;
+	php_uv_t *uv;
+	long events = 0;
+	int error;
+	
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
+		"zlz", &handle, &events, &callback) == FAILURE) {
+		return;
+	}
+
+	ZEND_FETCH_RESOURCE(uv, php_uv_t *, &handle, -1, PHP_UV_RESOURCE_NAME, uv_resource_handle);
+
+	Z_ADDREF_P(callback);
+	uv->poll_cb = callback;
+	uv->uv.poll.data = uv;
+	zend_list_addref(uv->resource_id);
+	
+	error = uv_poll_start(&uv->uv.poll, events, php_uv_poll_cb);
+	if (error) {
+		php_error_docref(NULL TSRMLS_CC, E_ERROR, "uv_poll_start failed");
+		return;
+	}
+}
+/* }}} */
+
+/* {{{ void uv_poll_stop(resource $poll)
+*/
+PHP_FUNCTION(uv_poll_stop)
+{
+	zval *poll;
+	php_uv_t *uv;
+	
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
+		"r", &poll) == FAILURE) {
+		return;
+	}
+
+	ZEND_FETCH_RESOURCE(uv, php_uv_t *, &poll, -1, PHP_UV_RESOURCE_NAME, uv_resource_handle);
+	uv_poll_stop(&uv->uv.poll);
+	PHP_UV_DEBUG_RESOURCE_REFCOUNT(uv_fs_poll_stop, uv->resource_id);
+}
+/* }}} */
+
 /* {{{ proto uv uv_fs_poll_init([resource $uv_loop])
 */
 PHP_FUNCTION(uv_fs_poll_init)
@@ -5589,7 +5722,7 @@ PHP_FUNCTION(uv_fs_poll_init)
 */
 PHP_FUNCTION(uv_fs_poll_start)
 {
-	zval *handle, *zloop, *callback = NULL;
+	zval *handle, *callback = NULL;
 	php_uv_t *uv;
 	char *path;
 	unsigned long interval = 0;
@@ -5775,6 +5908,9 @@ static zend_function_entry uv_functions[] = {
 	PHP_FE(uv_udp_recv_stop,            arginfo_uv_udp_recv_stop)
 	PHP_FE(uv_udp_set_membership,       arginfo_uv_udp_set_membership)
 	/* poll */
+	PHP_FE(uv_poll_init,                arginfo_uv_poll_init)
+	PHP_FE(uv_poll_start,               arginfo_uv_poll_start)
+	PHP_FE(uv_poll_stop,                arginfo_uv_poll_stop)
 	PHP_FE(uv_fs_poll_init,             arginfo_uv_fs_poll_init)
 	PHP_FE(uv_fs_poll_start,            arginfo_uv_fs_poll_start)
 	PHP_FE(uv_fs_poll_stop,             arginfo_uv_fs_poll_stop)
