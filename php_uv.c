@@ -2261,6 +2261,21 @@ ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_ip4_name, 0, 0, 1)
 	ZEND_ARG_INFO(0, handle)
 ZEND_END_ARG_INFO()
 
+ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_fs_poll_init, 0, 0, 1)
+	ZEND_ARG_INFO(0, loop)
+ZEND_END_ARG_INFO()
+
+ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_fs_poll_start, 0, 0, 1)
+	ZEND_ARG_INFO(0, handle)
+	ZEND_ARG_INFO(0, callback)
+	ZEND_ARG_INFO(0, path)
+	ZEND_ARG_INFO(0, interval)
+ZEND_END_ARG_INFO()
+
+ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_fs_poll_stop, 0, 0, 1)
+	ZEND_ARG_INFO(0, loop)
+ZEND_END_ARG_INFO()
+
 /* PHP Functions */
 
 /* {{{ */
@@ -5542,7 +5557,7 @@ PHP_FUNCTION(uv_ip6_name)
 }
 /* }}} */
 
-/* {{{ proto uv uv_fs_poll_init(void)
+/* {{{ proto uv uv_fs_poll_init([resource $uv_loop])
 */
 PHP_FUNCTION(uv_fs_poll_init)
 {
@@ -5570,7 +5585,7 @@ PHP_FUNCTION(uv_fs_poll_init)
 }
 /* }}} */
 
-/* {{{ proto uv uv_fs_poll_start(void)
+/* {{{ proto uv uv_fs_poll_start(resource $handle, $callback, string $path, long $interval)
 */
 PHP_FUNCTION(uv_fs_poll_start)
 {
@@ -5760,9 +5775,9 @@ static zend_function_entry uv_functions[] = {
 	PHP_FE(uv_udp_recv_stop,            arginfo_uv_udp_recv_stop)
 	PHP_FE(uv_udp_set_membership,       arginfo_uv_udp_set_membership)
 	/* poll */
-	PHP_FE(uv_fs_poll_init,             NULL)
-	PHP_FE(uv_fs_poll_start,            NULL)
-	PHP_FE(uv_fs_poll_stop,            NULL)
+	PHP_FE(uv_fs_poll_init,             arginfo_uv_fs_poll_init)
+	PHP_FE(uv_fs_poll_start,            arginfo_uv_fs_poll_start)
+	PHP_FE(uv_fs_poll_stop,             arginfo_uv_fs_poll_stop)
 	/* other network functions */
 	PHP_FE(uv_tcp_getsockname,          arginfo_uv_tcp_getsockname)
 	PHP_FE(uv_tcp_getpeername,          arginfo_uv_tcp_getpeername)
