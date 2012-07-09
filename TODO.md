@@ -2,24 +2,23 @@
 
 * implement all test cases.
 * improve source code.(avoids copy and paste)
-* error handling
-* make continuous build box (windows)
+* more error handling
+* buffer allocator
+* documents
 
-# Not tested
+# Known Issues
 
-* UV_EXTERN int uv_process_kill(uv_process_t*, int signum);
-* UV_EXTERN uv_err_t uv_set_process_title(const char* title);
+* something wrong on OSX box. (corrupted queue, fs event...)
+* windows support (currently, this can build. but not fully tested).
 
-# functions
+# functions (not implemented)
 
 * UV_EXTERN int uv_write2(uv_write_t* req, uv_stream_t* handle, uv_buf_t bufs[],int bufcnt, uv_stream_t* send_handle, uv_write_cb cb);
-
 * UV_EXTERN int uv_queue_work(uv_loop_t* loop, uv_work_t* req, uv_work_cb work_cb, uv_after_work_cb after_work_cb);
-* UV_EXTERN char** uv_setup_args(int argc, char** argv);
-
 * UV_EXTERN void uv_once(uv_once_t* guard, void (*callback)(void));
-* UV_EXTERN int uv_thread_create(uv_thread_t *tid,void (*entry)(void *arg), void *arg);
-* UV_EXTERN int uv_thread_join(uv_thread_t *tid);
+* UV_EXTERN int uv_poll_init(uv_loop_t* loop, uv_poll_t* handle, int fd);
+* UV_EXTERN int uv_poll_init_socket(uv_loop_t* loop, uv_poll_t* handle, uv_os_sock_t socket);
+* UV_EXTERN int uv_is_closing(const uv_handle_t* handle);
 
 # Not support
 
@@ -38,3 +37,6 @@
 * UV_EXTERN char** uv_setup_args(int argc, char** argv);
 * UV_EXTERN uv_err_t uv_get_process_title(char* buffer, size_t size);
 * UV_EXTERN uv_err_t uv_set_process_title(const char* title);
+
+* UV_EXTERN int uv_thread_create(uv_thread_t *tid,void (*entry)(void *arg), void *arg);
+* UV_EXTERN int uv_thread_join(uv_thread_t *tid);
