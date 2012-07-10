@@ -4322,7 +4322,7 @@ PHP_FUNCTION(uv_mutex_lock)
 }
 /* }}} */
 
-/* {{{ proto: bool uv_mutex_trylock(uv_lock $lock) */
+/* {{{ proto bool uv_mutex_trylock(uv_lock $lock) */
 PHP_FUNCTION(uv_mutex_trylock)
 {
 	php_uv_lock_t *mutex;
