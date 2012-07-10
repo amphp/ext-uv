@@ -56,8 +56,13 @@ enum php_uv_resource_type{
 	IS_UV_TTY      = 16,
 	IS_UV_FS_POLL  = 17,
 	IS_UV_POLL     = 18,
-	IS_UV_MAX      = 18
+	IS_UV_MAX      = 19
 };
+
+typedef struct {
+    zend_fcall_info fci;
+    zend_fcall_info_cache fcc;
+} php_uv_cb_t;
 
 typedef struct {
 	int in_free;
@@ -113,6 +118,7 @@ typedef struct {
 	zval *fs_event_cb;
 	zval *fs_poll_cb;
 	zval *poll_cb;
+	php_uv_cb_t *callback[20];
 } php_uv_t;
 
 typedef struct {
