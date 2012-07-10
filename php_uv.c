@@ -181,6 +181,102 @@ static void php_uv_timer_cb(uv_timer_t *handle, int status);
 
 static void php_uv_idle_cb(uv_timer_t *handle, int status);
 
+
+/**
+ * common uv initializer.
+ *
+ * @param php_uv_t** result              this expects non allocated pointer.
+ * @param uv_loop_t* loop
+ * @param enum php_uv_resource_type type
+ * @param zval* return_value|NULL        register as a uv_resource when return_value is not null.
+ * @return int error
+ */
+static inline int php_uv_common_init(php_uv_t **result, uv_loop_t *loop, enum php_uv_resource_type type, zval *return_value TSRMLS_DC)
+{
+	php_uv_t *uv;
+	int r = 0;
+	
+	uv = (php_uv_t *)emalloc(sizeof(php_uv_t));
+	if (!uv) {
+		php_error_docref(NULL TSRMLS_CC, E_ERROR, "php_uv_common_init: emalloc failed");
+		goto cleanup;
+	}
+
+	uv->type = type;
+	switch (uv->type) {
+		case IS_UV_TCP:
+		{
+			r = uv_tcp_init(loop, &uv->uv.tcp);
+			if (r) {
+				php_error_docref(NULL TSRMLS_CC, E_ERROR, "uv_tcp_init failed");
+				goto cleanup;
+			}
+			
+			uv->uv.tcp.data = uv;
+		}
+		break;
+		case IS_UV_IDLE:
+		{
+			r = uv_idle_init(loop, &uv->uv.idle);
+			if (r) {
+				php_error_docref(NULL TSRMLS_CC, E_ERROR, "uv_idle_init failed");
+				goto cleanup;
+			}
+			
+			uv->uv.idle.data = uv;
+		}
+		break;
+		case IS_UV_UDP:
+		{
+			r = uv_udp_init(loop, &uv->uv.udp);
+			if (r) {
+				php_error_docref(NULL TSRMLS_CC, E_ERROR, "uv_udp_init failed");
+				goto cleanup;
+			}
+			
+			uv->uv.udp.data = uv;
+		}
+		break;
+		case IS_UV_PREPARE:
+		{
+			r = uv_prepare_init(loop, &uv->uv.prepare);
+			if (r) {
+				php_error_docref(NULL TSRMLS_CC, E_ERROR, "uv_prepare_init failed");
+				goto cleanup;
+			}
+			
+			uv->uv.prepare.data = uv;
+		}
+		break;
+		case IS_UV_CHECK:
+		{
+			r = uv_check_init(loop, &uv->uv.check);
+			if (r) {
+				php_error_docref(NULL TSRMLS_CC, E_ERROR, "uv_prepare_init failed");
+				goto cleanup;
+			}
+			
+			uv->uv.check.data = uv;
+		}
+		break;
+	}
+
+	PHP_UV_INIT_ZVALS(uv)
+	TSRMLS_SET_CTX(uv->thread_ctx);
+	
+	if (return_value != NULL) {
+		ZEND_REGISTER_RESOURCE(return_value, uv, uv_resource_handle);
+		uv->resource_id = Z_LVAL_P(return_value);
+	}
+	
+	*result = uv;
+	return r;
+
+cleanup:
+	efree(uv);
+	return r;
+}
+
 /* util */
 
 static void php_uv_ares_destroy()
@@ -486,6 +582,11 @@ void static destruct_uv(zend_rsrc_list_entry *rsrc TSRMLS_DC)
 		PHP_UV_DEBUG_PRINT("zval_ptr_dtor: fs_poll_cb\n");
 		zval_ptr_dtor(&obj->fs_poll_cb);
 		obj->fs_poll_cb = NULL;
+	}
+	if (obj->poll_cb) {
+		PHP_UV_DEBUG_PRINT("zval_ptr_dtor: poll_cb\n");
+		zval_ptr_dtor(&obj->poll_cb);
+		obj->poll_cb = NULL;
 	}
 
 	if (obj->resource_id) {
@@ -1031,6 +1132,7 @@ static void php_uv_fs_cb(uv_fs_t* req)
 		case UV_FS_UTIME:
 		case UV_FS_FUTIME:
 			argc = 0;
+			zval_ptr_dtor(&result);
 			break;
 		case UV_FS_READLINK:
 		{
@@ -3120,7 +3222,6 @@ PHP_FUNCTION(uv_idle_stop)
 */
 PHP_FUNCTION(uv_tcp_init)
 {
-	int r;
 	zval *zloop = NULL;
 	uv_loop_t *loop;
 	php_uv_t *uv;
@@ -3129,27 +3230,10 @@ PHP_FUNCTION(uv_tcp_init)
 		"|z",&zloop) == FAILURE) {
 		return;
 	}
+	
 
-	uv = (php_uv_t *)emalloc(sizeof(php_uv_t));
-	if (!uv) {
-		php_error_docref(NULL TSRMLS_CC, E_ERROR, "uv_tcp_init emalloc failed");
-		return;
-	}
 	PHP_UV_FETCH_UV_DEFAULT_LOOP(loop, zloop);
-
-	uv->type = IS_UV_TCP;
-	r = uv_tcp_init(loop, &uv->uv.tcp);
-	if (r) {
-		php_error_docref(NULL TSRMLS_CC, E_ERROR, "uv_tcp_init failed");
-		return;
-	}
-	
-	uv->uv.tcp.data = uv;
-	PHP_UV_INIT_ZVALS(uv)
-	TSRMLS_SET_CTX(uv->thread_ctx);
-	
-	ZEND_REGISTER_RESOURCE(return_value, uv, uv_resource_handle);
-	uv->resource_id = Z_LVAL_P(return_value);
+	php_uv_common_init(&uv, loop, IS_UV_TCP, return_value TSRMLS_CC);
 }
 /* }}} */
 	
@@ -3157,7 +3241,6 @@ PHP_FUNCTION(uv_tcp_init)
 */
 PHP_FUNCTION(uv_idle_init)
 {
-	int r;
 	zval *zloop = NULL;
 	uv_loop_t *loop;
 	php_uv_t *uv;
@@ -3167,20 +3250,7 @@ PHP_FUNCTION(uv_idle_init)
 		return;
 	}
 	PHP_UV_FETCH_UV_DEFAULT_LOOP(loop, zloop);
-
-	uv = (php_uv_t *)emalloc(sizeof(php_uv_t));
-
-	r = uv_idle_init(loop, &uv->uv.idle);
-	if (r) {
-		php_error_docref(NULL TSRMLS_CC, E_ERROR, "uv_idle_init failed");
-		return;
-	}
-	uv->uv.timer.data = uv;
-	PHP_UV_INIT_ZVALS(uv)
-	TSRMLS_SET_CTX(uv->thread_ctx);
-	
-	ZEND_REGISTER_RESOURCE(return_value, uv, uv_resource_handle);
-	uv->resource_id = Z_LVAL_P(return_value);
+	php_uv_common_init(&uv, loop, IS_UV_IDLE, return_value TSRMLS_CC);
 }
 /* }}} */
 
@@ -3197,7 +3267,6 @@ PHP_FUNCTION(uv_default_loop)
 */
 PHP_FUNCTION(uv_udp_init)
 {
-	int r;
 	zval *zloop = NULL;
 	uv_loop_t *loop = NULL;
 	php_uv_t *uv;
@@ -3207,26 +3276,7 @@ PHP_FUNCTION(uv_udp_init)
 		return;
 	}
 	PHP_UV_FETCH_UV_DEFAULT_LOOP(loop, zloop);
-
-	uv = (php_uv_t *)emalloc(sizeof(php_uv_t));
-	if (!uv) {
-		php_error_docref(NULL TSRMLS_CC, E_ERROR, "uv_udp_init emalloc failed");
-		return;
-	}
-
-	uv->type = IS_UV_UDP;
-	r = uv_udp_init(loop, &uv->uv.udp);
-	if (r) {
-		php_error_docref(NULL TSRMLS_CC, E_ERROR, "uv_udp_init failed");
-		return;
-	}
-	
-	uv->uv.udp.data = uv;
-	PHP_UV_INIT_ZVALS(uv)
-	TSRMLS_SET_CTX(uv->thread_ctx);
-	
-	ZEND_REGISTER_RESOURCE(return_value, uv, uv_resource_handle);
-	uv->resource_id = Z_LVAL_P(return_value);
+	php_uv_common_init(&uv, loop, IS_UV_UDP, return_value TSRMLS_CC);
 }
 /* }}} */
 
@@ -3469,7 +3519,7 @@ PHP_FUNCTION(uv_pipe_init)
 {
 	php_uv_t *uv;
 	uv_loop_t *loop;
-	zval *zloop;
+	zval *zloop = NULL;
 	long ipc = 0;
 	int r;
 
@@ -4413,7 +4463,6 @@ PHP_FUNCTION(uv_sem_trywait)
 */
 PHP_FUNCTION(uv_prepare_init)
 {
-	int r;
 	zval *zloop = NULL;
 	uv_loop_t *loop;
 	php_uv_t *uv;
@@ -4423,26 +4472,8 @@ PHP_FUNCTION(uv_prepare_init)
 		return;
 	}
 
-	uv = (php_uv_t *)emalloc(sizeof(php_uv_t));
-	if (!uv) {
-		php_error_docref(NULL TSRMLS_CC, E_ERROR, "uv_prepare_init emalloc failed");
-		return;
-	}
 	PHP_UV_FETCH_UV_DEFAULT_LOOP(loop, zloop);
-
-	uv->type = IS_UV_PREPARE;
-	r = uv_prepare_init(loop, &uv->uv.prepare);
-	if (r) {
-		php_error_docref(NULL TSRMLS_CC, E_ERROR, "uv_prepare_init failed");
-		return;
-	}
-	
-	uv->uv.prepare.data = uv;
-	PHP_UV_INIT_ZVALS(uv)
-	TSRMLS_SET_CTX(uv->thread_ctx);
-	
-	ZEND_REGISTER_RESOURCE(return_value, uv, uv_resource_handle);
-	uv->resource_id = Z_LVAL_P(return_value);
+	php_uv_common_init(&uv, loop, IS_UV_PREPARE, return_value TSRMLS_CC);
 }
 /* }}} */
 
@@ -4502,7 +4533,6 @@ PHP_FUNCTION(uv_prepare_stop)
 */
 PHP_FUNCTION(uv_check_init)
 {
-	int r;
 	zval *zloop = NULL;
 	uv_loop_t *loop;
 	php_uv_t *uv;
@@ -4512,26 +4542,8 @@ PHP_FUNCTION(uv_check_init)
 		return;
 	}
 
-	uv = (php_uv_t *)emalloc(sizeof(php_uv_t));
-	if (!uv) {
-		php_error_docref(NULL TSRMLS_CC, E_ERROR, "uv_check_init emalloc failed");
-		return;
-	}
 	PHP_UV_FETCH_UV_DEFAULT_LOOP(loop, zloop);
-
-	uv->type = IS_UV_CHECK;
-	r = uv_check_init(loop, &uv->uv.check);
-	if (r) {
-		php_error_docref(NULL TSRMLS_CC, E_ERROR, "uv_check_init failed");
-		return;
-	}
-	
-	uv->uv.check.data = uv;
-	PHP_UV_INIT_ZVALS(uv)
-	TSRMLS_SET_CTX(uv->thread_ctx);
-	
-	ZEND_REGISTER_RESOURCE(return_value, uv, uv_resource_handle);
-	uv->resource_id = Z_LVAL_P(return_value);
+	php_uv_common_init(&uv, loop, IS_UV_CHECK, return_value TSRMLS_CC);
 }
 /* }}} */
 
@@ -4603,14 +4615,9 @@ PHP_FUNCTION(uv_async_init)
 		return;
 	}
 
-	uv = (php_uv_t *)emalloc(sizeof(php_uv_t));
-	if (!uv) {
-		php_error_docref(NULL TSRMLS_CC, E_ERROR, "uv_check_init emalloc failed");
-		return;
-	}
 	PHP_UV_FETCH_UV_DEFAULT_LOOP(loop, zloop);
-
-	uv->type = IS_UV_ASYNC;
+	PHP_UV_INIT_UV(uv, IS_UV_ASYNC);
+	
 	r = uv_async_init(loop, &uv->uv.async, php_uv_async_cb);
 	if (r) {
 		php_error_docref(NULL TSRMLS_CC, E_ERROR, "uv_async_init failed");
@@ -4618,13 +4625,11 @@ PHP_FUNCTION(uv_async_init)
 	}
 	
 	uv->uv.async.data = uv;
-	PHP_UV_INIT_ZVALS(uv)
 	uv->async_cb = callback;
 	Z_ADDREF_P(callback);
-	TSRMLS_SET_CTX(uv->thread_ctx);
 	
-	ZEND_REGISTER_RESOURCE(return_value, uv, uv_resource_handle);
-	uv->resource_id = Z_LVAL_P(return_value);
+	ZVAL_RESOURCE(return_value, uv->resource_id);
+	zend_list_addref(uv->resource_id);
 }
 /* }}} */
 
@@ -4651,8 +4656,7 @@ PHP_FUNCTION(uv_async_send)
 PHP_FUNCTION(uv_queue_work)
 {
 	int r;
-	zval *zloop = NULL;
-	zval *callback, *after_callback;
+	zval *callback, *after_callback, *zloop = NULL;
 	uv_loop_t *loop;
 	php_uv_t *uv;
 	
@@ -4661,15 +4665,8 @@ PHP_FUNCTION(uv_queue_work)
 		return;
 	}
 
-	uv = (php_uv_t *)emalloc(sizeof(php_uv_t));
-	if (!uv) {
-		php_error_docref(NULL TSRMLS_CC, E_ERROR, "uv_queue_work emalloc failed");
-		return;
-	}
 	PHP_UV_FETCH_UV_DEFAULT_LOOP(loop, zloop);
-
-	uv->type = IS_UV_WORK;
-	PHP_UV_INIT_ZVALS(uv)
+	PHP_UV_INIT_UV(uv, IS_UV_WORK)
 
 	uv->work_cb = callback;
 	uv->after_work_cb = after_callback;
@@ -4683,10 +4680,6 @@ PHP_FUNCTION(uv_queue_work)
 		php_error_docref(NULL TSRMLS_CC, E_ERROR, "uv_queue_work failed");
 		return;
 	}
-	
-	TSRMLS_SET_CTX(uv->thread_ctx);
-	ZEND_REGISTER_RESOURCE(return_value, uv, uv_resource_handle);
-	uv->resource_id = Z_LVAL_P(return_value);
 }
 /* }}} */
 
@@ -4694,13 +4687,11 @@ PHP_FUNCTION(uv_queue_work)
 */
 PHP_FUNCTION(uv_fs_open)
 {
-	int r;
-	zval *tmp, *zloop = NULL;
-	zval *callback;
+	zval *callback, *zloop = NULL;
 	uv_loop_t *loop;
 	php_uv_t *uv;
 	char *path;
-	int path_len;
+	int r, path_len = 0;
 	long flag, mode;
 	
 	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
@@ -4708,34 +4699,18 @@ PHP_FUNCTION(uv_fs_open)
 		return;
 	}
 
-	uv = (php_uv_t *)emalloc(sizeof(php_uv_t));
-	if (!uv) {
-		php_error_docref(NULL TSRMLS_CC, E_ERROR, "uv_fs_open emalloc failed");
-		return;
-	}
-	
 	PHP_UV_FETCH_UV_DEFAULT_LOOP(loop, zloop);
-
-	uv->type = IS_UV_FS;
-	PHP_UV_INIT_ZVALS(uv)
-
+	PHP_UV_INIT_UV(uv, IS_UV_FS);
+	
 	uv->fs_cb = callback;
 	Z_ADDREF_P(callback);
 	uv->uv.fs.data = uv;
 	
 	r = uv_fs_open(loop, (uv_fs_t*)&uv->uv.fs, path, flag, mode, php_uv_fs_cb);
-
 	if (r) {
 		php_error_docref(NULL TSRMLS_CC, E_ERROR, "uv_async_init failed");
 		return;
 	}
-
-	TSRMLS_SET_CTX(uv->thread_ctx);
-	MAKE_STD_ZVAL(tmp);
-	ZEND_REGISTER_RESOURCE(tmp, uv, uv_resource_handle);
-	uv->resource_id = Z_LVAL_P(tmp);
-	Z_TYPE_P(tmp) = IS_NULL;
-	zval_ptr_dtor(&tmp);
 }
 /* }}} */
 
@@ -4745,7 +4720,7 @@ PHP_FUNCTION(uv_fs_open)
 PHP_FUNCTION(uv_fs_read)
 {
 	int r;
-	zval *tmp, *zloop = NULL;
+	zval *zloop = NULL;
 	zval *callback;
 	uv_loop_t *loop;
 	php_uv_t *uv;
@@ -4756,37 +4731,19 @@ PHP_FUNCTION(uv_fs_read)
 		return;
 	}
 
-	uv = (php_uv_t *)emalloc(sizeof(php_uv_t));
-	if (!uv) {
-		php_error_docref(NULL TSRMLS_CC, E_ERROR, "uv_queue_work emalloc failed");
-		return;
-	}
-	
 	PHP_UV_FETCH_UV_DEFAULT_LOOP(loop, zloop);
-
-	uv->type = IS_UV_FS;
-	PHP_UV_INIT_ZVALS(uv)
+	PHP_UV_INIT_UV(uv, IS_UV_FS)
 
 	uv->fs_cb = callback;
 	Z_ADDREF_P(callback);
 	uv->uv.fs.data = uv;
 
-	//uv_fs_read($loop, int $fd, Closure $cb)
-	//UV_EXTERN int uv_fs_read(uv_loop_t* loop, uv_fs_t* req, uv_file file, void* buf, size_t length, off_t offset, uv_fs_cb cb);
 	memset(uv_fs_read_buf, 0, sizeof(uv_fs_read_buf));
 	r = uv_fs_read(loop, (uv_fs_t*)&uv->uv.fs, fd, uv_fs_read_buf, sizeof(uv_fs_read_buf), -1, php_uv_fs_cb);
-
 	if (r) {
 		php_error_docref(NULL TSRMLS_CC, E_ERROR, "uv_async_init failed");
 		return;
 	}
-
-	TSRMLS_SET_CTX(uv->thread_ctx);
-	MAKE_STD_ZVAL(tmp);
-	ZEND_REGISTER_RESOURCE(tmp, uv, uv_resource_handle);
-	uv->resource_id = Z_LVAL_P(tmp);
-	Z_TYPE_P(tmp) = IS_NULL;
-	zval_ptr_dtor(&tmp);
 }
 /* }}} */
 
@@ -4796,7 +4753,7 @@ PHP_FUNCTION(uv_fs_read)
 PHP_FUNCTION(uv_fs_close)
 {
 	int r;
-	zval *tmp, *zloop = NULL;
+	zval *zloop = NULL;
 	zval *callback;
 	uv_loop_t *loop;
 	php_uv_t *uv;
@@ -4807,37 +4764,19 @@ PHP_FUNCTION(uv_fs_close)
 		return;
 	}
 
-	uv = (php_uv_t *)emalloc(sizeof(php_uv_t));
-	if (!uv) {
-		php_error_docref(NULL TSRMLS_CC, E_ERROR, "uv_fs_close emalloc failed");
-		return;
-	}
-	
 	PHP_UV_FETCH_UV_DEFAULT_LOOP(loop, zloop);
-
-	uv->type = IS_UV_FS;
-	PHP_UV_INIT_ZVALS(uv)
+	PHP_UV_INIT_UV(uv, IS_UV_FS);
 
 	uv->fs_cb = callback;
 	Z_ADDREF_P(callback);
 	uv->uv.fs.data = uv;
 
-	//uv_fs_read($loop, int $fd, Closure $cb)
-	//UV_EXTERN int uv_fs_read(uv_loop_t* loop, uv_fs_t* req, uv_file file, void* buf, size_t length, off_t offset, uv_fs_cb cb);
 	memset(uv_fs_read_buf, 0, sizeof(uv_fs_read_buf));
 	r = uv_fs_close(loop, (uv_fs_t*)&uv->uv.fs, fd, php_uv_fs_cb);
-
 	if (r) {
 		php_error_docref(NULL TSRMLS_CC, E_ERROR, "uv_fs_close failed");
 		return;
 	}
-
-	TSRMLS_SET_CTX(uv->thread_ctx);
-	MAKE_STD_ZVAL(tmp);
-	ZEND_REGISTER_RESOURCE(tmp, uv, uv_resource_handle);
-	uv->resource_id = Z_LVAL_P(tmp);
-	Z_TYPE_P(tmp) = IS_NULL;
-	zval_ptr_dtor(&tmp);
 }
 /* }}} */
 
@@ -4847,7 +4786,7 @@ PHP_FUNCTION(uv_fs_close)
 PHP_FUNCTION(uv_fs_write)
 {
 	int r;
-	zval *tmp, *zloop = NULL;
+	zval *zloop = NULL;
 	zval *callback;
 	uv_loop_t *loop;
 	php_uv_t *uv;
@@ -4860,37 +4799,21 @@ PHP_FUNCTION(uv_fs_write)
 		return;
 	}
 
-	uv = (php_uv_t *)emalloc(sizeof(php_uv_t));
-	if (!uv) {
-		php_error_docref(NULL TSRMLS_CC, E_ERROR, "uv_fs_write emalloc failed");
-		return;
-	}
 	
 	PHP_UV_FETCH_UV_DEFAULT_LOOP(loop, zloop);
-
-	uv->type = IS_UV_FS;
-	PHP_UV_INIT_ZVALS(uv)
+	PHP_UV_INIT_UV(uv, IS_UV_FS);
 
 	uv->fs_cb = callback;
 	Z_ADDREF_P(callback);
 	uv->uv.fs.data = uv;
-	
 	uv->buffer = estrndup(buffer, buffer_len);
 	
-	//* UV_EXTERN int uv_fs_write(uv_loop_t* loop, uv_fs_t* req, uv_file file,void* buf, size_t length, off_t offset, uv_fs_cb cb);
 	r = uv_fs_write(loop, (uv_fs_t*)&uv->uv.fs, fd, uv->buffer, buffer_len, -1, php_uv_fs_cb);
 
 	if (r) {
 		php_error_docref(NULL TSRMLS_CC, E_ERROR, "uv_fs_write failed");
 		return;
 	}
-
-	TSRMLS_SET_CTX(uv->thread_ctx);
-	MAKE_STD_ZVAL(tmp);
-	ZEND_REGISTER_RESOURCE(tmp, uv, uv_resource_handle);
-	uv->resource_id = Z_LVAL_P(tmp);
-	Z_TYPE_P(tmp) = IS_NULL;
-	zval_ptr_dtor(&tmp);
 }
 /* }}} */
 
@@ -5683,9 +5606,9 @@ PHP_FUNCTION(uv_poll_init)
 	}
 	
 	uv->sock = fd;
-	ZEND_REGISTER_RESOURCE(return_value, uv, uv_resource_handle);
-	uv->resource_id = Z_LVAL_P(return_value);
+	ZVAL_RESOURCE(return_value, uv->resource_id);
 }
+
 /* }}} */
 
 
@@ -5708,6 +5631,7 @@ PHP_FUNCTION(uv_poll_start)
 	Z_ADDREF_P(callback);
 	uv->poll_cb = callback;
 	uv->uv.poll.data = uv;
+	
 	zend_list_addref(uv->resource_id);
 	
 	error = uv_poll_start(&uv->uv.poll, events, php_uv_poll_cb);
@@ -5732,7 +5656,7 @@ PHP_FUNCTION(uv_poll_stop)
 
 	ZEND_FETCH_RESOURCE(uv, php_uv_t *, &poll, -1, PHP_UV_RESOURCE_NAME, uv_resource_handle);
 	uv_poll_stop(&uv->uv.poll);
-	PHP_UV_DEBUG_RESOURCE_REFCOUNT(uv_fs_poll_stop, uv->resource_id);
+	PHP_UV_DEBUG_RESOURCE_REFCOUNT(uv_poll_stop, uv->resource_id);
 }
 /* }}} */
 
@@ -5759,8 +5683,7 @@ PHP_FUNCTION(uv_fs_poll_init)
 		return;
 	}
 	
-	ZEND_REGISTER_RESOURCE(return_value, uv, uv_resource_handle);
-	uv->resource_id = Z_LVAL_P(return_value);
+	ZVAL_RESOURCE(return_value, uv->resource_id);
 }
 /* }}} */
 

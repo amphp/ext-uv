@@ -1,6 +1,6 @@
 <?php
 
-$pipe = uv_pipe_init(1,1);
+$pipe = uv_pipe_init(uv_default_loop(), 0);
 uv_pipe_open($pipe, 1);
 //uv_pipe_bind($pipe,"/tmp/hoge.sock");
 
