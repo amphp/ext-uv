@@ -5411,7 +5411,6 @@ PHP_FUNCTION(uv_fs_event_init)
 
 	PHP_UV_INIT_UV(uv, IS_UV_FS_EVENT);
 	PHP_UV_FETCH_UV_DEFAULT_LOOP(loop, zloop);
-	PHP_UV_LIST_INSERT(uv, uv_resource_handle);
 	
 	uv->fs_event_cb = callback;
 	Z_ADDREF_P(callback);
@@ -5458,7 +5457,7 @@ PHP_FUNCTION(uv_tty_init)
 /* }}} */
 
 
-/* {{{ proto long uv_tty_get_winsize(resource $tty, long &$width, ong &$height)
+/* {{{ proto long uv_tty_get_winsize(resource $tty, long &$width, long &$height)
 */
 PHP_FUNCTION(uv_tty_get_winsize)
 {
