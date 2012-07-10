@@ -2362,13 +2362,13 @@ PHP_FUNCTION(uv_last_error)
 {
 	uv_loop_t *loop;
 	uv_err_t err;
-	zval *z_loop = NULL;
+	zval *zloop = NULL;
 	
 	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
-		"z",&z_loop) == FAILURE) {
+		"|z",&zloop) == FAILURE) {
 		return;
 	}
-	ZEND_FETCH_RESOURCE(loop, uv_loop_t *, &z_loop, -1, PHP_UV_LOOP_RESOURCE_NAME, uv_loop_handle);
+	PHP_UV_FETCH_UV_DEFAULT_LOOP(loop, zloop);
 	err = uv_last_error(loop);
 
 	RETVAL_LONG(err.code);
@@ -2451,19 +2451,14 @@ PHP_FUNCTION(uv_ref)
 */
 PHP_FUNCTION(uv_run)
 {
-	zval *z_loop = NULL;
+	zval *zloop = NULL;
 	uv_loop_t *loop;
 	
 	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
-		"|z",&z_loop) == FAILURE) {
+		"|z",&zloop) == FAILURE) {
 		return;
 	}
-	if (z_loop != NULL) {
-		ZEND_FETCH_RESOURCE(loop, uv_loop_t *, &z_loop, -1, PHP_UV_LOOP_RESOURCE_NAME, uv_loop_handle);
-	} else {
-		loop = php_uv_default_loop();
-	}
-	
+	PHP_UV_FETCH_UV_DEFAULT_LOOP(loop, zloop);
 	uv_run(loop);
 }
 /* }}} */
@@ -2472,18 +2467,14 @@ PHP_FUNCTION(uv_run)
 */
 PHP_FUNCTION(uv_run_once)
 {
-	zval *z_loop = NULL;
+	zval *zloop = NULL;
 	uv_loop_t *loop;
 	
 	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
-		"|z",&z_loop) == FAILURE) {
+		"|z",&zloop) == FAILURE) {
 		return;
 	}
-	if (z_loop != NULL) {
-		ZEND_FETCH_RESOURCE(loop, uv_loop_t *, &z_loop, -1, PHP_UV_LOOP_RESOURCE_NAME, uv_loop_handle);
-	} else {
-		loop = php_uv_default_loop();
-	}
+	PHP_UV_FETCH_UV_DEFAULT_LOOP(loop, zloop);
 	
 	uv_run_once(loop);
 }
@@ -2503,7 +2494,9 @@ PHP_FUNCTION(uv_loop_delete)
 
 	if (z_loop != NULL) {
 		ZEND_FETCH_RESOURCE(loop, uv_loop_t *, &z_loop, -1, PHP_UV_LOOP_RESOURCE_NAME, uv_loop_handle);
-		uv_loop_delete(loop);
+		if (loop != _php_uv_default_loop) {
+			uv_loop_delete(loop);
+		}
 	}
 }
 /* }}} */
@@ -2915,11 +2908,7 @@ PHP_FUNCTION(uv_timer_init)
 		"|z",&zloop) == FAILURE) {
 		return;
 	}
-	if (zloop != NULL) {
-		ZEND_FETCH_RESOURCE(loop, uv_loop_t*, &zloop, -1, PHP_UV_LOOP_RESOURCE_NAME, uv_loop_handle);
-	} else {
-		loop = uv_default_loop();
-	}
+	PHP_UV_FETCH_UV_DEFAULT_LOOP(loop, zloop);
 
 	uv = (php_uv_t *)emalloc(sizeof(php_uv_t));
 
@@ -3146,11 +3135,7 @@ PHP_FUNCTION(uv_tcp_init)
 		php_error_docref(NULL TSRMLS_CC, E_ERROR, "uv_tcp_init emalloc failed");
 		return;
 	}
-	if (zloop != NULL) {
-		ZEND_FETCH_RESOURCE(loop, uv_loop_t*, &zloop, -1, PHP_UV_LOOP_RESOURCE_NAME, uv_loop_handle);
-	} else {
-		loop = uv_default_loop();
-	}
+	PHP_UV_FETCH_UV_DEFAULT_LOOP(loop, zloop);
 
 	uv->type = IS_UV_TCP;
 	r = uv_tcp_init(loop, &uv->uv.tcp);
@@ -3181,11 +3166,7 @@ PHP_FUNCTION(uv_idle_init)
 		"|z",&zloop) == FAILURE) {
 		return;
 	}
-	if (zloop != NULL) {
-		ZEND_FETCH_RESOURCE(loop, uv_loop_t*, &zloop, -1, PHP_UV_LOOP_RESOURCE_NAME, uv_loop_handle);
-	} else {
-		loop = uv_default_loop();
-	}
+	PHP_UV_FETCH_UV_DEFAULT_LOOP(loop, zloop);
 
 	uv = (php_uv_t *)emalloc(sizeof(php_uv_t));
 
@@ -3217,7 +3198,7 @@ PHP_FUNCTION(uv_default_loop)
 PHP_FUNCTION(uv_udp_init)
 {
 	int r;
-	zval *zloop;
+	zval *zloop = NULL;
 	uv_loop_t *loop = NULL;
 	php_uv_t *uv;
 	
@@ -3225,11 +3206,7 @@ PHP_FUNCTION(uv_udp_init)
 		"|z",&zloop) == FAILURE) {
 		return;
 	}
-	if (loop) {
-		ZEND_FETCH_RESOURCE(loop, uv_loop_t*, &zloop, -1, PHP_UV_LOOP_RESOURCE_NAME, uv_loop_handle);
-	} else {
-		loop = uv_default_loop();
-	}
+	PHP_UV_FETCH_UV_DEFAULT_LOOP(loop, zloop);
 
 	uv = (php_uv_t *)emalloc(sizeof(php_uv_t));
 	if (!uv) {
@@ -3492,12 +3469,12 @@ PHP_FUNCTION(uv_pipe_init)
 {
 	php_uv_t *uv;
 	uv_loop_t *loop;
-	zval *z_loop;
+	zval *zloop;
 	long ipc = 0;
 	int r;
 
 	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
-		"|z|l", &z_loop, &ipc) == FAILURE) {
+		"|z|l", &zloop, &ipc) == FAILURE) {
 		return;
 	}
 
@@ -3507,11 +3484,7 @@ PHP_FUNCTION(uv_pipe_init)
 		return;
 	}
 	
-	if (Z_TYPE_P(z_loop) == IS_RESOURCE) {
-		ZEND_FETCH_RESOURCE(loop, uv_loop_t *, &z_loop, -1, PHP_UV_LOOP_RESOURCE_NAME, uv_loop_handle);
-	} else {
-		loop = php_uv_default_loop();
-	}
+	PHP_UV_FETCH_UV_DEFAULT_LOOP(loop, zloop);
 
 	uv->type = IS_UV_PIPE;
 	r = uv_pipe_init(loop, &uv->uv.pipe, ipc);
@@ -3663,11 +3636,7 @@ PHP_FUNCTION(uv_ares_init_options)
 		return;
 	}
 	
-	if (Z_TYPE_P(zloop) == IS_RESOURCE) {
-		ZEND_FETCH_RESOURCE(loop, uv_loop_t *, &zloop, -1, PHP_UV_LOOP_RESOURCE_NAME, uv_loop_handle);
-	} else {
-		loop = php_uv_default_loop();
-	}
+	PHP_UV_FETCH_UV_DEFAULT_LOOP(loop, zloop);
 	
 	uv = (php_uv_ares_t*)emalloc(sizeof(php_uv_ares_t));
 	uv->gethostbyname_cb = NULL;
@@ -3945,11 +3914,7 @@ PHP_FUNCTION(uv_spawn)
 		return;
 	}
 	
-	if (zloop) {
-		ZEND_FETCH_RESOURCE(loop, uv_loop_t*, &zloop, -1, PHP_UV_LOOP_RESOURCE_NAME, uv_loop_handle);
-	} else {
-		loop = uv_default_loop();
-	}
+	PHP_UV_FETCH_UV_DEFAULT_LOOP(loop, zloop);
 
 	{
 		HashTable *h;
@@ -4463,11 +4428,7 @@ PHP_FUNCTION(uv_prepare_init)
 		php_error_docref(NULL TSRMLS_CC, E_ERROR, "uv_prepare_init emalloc failed");
 		return;
 	}
-	if (zloop != NULL) {
-		ZEND_FETCH_RESOURCE(loop, uv_loop_t*, &zloop, -1, PHP_UV_LOOP_RESOURCE_NAME, uv_loop_handle);
-	} else {
-		loop = uv_default_loop();
-	}
+	PHP_UV_FETCH_UV_DEFAULT_LOOP(loop, zloop);
 
 	uv->type = IS_UV_PREPARE;
 	r = uv_prepare_init(loop, &uv->uv.prepare);
@@ -4556,11 +4517,7 @@ PHP_FUNCTION(uv_check_init)
 		php_error_docref(NULL TSRMLS_CC, E_ERROR, "uv_check_init emalloc failed");
 		return;
 	}
-	if (zloop != NULL) {
-		ZEND_FETCH_RESOURCE(loop, uv_loop_t*, &zloop, -1, PHP_UV_LOOP_RESOURCE_NAME, uv_loop_handle);
-	} else {
-		loop = uv_default_loop();
-	}
+	PHP_UV_FETCH_UV_DEFAULT_LOOP(loop, zloop);
 
 	uv->type = IS_UV_CHECK;
 	r = uv_check_init(loop, &uv->uv.check);
@@ -4651,11 +4608,7 @@ PHP_FUNCTION(uv_async_init)
 		php_error_docref(NULL TSRMLS_CC, E_ERROR, "uv_check_init emalloc failed");
 		return;
 	}
-	if (zloop != NULL) {
-		ZEND_FETCH_RESOURCE(loop, uv_loop_t*, &zloop, -1, PHP_UV_LOOP_RESOURCE_NAME, uv_loop_handle);
-	} else {
-		loop = uv_default_loop();
-	}
+	PHP_UV_FETCH_UV_DEFAULT_LOOP(loop, zloop);
 
 	uv->type = IS_UV_ASYNC;
 	r = uv_async_init(loop, &uv->uv.async, php_uv_async_cb);
@@ -4713,11 +4666,7 @@ PHP_FUNCTION(uv_queue_work)
 		php_error_docref(NULL TSRMLS_CC, E_ERROR, "uv_queue_work emalloc failed");
 		return;
 	}
-	if (zloop != NULL) {
-		ZEND_FETCH_RESOURCE(loop, uv_loop_t*, &zloop, -1, PHP_UV_LOOP_RESOURCE_NAME, uv_loop_handle);
-	} else {
-		loop = uv_default_loop();
-	}
+	PHP_UV_FETCH_UV_DEFAULT_LOOP(loop, zloop);
 
 	uv->type = IS_UV_WORK;
 	PHP_UV_INIT_ZVALS(uv)
@@ -4765,11 +4714,7 @@ PHP_FUNCTION(uv_fs_open)
 		return;
 	}
 	
-	if (zloop != NULL) {
-		ZEND_FETCH_RESOURCE(loop, uv_loop_t*, &zloop, -1, PHP_UV_LOOP_RESOURCE_NAME, uv_loop_handle);
-	} else {
-		loop = uv_default_loop();
-	}
+	PHP_UV_FETCH_UV_DEFAULT_LOOP(loop, zloop);
 
 	uv->type = IS_UV_FS;
 	PHP_UV_INIT_ZVALS(uv)
@@ -4817,11 +4762,7 @@ PHP_FUNCTION(uv_fs_read)
 		return;
 	}
 	
-	if (zloop != NULL) {
-		ZEND_FETCH_RESOURCE(loop, uv_loop_t*, &zloop, -1, PHP_UV_LOOP_RESOURCE_NAME, uv_loop_handle);
-	} else {
-		loop = uv_default_loop();
-	}
+	PHP_UV_FETCH_UV_DEFAULT_LOOP(loop, zloop);
 
 	uv->type = IS_UV_FS;
 	PHP_UV_INIT_ZVALS(uv)
@@ -4872,11 +4813,7 @@ PHP_FUNCTION(uv_fs_close)
 		return;
 	}
 	
-	if (zloop != NULL) {
-		ZEND_FETCH_RESOURCE(loop, uv_loop_t*, &zloop, -1, PHP_UV_LOOP_RESOURCE_NAME, uv_loop_handle);
-	} else {
-		loop = uv_default_loop();
-	}
+	PHP_UV_FETCH_UV_DEFAULT_LOOP(loop, zloop);
 
 	uv->type = IS_UV_FS;
 	PHP_UV_INIT_ZVALS(uv)
@@ -4929,11 +4866,7 @@ PHP_FUNCTION(uv_fs_write)
 		return;
 	}
 	
-	if (zloop != NULL) {
-		ZEND_FETCH_RESOURCE(loop, uv_loop_t*, &zloop, -1, PHP_UV_LOOP_RESOURCE_NAME, uv_loop_handle);
-	} else {
-		loop = uv_default_loop();
-	}
+	PHP_UV_FETCH_UV_DEFAULT_LOOP(loop, zloop);
 
 	uv->type = IS_UV_FS;
 	PHP_UV_INIT_ZVALS(uv)
