@@ -61,7 +61,6 @@
 		uv->in_free     = 0;\
 		uv->address     = NULL; \
 		uv->read2_cb     = NULL; \
-		uv->idle_cb     = NULL; \
 		uv->getaddr_cb  = NULL; \
 		uv->udp_recv_cb  = NULL; \
 		uv->udp_send_cb  = NULL; \
@@ -521,11 +520,6 @@ void static destruct_uv(zend_rsrc_list_entry *rsrc TSRMLS_DC)
 		PHP_UV_DEBUG_PRINT("zval_ptr_dtor: read2_cb\n");
 		zval_ptr_dtor(&obj->read2_cb);
 		obj->read2_cb = NULL;
-	}
-	if (obj->idle_cb) {
-		PHP_UV_DEBUG_PRINT("zval_ptr_dtor: idle_cb\n");
-		zval_ptr_dtor(&obj->idle_cb);
-		obj->idle_cb = NULL;
 	}
 	if (obj->udp_recv_cb) {
 		PHP_UV_DEBUG_PRINT("zval_ptr_dtor: udp_recb_cb\n");
@@ -1423,7 +1417,7 @@ static void php_uv_idle_cb(uv_timer_t *handle, int status)
 	ZVAL_LONG(stat, status);
 	params[0] = &stat;
 	
-	php_uv_do_callback(&retval_ptr, uv->idle_cb, params, 1 TSRMLS_CC);
+	php_uv_do_callback2(&retval_ptr, uv, params, 1, PHP_UV_IDLE_CB TSRMLS_CC);
 
 	if (retval_ptr != NULL) {
 		zval_ptr_dtor(&retval_ptr);
@@ -3151,24 +3145,21 @@ PHP_FUNCTION(uv_timer_get_repeat)
 */
 PHP_FUNCTION(uv_idle_start)
 {
-	zval *idle, *callback;
+	zval *idle;
 	php_uv_t *uv;
+	zend_fcall_info fci       = empty_fcall_info;
+	zend_fcall_info_cache fcc = empty_fcall_info_cache;
+	php_uv_cb_t *cb;
 	
 	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
-		"rz",&idle, &callback) == FAILURE) {
+		"rf",&idle, &fci, &fcc) == FAILURE) {
 		return;
 	}
 
 	ZEND_FETCH_RESOURCE(uv, php_uv_t *, &idle, -1, PHP_UV_RESOURCE_NAME, uv_resource_handle);
-	Z_ADDREF_P(callback);
 	zend_list_addref(uv->resource_id);
-	
-	if (uv->idle_cb) {
-		zval_ptr_dtor(&uv->idle_cb);
-		uv->idle_cb = NULL;
-	}
 
-	uv->idle_cb = callback;
+	php_uv_cb_init(&cb, uv, &fci, &fcc, PHP_UV_IDLE_CB);
 	uv_idle_start((uv_idle_t*)&uv->uv.idle, (uv_idle_cb)php_uv_idle_cb);
 }
 /* }}} */
