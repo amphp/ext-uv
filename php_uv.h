@@ -59,6 +59,33 @@ enum php_uv_resource_type{
 	IS_UV_MAX      = 19
 };
 
+enum php_uv_callback_type{
+	PHP_UV_LISTEN_CB       = 0,
+	PHP_UV_READ_CB         = 1,
+	PHP_UV_READ2_CB        = 2,
+	PHP_UV_WRITE_CB        = 3,
+	PHP_UV_SHUTDOWN_CB     = 4,
+	PHP_UV_CLOSE_CB        = 5,
+	PHP_UV_TIMER_CB        = 6,
+	PHP_UV_IDLE_CB         = 7,
+	PHP_UV_CONNECT_CB      = 8,
+	PHP_UV_GETADDR_CB      = 9,
+	PHP_UV_RECV_CB         = 10,
+	PHP_UV_SEND_CB         = 11,
+	PHP_UV_PIPE_CONNECT_CB = 12,
+	PHP_UV_PROC_CLOSE_CB   = 13,
+	PHP_UV_PREPARE_CB      = 14,
+	PHP_UV_CHECK_CB        = 15,
+	PHP_UV_ASYNC_CB        = 16,
+	PHP_UV_WORK_CB         = 17,
+	PHP_UV_AFTER_WORK_CB   = 18,
+	PHP_UV_FS_CB           = 19,
+	PHP_UV_FS_EVENT_CB     = 20,
+	PHP_UV_FS_POLL_CB      = 21,
+	PHP_UV_POLL_CB         = 22,
+	PHP_UV_CB_MAX          = 23
+};
+
 typedef struct {
     zend_fcall_info fci;
     zend_fcall_info_cache fcc;
@@ -118,7 +145,7 @@ typedef struct {
 	zval *fs_event_cb;
 	zval *fs_poll_cb;
 	zval *poll_cb;
-	php_uv_cb_t *callback[20];
+	php_uv_cb_t *callback[PHP_UV_CB_MAX];
 } php_uv_t;
 
 typedef struct {

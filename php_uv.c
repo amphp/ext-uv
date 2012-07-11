@@ -660,13 +660,13 @@ static void php_uv_tcp_connect_cb(uv_connect_t *req, int status)
 	params[1] = &stat;
 	
 	//php_uv_do_callback(&retval_ptr, uv->connect_cb, params, 2 TSRMLS_CC);
-	if (ZEND_FCI_INITIALIZED(uv->callback[0]->fci)) {
-		uv->callback[0]->fci.params         = params;
-		uv->callback[0]->fci.retval_ptr_ptr = &retval_ptr;
-		uv->callback[0]->fci.param_count    = 2;
-		uv->callback[0]->fci.no_separation  = 0;
+	if (ZEND_FCI_INITIALIZED(uv->callback[PHP_UV_CONNECT_CB]->fci)) {
+		uv->callback[PHP_UV_CONNECT_CB]->fci.params         = params;
+		uv->callback[PHP_UV_CONNECT_CB]->fci.retval_ptr_ptr = &retval_ptr;
+		uv->callback[PHP_UV_CONNECT_CB]->fci.param_count    = 2;
+		uv->callback[PHP_UV_CONNECT_CB]->fci.no_separation  = 0;
 
-		if (zend_call_function(&uv->callback[0]->fci, &uv->callback[0]->fcc TSRMLS_CC) == SUCCESS && retval_ptr) {
+		if (zend_call_function(&uv->callback[PHP_UV_CONNECT_CB]->fci, &uv->callback[PHP_UV_CONNECT_CB]->fcc TSRMLS_CC) == SUCCESS && retval_ptr) {
 			zval_ptr_dtor(&retval_ptr);
 		}
 	}
@@ -3006,7 +3006,7 @@ PHP_FUNCTION(uv_tcp_connect)
 		}
 #endif
 	}
-	uv->callback[0] = cb;
+	uv->callback[PHP_UV_CONNECT_CB] = cb;
 
 	uv_tcp_connect(req, &uv->uv.tcp, addr->addr.ipv4, php_uv_tcp_connect_cb);
 }
@@ -3052,7 +3052,7 @@ PHP_FUNCTION(uv_tcp_connect6)
 		}
 #endif
 	}
-	uv->callback[0] = cb;
+	uv->callback[PHP_UV_CONNECT_CB] = cb;
 
 	uv_tcp_connect6(req, &uv->uv.tcp, addr->addr.ipv6, php_uv_tcp_connect_cb);
 }
