@@ -62,7 +62,6 @@
 		uv->address     = NULL; \
 		uv->read2_cb     = NULL; \
 		uv->getaddr_cb  = NULL; \
-		uv->poll_cb = NULL; \
 	}
 
 #if PHP_UV_DEBUG>=1
@@ -513,11 +512,6 @@ void static destruct_uv(zend_rsrc_list_entry *rsrc TSRMLS_DC)
 		PHP_UV_DEBUG_PRINT("zval_ptr_dtor: getaddr_cb\n");
 		zval_ptr_dtor(&obj->getaddr_cb);
 		obj->getaddr_cb = NULL;
-	}
-	if (obj->poll_cb) {
-		PHP_UV_DEBUG_PRINT("zval_ptr_dtor: poll_cb\n");
-		zval_ptr_dtor(&obj->poll_cb);
-		obj->poll_cb = NULL;
 	}
 
 	if (obj->resource_id) {
@@ -1262,7 +1256,7 @@ static void php_uv_poll_cb(uv_poll_t* handle, int status, int events)
 	params[2] = &ev;
 	params[3] = &fd;
 	
-	php_uv_do_callback(&retval_ptr, uv->poll_cb, params, 4 TSRMLS_CC);
+	php_uv_do_callback2(&retval_ptr, uv, params, 4, PHP_UV_POLL_CB TSRMLS_CC);
 	
 	zval_ptr_dtor(&rsc);
 	zval_ptr_dtor(&stat);
@@ -5628,20 +5622,22 @@ PHP_FUNCTION(uv_poll_init)
 */
 PHP_FUNCTION(uv_poll_start)
 {
-	zval *handle, *callback = NULL;
+	zval *handle = NULL;
 	php_uv_t *uv;
 	long events = 0;
 	int error;
+	zend_fcall_info fci       = empty_fcall_info;
+	zend_fcall_info_cache fcc = empty_fcall_info_cache;
+	php_uv_cb_t *cb;
 	
 	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
-		"zlz", &handle, &events, &callback) == FAILURE) {
+		"zlf", &handle, &events, &fci, &fcc) == FAILURE) {
 		return;
 	}
 
 	ZEND_FETCH_RESOURCE(uv, php_uv_t *, &handle, -1, PHP_UV_RESOURCE_NAME, uv_resource_handle);
 
-	Z_ADDREF_P(callback);
-	uv->poll_cb = callback;
+	php_uv_cb_init(&cb, uv, &fci, &fcc, PHP_UV_POLL_CB);
 	uv->uv.poll.data = uv;
 	
 	zend_list_addref(uv->resource_id);
