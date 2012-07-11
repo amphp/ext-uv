@@ -5385,7 +5385,7 @@ PHP_FUNCTION(uv_fs_readdir)
 PHP_FUNCTION(uv_fs_sendfile)
 {
 	int error;
-	zval *callback, *zloop = NULL;
+	zval *zloop = NULL;
 	uv_loop_t *loop;
 	php_uv_t *uv;
 	unsigned long in_fd, out_fd;
@@ -5414,7 +5414,7 @@ PHP_FUNCTION(uv_fs_sendfile)
 PHP_FUNCTION(uv_fs_event_init)
 {
 	int error;
-	zval *callback, *zloop = NULL;
+	zval *zloop = NULL;
 	uv_loop_t *loop;
 	php_uv_t *uv;
 	char *path;
