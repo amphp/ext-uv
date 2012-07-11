@@ -64,7 +64,6 @@
 		uv->getaddr_cb  = NULL; \
 		uv->pipe_connect_cb = NULL; \
 		uv->proc_close_cb = NULL; \
-		uv->check_cb = NULL; \
 		uv->work_cb = NULL; \
 		uv->async_cb = NULL; \
 		uv->after_work_cb = NULL; \
@@ -528,11 +527,6 @@ void static destruct_uv(zend_rsrc_list_entry *rsrc TSRMLS_DC)
 		zval_ptr_dtor(&obj->proc_close_cb);
 		obj->proc_close_cb = NULL;
 	}
-	if (obj->check_cb) {
-		PHP_UV_DEBUG_PRINT("zval_ptr_dtor: check_cb\n");
-		zval_ptr_dtor(&obj->check_cb);
-		obj->check_cb = NULL;
-	}
 	if (obj->async_cb) {
 		PHP_UV_DEBUG_PRINT("zval_ptr_dtor: async_cb\n");
 		zval_ptr_dtor(&obj->async_cb);
@@ -975,7 +969,7 @@ static void php_uv_check_cb(uv_check_t* handle, int status)
 	params[0] = &rsc;
 	params[1] = &zstat;
 	
-	php_uv_do_callback(&retval_ptr, uv->check_cb, params, 2 TSRMLS_CC);
+	php_uv_do_callback2(&retval_ptr, uv, params, 2, PHP_UV_CHECK_CB TSRMLS_CC);
 
 	zval_ptr_dtor(&rsc);
 	zval_ptr_dtor(&zstat);
@@ -4553,28 +4547,30 @@ PHP_FUNCTION(uv_check_init)
 */
 PHP_FUNCTION(uv_check_start)
 {
-	zval *handle, *callback;
+	zval *handle;
 	php_uv_t *uv;
 	int r;
+	zend_fcall_info fci       = empty_fcall_info;
+	zend_fcall_info_cache fcc = empty_fcall_info_cache;
+	php_uv_cb_t *cb;
 
 	PHP_UV_DEBUG_PRINT("uv_check_start");
 
 	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
-		"rz",&handle, &callback) == FAILURE) {
+		"rf", &handle, &fci, &fcc) == FAILURE) {
 		return;
 	}
 
 	ZEND_FETCH_RESOURCE(uv, php_uv_t *, &handle, -1, PHP_UV_RESOURCE_NAME, uv_resource_handle);
-	Z_ADDREF_P(callback);
 	zend_list_addref(uv->resource_id);
 
-	uv->check_cb = callback;
 	if(uv->type == IS_UV_CHECK) {
 		uv->uv.check.data = uv;
 	} else {
 		php_error_docref(NULL TSRMLS_CC, E_NOTICE, "this type does not support yet");
 	}
 
+	php_uv_cb_init(&cb, uv, &fci, &fcc, PHP_UV_CHECK_CB);
 	r = uv_check_start((uv_check_t*)php_uv_get_current_stream(uv), php_uv_check_cb);
 	if (r) {
 		php_error_docref(NULL TSRMLS_CC, E_NOTICE, "read failed");

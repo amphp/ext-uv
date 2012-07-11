@@ -126,7 +126,6 @@ typedef struct {
 	zval *getaddr_cb;
 	zval *pipe_connect_cb;
 	zval *proc_close_cb;
-	zval *check_cb;
 	zval *async_cb;
 	zval *work_cb;
 	zval *after_work_cb;
