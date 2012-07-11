@@ -63,7 +63,6 @@
 		uv->read2_cb     = NULL; \
 		uv->getaddr_cb  = NULL; \
 		uv->pipe_connect_cb = NULL; \
-		uv->proc_close_cb = NULL; \
 		uv->work_cb = NULL; \
 		uv->after_work_cb = NULL; \
 		uv->fs_cb = NULL; \
@@ -521,11 +520,6 @@ void static destruct_uv(zend_rsrc_list_entry *rsrc TSRMLS_DC)
 		zval_ptr_dtor(&obj->pipe_connect_cb);
 		obj->pipe_connect_cb = NULL;
 	}
-	if (obj->proc_close_cb) {
-		PHP_UV_DEBUG_PRINT("zval_ptr_dtor: proc_close_cb\n");
-		zval_ptr_dtor(&obj->proc_close_cb);
-		obj->proc_close_cb = NULL;
-	}
 	if (obj->work_cb) {
 		PHP_UV_DEBUG_PRINT("zval_ptr_dtor: work_cb\n");
 		zval_ptr_dtor(&obj->work_cb);
@@ -656,7 +650,7 @@ static void php_uv_process_close_cb(uv_process_t* process, int exit_status, int 
 	params[1] = &stat;
 	params[2] = &signal;
 	
-	php_uv_do_callback(&retval_ptr, uv->proc_close_cb, params, 3 TSRMLS_CC);
+	php_uv_do_callback2(&retval_ptr, uv, params, 3, PHP_UV_PROC_CLOSE_CB TSRMLS_CC);
 	
 	zval_ptr_dtor(&retval_ptr);
 	zval_ptr_dtor(&stat);
@@ -3938,17 +3932,20 @@ PHP_FUNCTION(uv_spawn)
 	uv_process_options_t options = {0};
 	uv_stdio_container_t stdio[3];
 	php_uv_t *proc;
-	zval *args, *context, *callback;
+	zval *args, *context;
 	char **zenv;
 	char *command;
 	char **command_args;
 	int command_len = 0;
+	zend_fcall_info fci       = empty_fcall_info;
+	zend_fcall_info_cache fcc = empty_fcall_info_cache;
+	php_uv_cb_t *cb;
 
 	options.stdio = stdio;
 	options.stdio_count = 3;
 
 	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
-		"zsaaz", &zloop, &command, &command_len, &args, &context, &callback) == FAILURE) {
+		"zsaaf", &zloop, &command, &command_len, &args, &context, &fci, &fcc) == FAILURE) {
 		return;
 	}
 	
@@ -4056,11 +4053,10 @@ PHP_FUNCTION(uv_spawn)
 		command_args[hash_len] = NULL;
 	}
 
-
 	proc  = (php_uv_t *)emalloc(sizeof(php_uv_t));
 	PHP_UV_INIT_ZVALS(proc);
-	proc->proc_close_cb = callback;
-	Z_ADDREF_P(callback);
+	php_uv_cb_init(&cb, proc, &fci, &fcc, PHP_UV_PROC_CLOSE_CB);
+
 	TSRMLS_SET_CTX(proc->thread_ctx);
 	
 	options.file          = command;
