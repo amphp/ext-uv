@@ -62,8 +62,6 @@
 		uv->address     = NULL; \
 		uv->read2_cb     = NULL; \
 		uv->getaddr_cb  = NULL; \
-		uv->udp_recv_cb  = NULL; \
-		uv->udp_send_cb  = NULL; \
 		uv->pipe_connect_cb = NULL; \
 		uv->proc_close_cb = NULL; \
 		uv->prepare_cb = NULL; \
@@ -521,16 +519,6 @@ void static destruct_uv(zend_rsrc_list_entry *rsrc TSRMLS_DC)
 		zval_ptr_dtor(&obj->read2_cb);
 		obj->read2_cb = NULL;
 	}
-	if (obj->udp_recv_cb) {
-		PHP_UV_DEBUG_PRINT("zval_ptr_dtor: udp_recb_cb\n");
-		zval_ptr_dtor(&obj->udp_recv_cb);
-		obj->udp_recv_cb = NULL;
-	}
-	if (obj->udp_send_cb) {
-		PHP_UV_DEBUG_PRINT("zval_ptr_dtor: udp_send_cb\n");
-		zval_ptr_dtor(&obj->udp_send_cb);
-		obj->udp_send_cb = NULL;
-	}
 	if (obj->pipe_connect_cb) {
 		PHP_UV_DEBUG_PRINT("zval_ptr_dtor: pipe_connect_cb\n");
 		zval_ptr_dtor(&obj->pipe_connect_cb);
@@ -769,7 +757,7 @@ static void php_uv_udp_send_cb(uv_udp_send_t* req, int status)
 	params[0] = &client;
 	params[1] = &stat;
 	
-	php_uv_do_callback(&retval_ptr, uv->udp_send_cb, params, 2 TSRMLS_CC);
+	php_uv_do_callback2(&retval_ptr, uv, params, 2, PHP_UV_SEND_CB TSRMLS_CC);
 
 	zval_ptr_dtor(&stat);
 	zval_ptr_dtor(&client);
@@ -1360,8 +1348,8 @@ static void php_uv_udp_recv_cb(uv_udp_t* handle, ssize_t nread, uv_buf_t buf, st
 	params[0] = &rsc;
 	params[1] = &read;
 	params[2] = &buffer;
-	
-	php_uv_do_callback(&retval_ptr, uv->udp_recv_cb, params, 3 TSRMLS_CC);
+
+	php_uv_do_callback2(&retval_ptr, uv, params, 3, PHP_UV_RECV_CB TSRMLS_CC);
 
 	zval_ptr_dtor(&buffer);
 	zval_ptr_dtor(&rsc);
@@ -1759,28 +1747,32 @@ static void php_uv_socket_getname(int type, INTERNAL_FUNCTION_PARAMETERS)
 
 static void php_uv_udp_send(int type, INTERNAL_FUNCTION_PARAMETERS)
 {
-	zval *z_cli,*z_addr, *callback;
+	zval *z_cli,*z_addr;
 	char *data;
 	int data_len = 0;
 	php_uv_t *client;
 	send_req_t *w;
 	php_uv_sockaddr_t *addr;
+	zend_fcall_info fci       = empty_fcall_info;
+	zend_fcall_info_cache fcc = empty_fcall_info_cache;
+	php_uv_cb_t *cb;
 	
 	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
-		"zszz",&z_cli, &data, &data_len, &z_addr, &callback) == FAILURE) {
+		"zszf!",&z_cli, &data, &data_len, &z_addr, &fci, &fcc) == FAILURE) {
 		return;
 	}
 	
 	ZEND_FETCH_RESOURCE(client, php_uv_t *, &z_cli, -1, PHP_UV_RESOURCE_NAME, uv_resource_handle);
 	ZEND_FETCH_RESOURCE(addr, php_uv_sockaddr_t *, &z_addr, -1, PHP_UV_SOCKADDR_RESOURCE_NAME, uv_sockaddr_handle);
 
-	Z_ADDREF_P(callback);
-	client->udp_send_cb = callback;
 	zend_list_addref(client->resource_id);
 
 	w = emalloc(sizeof(send_req_t));
 	w->req.data = client;
 	w->buf = uv_buf_init(estrndup(data,data_len), data_len);
+
+	php_uv_cb_init(&cb, client, &fci, &fcc, PHP_UV_SEND_CB);
+	
 	if (type == 1) {
 		uv_udp_send(&w->req, &client->uv.udp, &w->buf, 1, addr->addr.ipv4, php_uv_udp_send_cb);
 	} else if (type == 2) {
@@ -3046,7 +3038,7 @@ PHP_FUNCTION(uv_timer_init)
 */
 PHP_FUNCTION(uv_timer_start)
 {
-	zval *timer, *callback;
+	zval *timer;
 	php_uv_t *uv;
 	long timeout, repeat = 0;
 	zend_fcall_info fci       = empty_fcall_info;
@@ -3312,22 +3304,24 @@ PHP_FUNCTION(uv_udp_bind6)
 */
 PHP_FUNCTION(uv_udp_recv_start)
 {
-	zval *client, *callback;
+	zval *client;
 	php_uv_t *uv;
+	zend_fcall_info fci       = empty_fcall_info;
+	zend_fcall_info_cache fcc = empty_fcall_info_cache;
+	php_uv_cb_t *cb;
 	int r;
 	
 	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
-		"rz",&client, &callback) == FAILURE) {
+		"rf",&client, &fci, &fcc) == FAILURE) {
 		return;
 	}
 
 	ZEND_FETCH_RESOURCE(uv, php_uv_t *, &client, -1, PHP_UV_RESOURCE_NAME, uv_resource_handle);
-	Z_ADDREF_P(callback);
 	zend_list_addref(uv->resource_id);
 
-	uv->udp_recv_cb = callback;
 	uv->uv.udp.data = uv;
 
+	php_uv_cb_init(&cb, uv, &fci, &fcc, PHP_UV_RECV_CB);
 	r = uv_udp_recv_start((uv_udp_t*)&uv->uv.udp, php_uv_read_alloc, php_uv_udp_recv_cb);
 	if (r) {
 		php_error_docref(NULL TSRMLS_CC, E_NOTICE, "read failed");

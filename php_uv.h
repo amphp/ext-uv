@@ -124,8 +124,6 @@ typedef struct {
 	zval *address;
 	zval *read2_cb;
 	zval *getaddr_cb;
-	zval *udp_recv_cb;
-	zval *udp_send_cb;
 	zval *pipe_connect_cb;
 	zval *proc_close_cb;
 	zval *prepare_cb;
