@@ -124,7 +124,6 @@ typedef struct {
 	zval *address;
 	zval *read2_cb;
 	zval *getaddr_cb;
-	zval *fs_poll_cb;
 	zval *poll_cb;
 	php_uv_cb_t *callback[PHP_UV_CB_MAX];
 } php_uv_t;
