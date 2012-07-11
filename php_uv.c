@@ -320,7 +320,7 @@ static zval *php_uv_address_to_zval(const struct sockaddr *addr)
 			
 			add_assoc_string_ex(tmp, "address",sizeof("address"), ip, 1);
 			add_assoc_long_ex(tmp, "port", sizeof("port"), port);
-			add_assoc_string_ex(tmp, "family",sizeof("address"), "IPv6", 1);
+			add_assoc_string_ex(tmp, "family",sizeof("family"), "IPv6", 1);
 			break;
 		}
 		case AF_INET:
@@ -331,7 +331,7 @@ static zval *php_uv_address_to_zval(const struct sockaddr *addr)
 			
 			add_assoc_string_ex(tmp, "address",sizeof("address"), ip, 1);
 			add_assoc_long_ex(tmp, "port", sizeof("port"), port);
-			add_assoc_string_ex(tmp, "family",sizeof("address"), "IPv4", 1);
+			add_assoc_string_ex(tmp, "family",sizeof("family"), "IPv4", 1);
 			break;
 		}
 		default:
