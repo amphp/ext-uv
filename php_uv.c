@@ -64,7 +64,6 @@
 		uv->shutdown_cb = NULL; \
 		uv->timer_cb    = NULL; \
 		uv->idle_cb     = NULL; \
-		uv->connect_cb  = NULL; \
 		uv->getaddr_cb  = NULL; \
 		uv->udp_recv_cb  = NULL; \
 		uv->udp_send_cb  = NULL; \
@@ -534,11 +533,6 @@ void static destruct_uv(zend_rsrc_list_entry *rsrc TSRMLS_DC)
 		zval_ptr_dtor(&obj->idle_cb);
 		obj->idle_cb = NULL;
 	}
-	if (obj->connect_cb) {
-		PHP_UV_DEBUG_PRINT("zval_ptr_dtor: connect_cb\n");
-		zval_ptr_dtor(&obj->connect_cb);
-		obj->connect_cb = NULL;
-	}
 	if (obj->udp_recv_cb) {
 		PHP_UV_DEBUG_PRINT("zval_ptr_dtor: udp_recb_cb\n");
 		zval_ptr_dtor(&obj->udp_recv_cb);
@@ -659,7 +653,6 @@ static void php_uv_tcp_connect_cb(uv_connect_t *req, int status)
 	params[0] = &client;
 	params[1] = &stat;
 	
-	//php_uv_do_callback(&retval_ptr, uv->connect_cb, params, 2 TSRMLS_CC);
 	if (ZEND_FCI_INITIALIZED(uv->callback[PHP_UV_CONNECT_CB]->fci)) {
 		uv->callback[PHP_UV_CONNECT_CB]->fci.params         = params;
 		uv->callback[PHP_UV_CONNECT_CB]->fci.retval_ptr_ptr = &retval_ptr;

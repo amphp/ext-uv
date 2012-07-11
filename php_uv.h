@@ -130,7 +130,6 @@ typedef struct {
 	zval *close_cb;
 	zval *timer_cb;
 	zval *idle_cb;
-	zval *connect_cb;
 	zval *getaddr_cb;
 	zval *udp_recv_cb;
 	zval *udp_send_cb;
