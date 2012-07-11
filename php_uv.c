@@ -62,7 +62,6 @@
 		uv->address     = NULL; \
 		uv->read2_cb     = NULL; \
 		uv->getaddr_cb  = NULL; \
-		uv->fs_cb = NULL; \
 		uv->fs_event_cb = NULL; \
 		uv->fs_poll_cb  = NULL; \
 		uv->poll_cb = NULL; \
@@ -511,11 +510,6 @@ void static destruct_uv(zend_rsrc_list_entry *rsrc TSRMLS_DC)
 		PHP_UV_DEBUG_PRINT("zval_ptr_dtor: read2_cb\n");
 		zval_ptr_dtor(&obj->read2_cb);
 		obj->read2_cb = NULL;
-	}
-	if (obj->fs_cb) {
-		PHP_UV_DEBUG_PRINT("zval_ptr_dtor: fs_cb\n");
-		zval_ptr_dtor(&obj->fs_cb);
-		obj->fs_cb = NULL;
 	}
 	if (obj->getaddr_cb) {
 		PHP_UV_DEBUG_PRINT("zval_ptr_dtor: getaddr_cb\n");
@@ -1135,7 +1129,8 @@ static void php_uv_fs_cb(uv_fs_t* req)
 		}
 	}
 
-	php_uv_do_callback(&retval_ptr, uv->fs_cb, params, argc TSRMLS_CC);
+	php_uv_do_callback2(&retval_ptr, uv, params, argc, PHP_UV_FS_CB TSRMLS_CC);
+
 	PHP_UV_DEBUG_RESOURCE_REFCOUNT(uv_fs_cb, uv->resource_id);
 	
 	if (retval_ptr != NULL) {
@@ -4663,23 +4658,25 @@ PHP_FUNCTION(uv_queue_work)
 */
 PHP_FUNCTION(uv_fs_open)
 {
-	zval *callback, *zloop = NULL;
+	zval *zloop = NULL;
 	uv_loop_t *loop;
 	php_uv_t *uv;
 	char *path;
 	int r, path_len = 0;
 	long flag, mode;
+	zend_fcall_info fci       = empty_fcall_info;
+	zend_fcall_info_cache fcc = empty_fcall_info_cache;
+	php_uv_cb_t *cb;
 	
 	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
-		"zsllz", &zloop, &path, &path_len, &flag, &mode, &callback) == FAILURE) {
+		"zsllf!", &zloop, &path, &path_len, &flag, &mode, &fci, &fcc) == FAILURE) {
 		return;
 	}
 
 	PHP_UV_FETCH_UV_DEFAULT_LOOP(loop, zloop);
 	PHP_UV_INIT_UV(uv, IS_UV_FS);
+	php_uv_cb_init(&cb, uv, &fci, &fcc, PHP_UV_FS_CB);
 	
-	uv->fs_cb = callback;
-	Z_ADDREF_P(callback);
 	uv->uv.fs.data = uv;
 	
 	r = uv_fs_open(loop, (uv_fs_t*)&uv->uv.fs, path, flag, mode, php_uv_fs_cb);
@@ -4697,21 +4694,22 @@ PHP_FUNCTION(uv_fs_read)
 {
 	int r;
 	zval *zloop = NULL;
-	zval *callback;
 	uv_loop_t *loop;
 	php_uv_t *uv;
 	unsigned long fd;
+	zend_fcall_info fci       = empty_fcall_info;
+	zend_fcall_info_cache fcc = empty_fcall_info_cache;
+	php_uv_cb_t *cb;
 	
 	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
-		"zlz", &zloop, &fd, &callback) == FAILURE) {
+		"zlf", &zloop, &fd, &fci, &fcc) == FAILURE) {
 		return;
 	}
 
 	PHP_UV_FETCH_UV_DEFAULT_LOOP(loop, zloop);
 	PHP_UV_INIT_UV(uv, IS_UV_FS)
 
-	uv->fs_cb = callback;
-	Z_ADDREF_P(callback);
+	php_uv_cb_init(&cb, uv, &fci, &fcc, PHP_UV_FS_CB);
 	uv->uv.fs.data = uv;
 
 	memset(uv_fs_read_buf, 0, sizeof(uv_fs_read_buf));
@@ -4730,21 +4728,22 @@ PHP_FUNCTION(uv_fs_close)
 {
 	int r;
 	zval *zloop = NULL;
-	zval *callback;
 	uv_loop_t *loop;
 	php_uv_t *uv;
 	unsigned long fd;
-	
+	zend_fcall_info fci       = empty_fcall_info;
+	zend_fcall_info_cache fcc = empty_fcall_info_cache;
+	php_uv_cb_t *cb;
+
 	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
-		"zlz", &zloop, &fd, &callback) == FAILURE) {
+		"zlf", &zloop, &fd, &fci, &fcc) == FAILURE) {
 		return;
 	}
 
 	PHP_UV_FETCH_UV_DEFAULT_LOOP(loop, zloop);
 	PHP_UV_INIT_UV(uv, IS_UV_FS);
 
-	uv->fs_cb = callback;
-	Z_ADDREF_P(callback);
+	php_uv_cb_init(&cb, uv, &fci, &fcc, PHP_UV_FS_CB);
 	uv->uv.fs.data = uv;
 
 	memset(uv_fs_read_buf, 0, sizeof(uv_fs_read_buf));
@@ -4763,15 +4762,17 @@ PHP_FUNCTION(uv_fs_write)
 {
 	int r;
 	zval *zloop = NULL;
-	zval *callback;
 	uv_loop_t *loop;
 	php_uv_t *uv;
 	char *buffer;
 	int buffer_len = 0;
 	unsigned long fd;
+	zend_fcall_info fci       = empty_fcall_info;
+	zend_fcall_info_cache fcc = empty_fcall_info_cache;
+	php_uv_cb_t *cb;
 	
 	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
-		"zlsz", &zloop, &fd, &buffer, &buffer_len, &callback) == FAILURE) {
+		"zlsf", &zloop, &fd, &buffer, &buffer_len, &fci, &fcc) == FAILURE) {
 		return;
 	}
 
@@ -4779,8 +4780,7 @@ PHP_FUNCTION(uv_fs_write)
 	PHP_UV_FETCH_UV_DEFAULT_LOOP(loop, zloop);
 	PHP_UV_INIT_UV(uv, IS_UV_FS);
 
-	uv->fs_cb = callback;
-	Z_ADDREF_P(callback);
+	php_uv_cb_init(&cb, uv, &fci, &fcc, PHP_UV_FS_CB);
 	uv->uv.fs.data = uv;
 	uv->buffer = estrndup(buffer, buffer_len);
 	
@@ -4798,21 +4798,23 @@ PHP_FUNCTION(uv_fs_write)
 PHP_FUNCTION(uv_fs_fsync)
 {
 	int error;
-	zval *callback, *zloop = NULL;
+	zval *zloop = NULL;
 	uv_loop_t *loop;
 	php_uv_t *uv;
 	unsigned long fd;
-	
+	zend_fcall_info fci       = empty_fcall_info;
+	zend_fcall_info_cache fcc = empty_fcall_info_cache;
+	php_uv_cb_t *cb;
+
 	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
-		"zlz", &zloop, &fd, &callback) == FAILURE) {
+		"zlf!", &zloop, &fd, &fci, &fcc) == FAILURE) {
 		return;
 	}
 
 	PHP_UV_INIT_UV(uv, IS_UV_FS);
 	PHP_UV_FETCH_UV_DEFAULT_LOOP(loop, zloop);
 
-	uv->fs_cb = callback;
-	Z_ADDREF_P(callback);
+	php_uv_cb_init(&cb, uv, &fci, &fcc, PHP_UV_FS_CB);
 	uv->uv.fs.data = uv;
 
 	PHP_UV_FS_ASYNC(loop, fsync, fd);
@@ -4824,21 +4826,23 @@ PHP_FUNCTION(uv_fs_fsync)
 PHP_FUNCTION(uv_fs_fdatasync)
 {
 	int error;
-	zval *callback, *zloop = NULL;
+	zval *zloop = NULL;
 	uv_loop_t *loop;
 	php_uv_t *uv;
 	unsigned long fd;
+	zend_fcall_info fci       = empty_fcall_info;
+	zend_fcall_info_cache fcc = empty_fcall_info_cache;
+	php_uv_cb_t *cb;
 	
 	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
-		"zlz", &zloop, &fd, &callback) == FAILURE) {
+		"zlf", &zloop, &fd, &fci, &fcc) == FAILURE) {
 		return;
 	}
 
 	PHP_UV_INIT_UV(uv, IS_UV_FS);
 	PHP_UV_FETCH_UV_DEFAULT_LOOP(loop, zloop);
 
-	uv->fs_cb = callback;
-	Z_ADDREF_P(callback);
+	php_uv_cb_init(&cb, uv, &fci, &fcc, PHP_UV_FS_CB);
 	uv->uv.fs.data = uv;
 
 	PHP_UV_FS_ASYNC(loop, fdatasync, fd);
@@ -4850,22 +4854,24 @@ PHP_FUNCTION(uv_fs_fdatasync)
 PHP_FUNCTION(uv_fs_ftruncate)
 {
 	int error;
-	zval *callback, *zloop = NULL;
+	zval *zloop = NULL;
 	uv_loop_t *loop;
 	php_uv_t *uv;
 	long offset = 0;
 	unsigned long fd;
+	zend_fcall_info fci       = empty_fcall_info;
+	zend_fcall_info_cache fcc = empty_fcall_info_cache;
+	php_uv_cb_t *cb;
 	
 	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
-		"zllz", &zloop, &fd, &offset, &callback) == FAILURE) {
+		"zllf", &zloop, &fd, &offset, &fci, &fcc) == FAILURE) {
 		return;
 	}
 
 	PHP_UV_INIT_UV(uv, IS_UV_FS);
 	PHP_UV_FETCH_UV_DEFAULT_LOOP(loop, zloop);
 
-	uv->fs_cb = callback;
-	Z_ADDREF_P(callback);
+	php_uv_cb_init(&cb, uv, &fci, &fcc, PHP_UV_FS_CB);
 	uv->uv.fs.data = uv;
 
 	PHP_UV_FS_ASYNC(loop, ftruncate, fd, offset);
@@ -4877,23 +4883,25 @@ PHP_FUNCTION(uv_fs_ftruncate)
 PHP_FUNCTION(uv_fs_mkdir)
 {
 	int error;
-	zval *callback, *zloop = NULL;
+	zval *zloop = NULL;
 	uv_loop_t *loop;
 	php_uv_t *uv;
 	char *path;
 	int path_len = 0;
 	long mode = 0;
+	zend_fcall_info fci       = empty_fcall_info;
+	zend_fcall_info_cache fcc = empty_fcall_info_cache;
+	php_uv_cb_t *cb;
 	
 	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
-		"zslz", &zloop, &path, &path_len, &mode, &callback) == FAILURE) {
+		"zslf", &zloop, &path, &path_len, &mode, &fci, &fcc) == FAILURE) {
 		return;
 	}
 
 	PHP_UV_INIT_UV(uv, IS_UV_FS);
 	PHP_UV_FETCH_UV_DEFAULT_LOOP(loop, zloop);
 
-	uv->fs_cb = callback;
-	Z_ADDREF_P(callback);
+	php_uv_cb_init(&cb, uv, &fci, &fcc, PHP_UV_FS_CB);
 	uv->uv.fs.data = uv;
 
 	PHP_UV_FS_ASYNC(loop, mkdir, path, mode);
@@ -4906,22 +4914,24 @@ PHP_FUNCTION(uv_fs_mkdir)
 PHP_FUNCTION(uv_fs_rmdir)
 {
 	int error;
-	zval *callback, *zloop = NULL;
+	zval *zloop = NULL;
 	uv_loop_t *loop;
 	php_uv_t *uv;
 	char *path;
 	int path_len = 0;
+	zend_fcall_info fci       = empty_fcall_info;
+	zend_fcall_info_cache fcc = empty_fcall_info_cache;
+	php_uv_cb_t *cb;
 	
 	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
-		"zsz", &zloop, &path, &path_len, &callback) == FAILURE) {
+		"zsf!", &zloop, &path, &path_len, &fci, &fcc) == FAILURE) {
 		return;
 	}
 
 	PHP_UV_INIT_UV(uv, IS_UV_FS);
 	PHP_UV_FETCH_UV_DEFAULT_LOOP(loop, zloop);
 
-	uv->fs_cb = callback;
-	Z_ADDREF_P(callback);
+	php_uv_cb_init(&cb, uv, &fci, &fcc, PHP_UV_FS_CB);
 	uv->uv.fs.data = uv;
 
 	PHP_UV_FS_ASYNC(loop, rmdir, path);
@@ -4933,22 +4943,24 @@ PHP_FUNCTION(uv_fs_rmdir)
 PHP_FUNCTION(uv_fs_unlink)
 {
 	int error;
-	zval *callback, *zloop = NULL;
+	zval *zloop = NULL;
 	uv_loop_t *loop;
 	php_uv_t *uv;
 	char *path;
 	int path_len = 0;
+	zend_fcall_info fci       = empty_fcall_info;
+	zend_fcall_info_cache fcc = empty_fcall_info_cache;
+	php_uv_cb_t *cb;
 	
 	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
-		"zsz", &zloop, &path, &path_len, &callback) == FAILURE) {
+		"zsf!", &zloop, &path, &path_len, &fci, &fcc) == FAILURE) {
 		return;
 	}
 
 	PHP_UV_INIT_UV(uv, IS_UV_FS);
 	PHP_UV_FETCH_UV_DEFAULT_LOOP(loop, zloop);
 
-	uv->fs_cb = callback;
-	Z_ADDREF_P(callback);
+	php_uv_cb_init(&cb, uv, &fci, &fcc, PHP_UV_FS_CB);
 	uv->uv.fs.data = uv;
 
 	PHP_UV_FS_ASYNC(loop, unlink, path);
@@ -4960,22 +4972,24 @@ PHP_FUNCTION(uv_fs_unlink)
 PHP_FUNCTION(uv_fs_rename)
 {
 	int error;
-	zval *callback, *zloop = NULL;
+	zval *zloop = NULL;
 	uv_loop_t *loop;
 	php_uv_t *uv;
 	char *from, *to;
 	int from_len, to_len = 0;
+	zend_fcall_info fci       = empty_fcall_info;
+	zend_fcall_info_cache fcc = empty_fcall_info_cache;
+	php_uv_cb_t *cb;
 	
 	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
-		"zssz", &zloop, &from, &from_len, &to, &to_len, &callback) == FAILURE) {
+		"zssf!", &zloop, &from, &from_len, &to, &to_len, &fci, &fcc) == FAILURE) {
 		return;
 	}
 
 	PHP_UV_INIT_UV(uv, IS_UV_FS);
 	PHP_UV_FETCH_UV_DEFAULT_LOOP(loop, zloop);
 
-	uv->fs_cb = callback;
-	Z_ADDREF_P(callback);
+	php_uv_cb_init(&cb, uv, &fci, &fcc, PHP_UV_FS_CB);
 	uv->uv.fs.data = uv;
 
 	PHP_UV_FS_ASYNC(loop, rename, from, to);
@@ -4987,23 +5001,25 @@ PHP_FUNCTION(uv_fs_rename)
 PHP_FUNCTION(uv_fs_utime)
 {
 	int error;
-	zval *callback, *zloop = NULL;
+	zval *zloop = NULL;
 	uv_loop_t *loop;
 	php_uv_t *uv;
 	long utime, atime;
 	char *path;
 	int path_len = 0;
+	zend_fcall_info fci       = empty_fcall_info;
+	zend_fcall_info_cache fcc = empty_fcall_info_cache;
+	php_uv_cb_t *cb;
 	
 	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
-		"zsllz", &zloop, &path, &path_len, &utime, &atime, &callback) == FAILURE) {
+		"zsllf", &zloop, &path, &path_len, &utime, &atime, &fci, &fcc) == FAILURE) {
 		return;
 	}
 
 	PHP_UV_INIT_UV(uv, IS_UV_FS);
 	PHP_UV_FETCH_UV_DEFAULT_LOOP(loop, zloop);
 
-	uv->fs_cb = callback;
-	Z_ADDREF_P(callback);
+	php_uv_cb_init(&cb, uv, &fci, &fcc, PHP_UV_FS_CB);
 	uv->uv.fs.data = uv;
 
 	PHP_UV_FS_ASYNC(loop, utime, path, utime, atime);
@@ -5015,22 +5031,24 @@ PHP_FUNCTION(uv_fs_utime)
 PHP_FUNCTION(uv_fs_futime)
 {
 	int error;
-	zval *callback, *zloop = NULL;
+	zval *zloop = NULL;
 	uv_loop_t *loop;
 	php_uv_t *uv;
 	long utime, atime;
 	unsigned long fd;
-	
+	zend_fcall_info fci       = empty_fcall_info;
+	zend_fcall_info_cache fcc = empty_fcall_info_cache;
+	php_uv_cb_t *cb;
+
 	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
-		"zlllz", &zloop, &fd, &utime, &atime, &callback) == FAILURE) {
+		"zlllf", &zloop, &fd, &utime, &atime, &fci, &fcc) == FAILURE) {
 		return;
 	}
 
 	PHP_UV_INIT_UV(uv, IS_UV_FS);
 	PHP_UV_FETCH_UV_DEFAULT_LOOP(loop, zloop);
 
-	uv->fs_cb = callback;
-	Z_ADDREF_P(callback);
+	php_uv_cb_init(&cb, uv, &fci, &fcc, PHP_UV_FS_CB);
 	uv->uv.fs.data = uv;
 
 	PHP_UV_FS_ASYNC(loop, futime, fd, utime, atime);
@@ -5042,23 +5060,25 @@ PHP_FUNCTION(uv_fs_futime)
 PHP_FUNCTION(uv_fs_chmod)
 {
 	int error;
-	zval *callback, *zloop = NULL;
+	zval *zloop = NULL;
 	uv_loop_t *loop;
 	php_uv_t *uv;
 	long mode;
 	char *path;
 	int path_len = 0;
+	zend_fcall_info fci       = empty_fcall_info;
+	zend_fcall_info_cache fcc = empty_fcall_info_cache;
+	php_uv_cb_t *cb;
 	
 	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
-		"zslz", &zloop, &path, &path_len, &mode, &callback) == FAILURE) {
+		"zslf", &zloop, &path, &path_len, &mode, &fci, &fcc) == FAILURE) {
 		return;
 	}
 
 	PHP_UV_INIT_UV(uv, IS_UV_FS);
 	PHP_UV_FETCH_UV_DEFAULT_LOOP(loop, zloop);
 
-	uv->fs_cb = callback;
-	Z_ADDREF_P(callback);
+	php_uv_cb_init(&cb, uv, &fci, &fcc, PHP_UV_FS_CB);
 	uv->uv.fs.data = uv;
 
 	PHP_UV_FS_ASYNC(loop, chmod, path, mode);
@@ -5071,22 +5091,24 @@ PHP_FUNCTION(uv_fs_chmod)
 PHP_FUNCTION(uv_fs_fchmod)
 {
 	int error;
-	zval *callback, *zloop = NULL;
+	zval *zloop = NULL;
 	uv_loop_t *loop;
 	php_uv_t *uv;
 	long mode;
 	unsigned long fd;
+	zend_fcall_info fci       = empty_fcall_info;
+	zend_fcall_info_cache fcc = empty_fcall_info_cache;
+	php_uv_cb_t *cb;
 	
 	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
-		"zlllz", &zloop, &fd, &mode, &callback) == FAILURE) {
+		"zlllf!", &zloop, &fd, &mode, &fci, &fcc) == FAILURE) {
 		return;
 	}
 
 	PHP_UV_INIT_UV(uv, IS_UV_FS);
 	PHP_UV_FETCH_UV_DEFAULT_LOOP(loop, zloop);
 
-	uv->fs_cb = callback;
-	Z_ADDREF_P(callback);
+	php_uv_cb_init(&cb, uv, &fci, &fcc, PHP_UV_FS_CB);
 	uv->uv.fs.data = uv;
 
 	PHP_UV_FS_ASYNC(loop, fchmod, fd, mode);
@@ -5099,23 +5121,25 @@ PHP_FUNCTION(uv_fs_fchmod)
 PHP_FUNCTION(uv_fs_chown)
 {
 	int error;
-	zval *callback, *zloop = NULL;
+	zval *zloop = NULL;
 	uv_loop_t *loop;
 	php_uv_t *uv;
 	long uid, gid;
 	char *path;
 	int path_len = 0;
+	zend_fcall_info fci       = empty_fcall_info;
+	zend_fcall_info_cache fcc = empty_fcall_info_cache;
+	php_uv_cb_t *cb;
 	
 	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
-		"zslz", &zloop, &path, &path_len, &uid, &gid, &callback) == FAILURE) {
+		"zslf", &zloop, &path, &path_len, &uid, &gid, &fci, &fcc) == FAILURE) {
 		return;
 	}
 
 	PHP_UV_INIT_UV(uv, IS_UV_FS);
 	PHP_UV_FETCH_UV_DEFAULT_LOOP(loop, zloop);
 
-	uv->fs_cb = callback;
-	Z_ADDREF_P(callback);
+	php_uv_cb_init(&cb, uv, &fci, &fcc, PHP_UV_FS_CB);
 	uv->uv.fs.data = uv;
 
 	PHP_UV_FS_ASYNC(loop, chown, path, uid, gid);
@@ -5127,22 +5151,24 @@ PHP_FUNCTION(uv_fs_chown)
 PHP_FUNCTION(uv_fs_fchown)
 {
 	int error;
-	zval *callback, *zloop = NULL;
+	zval *zloop = NULL;
 	uv_loop_t *loop;
 	php_uv_t *uv;
 	long uid, gid;
 	unsigned long fd;
+	zend_fcall_info fci       = empty_fcall_info;
+	zend_fcall_info_cache fcc = empty_fcall_info_cache;
+	php_uv_cb_t *cb;
 	
 	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
-		"zlllz", &zloop, &fd, &uid, &gid, &callback) == FAILURE) {
+		"zlllf!", &zloop, &fd, &uid, &gid, &fci, &fcc) == FAILURE) {
 		return;
 	}
 
 	PHP_UV_INIT_UV(uv, IS_UV_FS);
 	PHP_UV_FETCH_UV_DEFAULT_LOOP(loop, zloop);
 
-	uv->fs_cb = callback;
-	Z_ADDREF_P(callback);
+	php_uv_cb_init(&cb, uv, &fci, &fcc, PHP_UV_FS_CB);
 	uv->uv.fs.data = uv;
 
 	PHP_UV_FS_ASYNC(loop, fchown, fd, uid, gid);
@@ -5154,22 +5180,24 @@ PHP_FUNCTION(uv_fs_fchown)
 PHP_FUNCTION(uv_fs_link)
 {
 	int error;
-	zval *callback, *zloop = NULL;
+	zval *zloop = NULL;
 	uv_loop_t *loop;
 	php_uv_t *uv;
 	char *from, *to;
 	int from_len, to_len = 0;
+	zend_fcall_info fci       = empty_fcall_info;
+	zend_fcall_info_cache fcc = empty_fcall_info_cache;
+	php_uv_cb_t *cb;
 	
 	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
-		"zssz", &zloop, &from, &from_len, &to, &to_len, &callback) == FAILURE) {
+		"zssf", &zloop, &from, &from_len, &to, &to_len, &fci, &fcc) == FAILURE) {
 		return;
 	}
 
 	PHP_UV_INIT_UV(uv, IS_UV_FS);
 	PHP_UV_FETCH_UV_DEFAULT_LOOP(loop, zloop);
 
-	uv->fs_cb = callback;
-	Z_ADDREF_P(callback);
+	php_uv_cb_init(&cb, uv, &fci, &fcc, PHP_UV_FS_CB);
 	uv->uv.fs.data = uv;
 
 	PHP_UV_FS_ASYNC(loop, link, from, to);
@@ -5182,23 +5210,25 @@ PHP_FUNCTION(uv_fs_link)
 PHP_FUNCTION(uv_fs_symlink)
 {
 	int error;
-	zval *callback, *zloop = NULL;
+	zval *zloop = NULL;
 	uv_loop_t *loop;
 	php_uv_t *uv;
 	char *from, *to;
 	int from_len, to_len = 0;
 	long flags;
+	zend_fcall_info fci       = empty_fcall_info;
+	zend_fcall_info_cache fcc = empty_fcall_info_cache;
+	php_uv_cb_t *cb;
 	
 	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
-		"zsslz", &zloop, &from, &from_len, &to, &to_len, &flags, &callback) == FAILURE) {
+		"zsslf", &zloop, &from, &from_len, &to, &to_len, &flags, &fci, &fcc) == FAILURE) {
 		return;
 	}
 
 	PHP_UV_INIT_UV(uv, IS_UV_FS);
 	PHP_UV_FETCH_UV_DEFAULT_LOOP(loop, zloop);
 
-	uv->fs_cb = callback;
-	Z_ADDREF_P(callback);
+	php_uv_cb_init(&cb, uv, &fci, &fcc, PHP_UV_FS_CB);
 	uv->uv.fs.data = uv;
 
 	PHP_UV_FS_ASYNC(loop, symlink, from, to, flags);
@@ -5210,22 +5240,24 @@ PHP_FUNCTION(uv_fs_symlink)
 PHP_FUNCTION(uv_fs_readlink)
 {
 	int error;
-	zval *callback, *zloop = NULL;
+	zval *zloop = NULL;
 	uv_loop_t *loop;
 	php_uv_t *uv;
 	char *path;
 	int path_len = 0;
+	zend_fcall_info fci       = empty_fcall_info;
+	zend_fcall_info_cache fcc = empty_fcall_info_cache;
+	php_uv_cb_t *cb;
 	
 	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
-		"zsz", &zloop, &path, &path_len, &callback) == FAILURE) {
+		"zsf", &zloop, &path, &path_len, &fci, &fcc) == FAILURE) {
 		return;
 	}
 
 	PHP_UV_INIT_UV(uv, IS_UV_FS);
 	PHP_UV_FETCH_UV_DEFAULT_LOOP(loop, zloop);
 
-	uv->fs_cb = callback;
-	Z_ADDREF_P(callback);
+	php_uv_cb_init(&cb, uv, &fci, &fcc, PHP_UV_FS_CB);
 	uv->uv.fs.data = uv;
 
 	PHP_UV_FS_ASYNC(loop, readlink, path);
@@ -5237,22 +5269,24 @@ PHP_FUNCTION(uv_fs_readlink)
 PHP_FUNCTION(uv_fs_stat)
 {
 	int error;
-	zval *callback, *zloop = NULL;
+	zval *zloop = NULL;
 	uv_loop_t *loop;
 	php_uv_t *uv;
 	char *path;
 	int path_len = 0;
+	zend_fcall_info fci       = empty_fcall_info;
+	zend_fcall_info_cache fcc = empty_fcall_info_cache;
+	php_uv_cb_t *cb;
 	
 	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
-		"zsz", &zloop, &path, &path_len, &callback) == FAILURE) {
+		"zsf", &zloop, &path, &path_len, &fci, &fcc) == FAILURE) {
 		return;
 	}
 
 	PHP_UV_INIT_UV(uv, IS_UV_FS);
 	PHP_UV_FETCH_UV_DEFAULT_LOOP(loop, zloop);
 
-	uv->fs_cb = callback;
-	Z_ADDREF_P(callback);
+	php_uv_cb_init(&cb, uv, &fci, &fcc, PHP_UV_FS_CB);
 	uv->uv.fs.data = uv;
 
 	PHP_UV_FS_ASYNC(loop, stat, path);
@@ -5264,22 +5298,24 @@ PHP_FUNCTION(uv_fs_stat)
 PHP_FUNCTION(uv_fs_lstat)
 {
 	int error;
-	zval *callback, *zloop = NULL;
+	zval *zloop = NULL;
 	uv_loop_t *loop;
 	php_uv_t *uv;
 	char *path;
 	int path_len = 0;
-	
+	zend_fcall_info fci       = empty_fcall_info;
+	zend_fcall_info_cache fcc = empty_fcall_info_cache;
+	php_uv_cb_t *cb;
+		
 	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
-		"zsz", &zloop, &path, &path_len, &callback) == FAILURE) {
+		"zsf", &zloop, &path, &path_len, &fci, &fcc) == FAILURE) {
 		return;
 	}
 
 	PHP_UV_INIT_UV(uv, IS_UV_FS);
 	PHP_UV_FETCH_UV_DEFAULT_LOOP(loop, zloop);
 
-	uv->fs_cb = callback;
-	Z_ADDREF_P(callback);
+	php_uv_cb_init(&cb, uv, &fci, &fcc, PHP_UV_FS_CB);
 	uv->uv.fs.data = uv;
 
 	PHP_UV_FS_ASYNC(loop, lstat, path);
@@ -5291,21 +5327,23 @@ PHP_FUNCTION(uv_fs_lstat)
 PHP_FUNCTION(uv_fs_fstat)
 {
 	int error;
-	zval *callback, *zloop = NULL;
+	zval *zloop = NULL;
 	uv_loop_t *loop;
 	php_uv_t *uv;
 	unsigned long fd;
+	zend_fcall_info fci       = empty_fcall_info;
+	zend_fcall_info_cache fcc = empty_fcall_info_cache;
+	php_uv_cb_t *cb;
 	
 	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
-		"zlz", &zloop, &fd, &callback) == FAILURE) {
+		"zlf", &zloop, &fd, &fci, &fcc) == FAILURE) {
 		return;
 	}
 
 	PHP_UV_INIT_UV(uv, IS_UV_FS);
 	PHP_UV_FETCH_UV_DEFAULT_LOOP(loop, zloop);
 
-	uv->fs_cb = callback;
-	Z_ADDREF_P(callback);
+	php_uv_cb_init(&cb, uv, &fci, &fcc, PHP_UV_FS_CB);
 	uv->uv.fs.data = uv;
 
 	PHP_UV_FS_ASYNC(loop, fstat, fd);
@@ -5318,23 +5356,25 @@ PHP_FUNCTION(uv_fs_fstat)
 PHP_FUNCTION(uv_fs_readdir)
 {
 	int error;
-	zval *callback, *zloop = NULL;
+	zval *zloop = NULL;
 	uv_loop_t *loop;
 	php_uv_t *uv;
 	char *path;
 	int path_len = 0;
 	long flags;
+	zend_fcall_info fci       = empty_fcall_info;
+	zend_fcall_info_cache fcc = empty_fcall_info_cache;
+	php_uv_cb_t *cb;
 	
 	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
-		"zslz", &zloop, &path, &path_len, &flags, &callback) == FAILURE) {
+		"zslf!", &zloop, &path, &path_len, &flags, &fci, &fcc) == FAILURE) {
 		return;
 	}
 
 	PHP_UV_INIT_UV(uv, IS_UV_FS);
 	PHP_UV_FETCH_UV_DEFAULT_LOOP(loop, zloop);
 
-	uv->fs_cb = callback;
-	Z_ADDREF_P(callback);
+	php_uv_cb_init(&cb, uv, &fci, &fcc, PHP_UV_FS_CB);
 	uv->uv.fs.data = uv;
 
 	PHP_UV_FS_ASYNC(loop, readdir, path, flags);
@@ -5351,17 +5391,19 @@ PHP_FUNCTION(uv_fs_sendfile)
 	php_uv_t *uv;
 	unsigned long in_fd, out_fd;
 	long offset, length = 0;
+	zend_fcall_info fci       = empty_fcall_info;
+	zend_fcall_info_cache fcc = empty_fcall_info_cache;
+	php_uv_cb_t *cb;
 	
 	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
-		"zllllz", &zloop, &in_fd, &out_fd, &offset, &length, &callback) == FAILURE) {
+		"zllllf!", &zloop, &in_fd, &out_fd, &offset, &length, &fci, &fcc) == FAILURE) {
 		return;
 	}
 
 	PHP_UV_INIT_UV(uv, IS_UV_FS);
 	PHP_UV_FETCH_UV_DEFAULT_LOOP(loop, zloop);
 
-	uv->fs_cb = callback;
-	Z_ADDREF_P(callback);
+	php_uv_cb_init(&cb, uv, &fci, &fcc, PHP_UV_FS_CB);
 	uv->uv.fs.data = uv;
 
 	PHP_UV_FS_ASYNC(loop, sendfile, in_fd, out_fd, offset, length);
