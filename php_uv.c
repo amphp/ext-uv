@@ -60,7 +60,6 @@
 		}\
 		uv->in_free     = 0;\
 		uv->address     = NULL; \
-		uv->read2_cb     = NULL; \
 		uv->getaddr_cb  = NULL; \
 	}
 
@@ -503,11 +502,6 @@ void static destruct_uv(zend_rsrc_list_entry *rsrc TSRMLS_DC)
 		zval_ptr_dtor(&obj->address);
 		obj->address = NULL;
 	}
-	if (obj->read2_cb) {
-		PHP_UV_DEBUG_PRINT("zval_ptr_dtor: read2_cb\n");
-		zval_ptr_dtor(&obj->read2_cb);
-		obj->read2_cb = NULL;
-	}
 	if (obj->getaddr_cb) {
 		PHP_UV_DEBUG_PRINT("zval_ptr_dtor: getaddr_cb\n");
 		zval_ptr_dtor(&obj->getaddr_cb);
@@ -854,7 +848,7 @@ static void php_uv_read2_cb(uv_pipe_t* handle, ssize_t nread, uv_buf_t buf, uv_h
 	params[2] = &buffer;
 	params[3] = &pend;
 	
-	php_uv_do_callback(&retval_ptr, uv->read2_cb, params, 4 TSRMLS_CC);
+	php_uv_do_callback2(&retval_ptr, uv, params, 4, PHP_UV_READ2_CB TSRMLS_CC);
 
 	zval_ptr_dtor(&buffer);
 	zval_ptr_dtor(&rsc);
@@ -2751,22 +2745,23 @@ PHP_FUNCTION(uv_read_start)
 */
 PHP_FUNCTION(uv_read2_start)
 {
-	zval *client, *callback;
+	zval *client;
 	php_uv_t *uv;
 	int r;
+	zend_fcall_info fci       = empty_fcall_info;
+	zend_fcall_info_cache fcc = empty_fcall_info_cache;
+	php_uv_cb_t *cb;
 
 	PHP_UV_DEBUG_PRINT("uv_read2_start\n");
 
 	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
-		"rz",&client, &callback) == FAILURE) {
+		"rf",&client, &fci, &fcc) == FAILURE) {
 		return;
 	}
 
 	ZEND_FETCH_RESOURCE(uv, php_uv_t *, &client, -1, PHP_UV_RESOURCE_NAME, uv_resource_handle);
-	Z_ADDREF_P(callback);
 	zend_list_addref(uv->resource_id);
 
-	uv->read2_cb = callback;
 	if(uv->type == IS_UV_TCP) {
 		uv->uv.tcp.data = uv;
 	} else if(uv->type == IS_UV_PIPE) {
@@ -2775,6 +2770,7 @@ PHP_FUNCTION(uv_read2_start)
 		php_error_docref(NULL TSRMLS_CC, E_NOTICE, "this type does not support yet");
 	}
 
+	php_uv_cb_init(&cb, uv, &fci, &fcc, PHP_UV_READ2_CB);
 	r = uv_read2_start((uv_stream_t*)php_uv_get_current_stream(uv), php_uv_read_alloc, php_uv_read2_cb);
 	if (r) {
 		php_error_docref(NULL TSRMLS_CC, E_NOTICE, "read2 failed");
