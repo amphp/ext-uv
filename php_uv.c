@@ -59,7 +59,6 @@
 			uv->callback[ix] = NULL;\
 		}\
 		uv->in_free     = 0;\
-		uv->address     = NULL; \
 	}
 
 #if PHP_UV_DEBUG>=1
@@ -496,12 +495,6 @@ void static destruct_uv(zend_rsrc_list_entry *rsrc TSRMLS_DC)
 		}
 	}
 	
-	if (obj->address) {
-		PHP_UV_DEBUG_PRINT("zval_ptr_dtor: address\n");
-		zval_ptr_dtor(&obj->address);
-		obj->address = NULL;
-	}
-
 	if (obj->resource_id) {
 		base_id = obj->resource_id;
 		obj->resource_id = 0;
@@ -2893,7 +2886,6 @@ PHP_FUNCTION(uv_tcp_connect)
 	php_uv_cb_init(&cb, uv, &fci, &fcc, PHP_UV_CONNECT_CB);
 	
 	req->data = uv;
-	uv->address = address;
 
 	uv_tcp_connect(req, &uv->uv.tcp, addr->addr.ipv4, php_uv_tcp_connect_cb);
 }
@@ -2925,8 +2917,6 @@ PHP_FUNCTION(uv_tcp_connect6)
 	req = (uv_connect_t*)emalloc(sizeof(uv_connect_t));
 	
 	req->data = uv;
-	uv->address = address;
-	
 	php_uv_cb_init(&cb, uv, &fci, &fcc, PHP_UV_CONNECT_CB);
 
 	uv_tcp_connect6(req, &uv->uv.tcp, addr->addr.ipv6, php_uv_tcp_connect_cb);
@@ -3559,7 +3549,6 @@ PHP_FUNCTION(uv_pipe_connect)
 	php_uv_cb_init(&cb, uv, &fci, &fcc, PHP_UV_PIPE_CONNECT_CB);
 	
 	req->data = uv;
-	uv->address = address;
 	uv_pipe_connect(req, (uv_pipe_t*)php_uv_get_current_stream(uv), name, php_uv_pipe_connect_cb);
 }
 /* }}} */
