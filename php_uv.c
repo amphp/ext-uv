@@ -62,8 +62,6 @@
 		uv->address     = NULL; \
 		uv->read2_cb     = NULL; \
 		uv->getaddr_cb  = NULL; \
-		uv->work_cb = NULL; \
-		uv->after_work_cb = NULL; \
 		uv->fs_cb = NULL; \
 		uv->fs_event_cb = NULL; \
 		uv->fs_poll_cb  = NULL; \
@@ -513,16 +511,6 @@ void static destruct_uv(zend_rsrc_list_entry *rsrc TSRMLS_DC)
 		PHP_UV_DEBUG_PRINT("zval_ptr_dtor: read2_cb\n");
 		zval_ptr_dtor(&obj->read2_cb);
 		obj->read2_cb = NULL;
-	}
-	if (obj->work_cb) {
-		PHP_UV_DEBUG_PRINT("zval_ptr_dtor: work_cb\n");
-		zval_ptr_dtor(&obj->work_cb);
-		obj->work_cb = NULL;
-	}
-	if (obj->after_work_cb) {
-		PHP_UV_DEBUG_PRINT("zval_ptr_dtor: after_work_cb\n");
-		zval_ptr_dtor(&obj->after_work_cb);
-		obj->after_work_cb = NULL;
 	}
 	if (obj->fs_cb) {
 		PHP_UV_DEBUG_PRINT("zval_ptr_dtor: fs_cb\n");
@@ -1002,7 +990,8 @@ static void php_uv_work_cb(uv_work_t* req)
 
 	PHP_UV_DEBUG_PRINT("work_cb\n");
 
-	php_uv_do_callback(&retval_ptr, uv->work_cb, NULL, 0 TSRMLS_CC);
+	php_uv_do_callback2(&retval_ptr, uv, NULL, 0, PHP_UV_WORK_CB TSRMLS_CC);
+
 	if (retval_ptr != NULL) {
 		zval_ptr_dtor(&retval_ptr);
 	}
@@ -1017,7 +1006,8 @@ static void php_uv_after_work_cb(uv_work_t* req)
 
 	PHP_UV_DEBUG_PRINT("after_work_cb\n");
 
-	php_uv_do_callback(&retval_ptr, uv->after_work_cb, NULL, 0 TSRMLS_CC);
+	php_uv_do_callback2(&retval_ptr, uv, NULL, 0, PHP_UV_AFTER_WORK_CB TSRMLS_CC);
+
 	zval_ptr_dtor(&retval_ptr);
 	PHP_UV_DEBUG_RESOURCE_REFCOUNT(uv_after_work_cb, uv->resource_id);
 }
@@ -4640,22 +4630,24 @@ PHP_FUNCTION(uv_async_send)
 PHP_FUNCTION(uv_queue_work)
 {
 	int r;
-	zval *callback, *after_callback, *zloop = NULL;
+	zval *zloop = NULL;
 	uv_loop_t *loop;
 	php_uv_t *uv;
+	zend_fcall_info work_fci, after_fci       = empty_fcall_info;
+	zend_fcall_info_cache work_fcc, after_fcc = empty_fcall_info_cache;
+	php_uv_cb_t *work_cb, *after_cb;
 	
 	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
-		"zzz",&zloop, &callback, &after_callback) == FAILURE) {
+		"zff",&zloop, &work_fci, &work_fcc, &after_fci, &after_fcc) == FAILURE) {
 		return;
 	}
 
 	PHP_UV_FETCH_UV_DEFAULT_LOOP(loop, zloop);
 	PHP_UV_INIT_UV(uv, IS_UV_WORK)
 
-	uv->work_cb = callback;
-	uv->after_work_cb = after_callback;
-	Z_ADDREF_P(callback);
-	Z_ADDREF_P(after_callback);
+	php_uv_cb_init(&work_cb, uv, &work_fci, &work_fcc, PHP_UV_WORK_CB);
+	php_uv_cb_init(&after_cb, uv, &after_fci, &after_fcc, PHP_UV_AFTER_WORK_CB);
+
 	uv->uv.work.data = uv;
 	
 	r = uv_queue_work(loop, (uv_work_t*)&uv->uv.work, php_uv_work_cb, php_uv_after_work_cb);
