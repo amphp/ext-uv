@@ -62,7 +62,6 @@
 		uv->address     = NULL; \
 		uv->read2_cb     = NULL; \
 		uv->getaddr_cb  = NULL; \
-		uv->fs_event_cb = NULL; \
 		uv->fs_poll_cb  = NULL; \
 		uv->poll_cb = NULL; \
 	}
@@ -1172,7 +1171,7 @@ static void php_uv_fs_event_cb(uv_fs_event_t* req, const char* filename, int eve
 	params[2] = &ev;
 	params[3] = &stat;
 
-	php_uv_do_callback(&retval_ptr, uv->fs_event_cb, params, 4 TSRMLS_CC);
+	php_uv_do_callback2(&retval_ptr, uv, params, 4, PHP_UV_FS_EVENT_CB TSRMLS_CC);
 
 	if (retval_ptr != NULL) {
 		zval_ptr_dtor(&retval_ptr);
@@ -5421,17 +5420,19 @@ PHP_FUNCTION(uv_fs_event_init)
 	char *path;
 	int path_len = 0;
 	long flags = 0;
+	zend_fcall_info fci       = empty_fcall_info;
+	zend_fcall_info_cache fcc = empty_fcall_info_cache;
+	php_uv_cb_t *cb;
 	
 	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
-		"zszl", &zloop, &path, &path_len, &callback, &flags) == FAILURE) {
+		"zsfl", &zloop, &path, &path_len, &fci, &fcc, &flags) == FAILURE) {
 		return;
 	}
 
 	PHP_UV_INIT_UV(uv, IS_UV_FS_EVENT);
 	PHP_UV_FETCH_UV_DEFAULT_LOOP(loop, zloop);
-	
-	uv->fs_event_cb = callback;
-	Z_ADDREF_P(callback);
+	php_uv_cb_init(&cb, uv, &fci, &fcc, PHP_UV_FS_EVENT_CB);
+
 	uv->uv.fs_event.data = uv;
 
 	error = uv_fs_event_init(loop, (uv_fs_event_t*)&uv->uv.fs_event, path, php_uv_fs_event_cb, flags);
