@@ -123,7 +123,6 @@ typedef struct {
 	char *buffer;
 	zval *address;
 	zval *read2_cb;
-	zval *shutdown_cb;
 	zval *close_cb;
 	zval *timer_cb;
 	zval *idle_cb;
