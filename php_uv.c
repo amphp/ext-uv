@@ -61,7 +61,6 @@
 		uv->in_free     = 0;\
 		uv->address     = NULL; \
 		uv->read2_cb     = NULL; \
-		uv->write_cb    = NULL; \
 		uv->close_cb    = NULL; \
 		uv->shutdown_cb = NULL; \
 		uv->timer_cb    = NULL; \
@@ -526,11 +525,6 @@ void static destruct_uv(zend_rsrc_list_entry *rsrc TSRMLS_DC)
 		zval_ptr_dtor(&obj->read2_cb);
 		obj->read2_cb = NULL;
 	}
-	if (obj->write_cb) {
-		PHP_UV_DEBUG_PRINT("zval_ptr_dtor: write_cb\n");
-		zval_ptr_dtor(&obj->write_cb);
-		obj->write_cb = NULL;
-	}
 	if (obj->shutdown_cb) {
 		PHP_UV_DEBUG_PRINT("zval_ptr_dtor: shutdown_cb\n");
 		zval_ptr_dtor(&obj->shutdown_cb);
@@ -768,7 +762,7 @@ static void php_uv_write_cb(uv_write_t* req, int status)
 	params[0] = &client;
 	params[1] = &stat;
 	
-	php_uv_do_callback(&retval_ptr, uv->write_cb, params, 2 TSRMLS_CC);
+	php_uv_do_callback2(&retval_ptr, uv, params, 2, PHP_UV_WRITE_CB TSRMLS_CC);
 
 	zval_ptr_dtor(&retval_ptr);
 	zval_ptr_dtor(&stat);
@@ -2673,22 +2667,24 @@ PHP_FUNCTION(uv_tcp_bind6)
 */
 PHP_FUNCTION(uv_write)
 {
-	zval *z_cli,*callback;
+	zval *z_cli;
 	char *data;
-	int data_len = 0;
+	int r, data_len = 0;
 	php_uv_t *uv;
 	write_req_t *w;
-	int r = 0;
+	zend_fcall_info fci       = empty_fcall_info;
+	zend_fcall_info_cache fcc = empty_fcall_info_cache;
+	php_uv_cb_t *cb;
 	
 	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
-		"zsz",&z_cli, &data, &data_len,&callback) == FAILURE) {
+		"zsf",&z_cli, &data, &data_len, &fci, &fcc) == FAILURE) {
 		return;
 	}
 	
 	ZEND_FETCH_RESOURCE(uv, php_uv_t *, &z_cli, -1, PHP_UV_RESOURCE_NAME, uv_resource_handle);
-	Z_ADDREF_P(callback);
-	uv->write_cb = callback;
 	zend_list_addref(uv->resource_id);
+	
+	php_uv_cb_init(&cb, uv, &fci, &fcc, PHP_UV_WRITE_CB);
 
 	w = emalloc(sizeof(write_req_t));
 	w->req.data = uv;
