@@ -122,7 +122,6 @@ typedef struct {
 	} uv;
 	char *buffer;
 	zval *address;
-	zval *listen_cb;
 	zval *read2_cb;
 	zval *write_cb;
 	zval *shutdown_cb;

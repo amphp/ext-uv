@@ -60,7 +60,6 @@
 		}\
 		uv->in_free     = 0;\
 		uv->address     = NULL; \
-		uv->listen_cb   = NULL; \
 		uv->read2_cb     = NULL; \
 		uv->write_cb    = NULL; \
 		uv->close_cb    = NULL; \
@@ -542,11 +541,6 @@ void static destruct_uv(zend_rsrc_list_entry *rsrc TSRMLS_DC)
 		zval_ptr_dtor(&obj->close_cb);
 		obj->close_cb = NULL;
 	}
-	if (obj->listen_cb) {
-		PHP_UV_DEBUG_PRINT("zval_ptr_dtor: listen_cb\n");
-		zval_ptr_dtor(&obj->listen_cb);
-		obj->listen_cb = NULL;
-	}
 	if (obj->idle_cb) {
 		PHP_UV_DEBUG_PRINT("zval_ptr_dtor: idle_cb\n");
 		zval_ptr_dtor(&obj->idle_cb);
@@ -838,7 +832,7 @@ static void php_uv_listen_cb(uv_stream_t* server, int status)
 	params[0] = &svr;
 	params[1] = &stat;
 
-	php_uv_do_callback(&retval_ptr, uv->listen_cb, params, 2 TSRMLS_CC);
+	php_uv_do_callback2(&retval_ptr, uv, params, 2, PHP_UV_LISTEN_CB TSRMLS_CC);
 	
 	zval_ptr_dtor(&svr);
 	zval_ptr_dtor(&stat);
@@ -2953,19 +2947,21 @@ PHP_FUNCTION(uv_ip6_addr)
 */
 PHP_FUNCTION(uv_listen)
 {
-	zval *resource, *callback;
+	zval *resource;
 	long backlog = SOMAXCONN;
 	php_uv_t *uv;
+	zend_fcall_info fci       = empty_fcall_info;
+	zend_fcall_info_cache fcc = empty_fcall_info_cache;
+	php_uv_cb_t *cb;
 	int r;
 	
 	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
-		"zlz",&resource, &backlog, &callback) == FAILURE) {
+		"zlf",&resource, &backlog, &fci, &fcc) == FAILURE) {
 		return;
 	}
 	
 	ZEND_FETCH_RESOURCE(uv, php_uv_t *, &resource, -1, PHP_UV_RESOURCE_NAME, uv_resource_handle);
-	Z_ADDREF_P(callback);
-	uv->listen_cb = callback;
+	php_uv_cb_init(&cb, uv, &fci, &fcc, PHP_UV_LISTEN_CB);
 
 	r = uv_listen((uv_stream_t*)php_uv_get_current_stream(uv), backlog, php_uv_listen_cb);
 	if (r) {
