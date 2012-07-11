@@ -65,7 +65,6 @@
 		uv->pipe_connect_cb = NULL; \
 		uv->proc_close_cb = NULL; \
 		uv->work_cb = NULL; \
-		uv->async_cb = NULL; \
 		uv->after_work_cb = NULL; \
 		uv->fs_cb = NULL; \
 		uv->fs_event_cb = NULL; \
@@ -526,11 +525,6 @@ void static destruct_uv(zend_rsrc_list_entry *rsrc TSRMLS_DC)
 		PHP_UV_DEBUG_PRINT("zval_ptr_dtor: proc_close_cb\n");
 		zval_ptr_dtor(&obj->proc_close_cb);
 		obj->proc_close_cb = NULL;
-	}
-	if (obj->async_cb) {
-		PHP_UV_DEBUG_PRINT("zval_ptr_dtor: async_cb\n");
-		zval_ptr_dtor(&obj->async_cb);
-		obj->async_cb = NULL;
 	}
 	if (obj->work_cb) {
 		PHP_UV_DEBUG_PRINT("zval_ptr_dtor: work_cb\n");
@@ -999,7 +993,7 @@ static void php_uv_async_cb(uv_async_t* handle, int status)
 	params[0] = &resource;
 	params[1] = &zstat;
 	
-	php_uv_do_callback(&retval_ptr, uv->async_cb, params, 2 TSRMLS_CC);
+	php_uv_do_callback2(&retval_ptr, uv, params, 2, PHP_UV_ASYNC_CB TSRMLS_CC);
 
 	zval_ptr_dtor(&resource);
 	zval_ptr_dtor(&zstat);
@@ -4604,18 +4598,20 @@ PHP_FUNCTION(uv_async_init)
 {
 	int r;
 	zval *zloop = NULL;
-	zval *callback;
 	uv_loop_t *loop;
 	php_uv_t *uv;
+	zend_fcall_info fci       = empty_fcall_info;
+	zend_fcall_info_cache fcc = empty_fcall_info_cache;
+	php_uv_cb_t *cb;
 	
 	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
-		"zz",&zloop, &callback) == FAILURE) {
+		"zf",&zloop, &fci, &fcc) == FAILURE) {
 		return;
 	}
 
 	PHP_UV_FETCH_UV_DEFAULT_LOOP(loop, zloop);
 	PHP_UV_INIT_UV(uv, IS_UV_ASYNC);
-	
+
 	r = uv_async_init(loop, &uv->uv.async, php_uv_async_cb);
 	if (r) {
 		php_error_docref(NULL TSRMLS_CC, E_ERROR, "uv_async_init failed");
@@ -4623,8 +4619,7 @@ PHP_FUNCTION(uv_async_init)
 	}
 	
 	uv->uv.async.data = uv;
-	uv->async_cb = callback;
-	Z_ADDREF_P(callback);
+	php_uv_cb_init(&cb, uv, &fci, &fcc, PHP_UV_ASYNC_CB);
 	
 	ZVAL_RESOURCE(return_value, uv->resource_id);
 	zend_list_addref(uv->resource_id);
