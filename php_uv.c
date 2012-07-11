@@ -62,7 +62,6 @@
 		uv->address     = NULL; \
 		uv->read2_cb     = NULL; \
 		uv->getaddr_cb  = NULL; \
-		uv->pipe_connect_cb = NULL; \
 		uv->work_cb = NULL; \
 		uv->after_work_cb = NULL; \
 		uv->fs_cb = NULL; \
@@ -515,11 +514,6 @@ void static destruct_uv(zend_rsrc_list_entry *rsrc TSRMLS_DC)
 		zval_ptr_dtor(&obj->read2_cb);
 		obj->read2_cb = NULL;
 	}
-	if (obj->pipe_connect_cb) {
-		PHP_UV_DEBUG_PRINT("zval_ptr_dtor: pipe_connect_cb\n");
-		zval_ptr_dtor(&obj->pipe_connect_cb);
-		obj->pipe_connect_cb = NULL;
-	}
 	if (obj->work_cb) {
 		PHP_UV_DEBUG_PRINT("zval_ptr_dtor: work_cb\n");
 		zval_ptr_dtor(&obj->work_cb);
@@ -674,7 +668,7 @@ static void php_uv_pipe_connect_cb(uv_connect_t *req, int status)
 	params[0] = &stat;
 	params[1] = &client;
 	
-	php_uv_do_callback(&retval_ptr, uv->pipe_connect_cb, params, 2 TSRMLS_CC);
+	php_uv_do_callback2(&retval_ptr, uv, params, 2, PHP_UV_PIPE_CONNECT_CB TSRMLS_CC);
 	
 	zval_ptr_dtor(&retval_ptr);
 	zval_ptr_dtor(&stat);
@@ -3580,27 +3574,28 @@ PHP_FUNCTION(uv_pipe_bind)
 */
 PHP_FUNCTION(uv_pipe_connect)
 {
-	zval *resource, *callback;
-	zval *address = NULL;
+	zval *resource,*address = NULL;
 	php_uv_t *uv;
 	char *name;
 	int name_len = 0;
 	uv_connect_t *req;
+	zend_fcall_info fci       = empty_fcall_info;
+	zend_fcall_info_cache fcc = empty_fcall_info_cache;
+	php_uv_cb_t *cb;
 	
 	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
-		"zsz",&resource,&name, &name_len, &callback) == FAILURE) {
+		"zsf",&resource,&name, &name_len, &fci, &fcc) == FAILURE) {
 		return;
 	}
 	
 	ZEND_FETCH_RESOURCE(uv, php_uv_t *, &resource, -1, PHP_UV_RESOURCE_NAME, uv_resource_handle);
-	Z_ADDREF_P(callback);
 	zend_list_addref(uv->resource_id);
 	
 	req = (uv_connect_t*)emalloc(sizeof(uv_connect_t));
+	php_uv_cb_init(&cb, uv, &fci, &fcc, PHP_UV_PIPE_CONNECT_CB);
 	
 	req->data = uv;
 	uv->address = address;
-	uv->pipe_connect_cb = callback;
 	uv_pipe_connect(req, (uv_pipe_t*)php_uv_get_current_stream(uv), name, php_uv_pipe_connect_cb);
 }
 /* }}} */
