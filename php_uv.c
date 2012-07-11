@@ -61,7 +61,6 @@
 		uv->in_free     = 0;\
 		uv->address     = NULL; \
 		uv->read2_cb     = NULL; \
-		uv->close_cb    = NULL; \
 		uv->timer_cb    = NULL; \
 		uv->idle_cb     = NULL; \
 		uv->getaddr_cb  = NULL; \
@@ -523,11 +522,6 @@ void static destruct_uv(zend_rsrc_list_entry *rsrc TSRMLS_DC)
 		PHP_UV_DEBUG_PRINT("zval_ptr_dtor: read2_cb\n");
 		zval_ptr_dtor(&obj->read2_cb);
 		obj->read2_cb = NULL;
-	}
-	if (obj->close_cb) {
-		PHP_UV_DEBUG_PRINT("zval_ptr_dtor: close_cb\n");
-		zval_ptr_dtor(&obj->close_cb);
-		obj->close_cb = NULL;
 	}
 	if (obj->idle_cb) {
 		PHP_UV_DEBUG_PRINT("zval_ptr_dtor: idle_cb\n");
@@ -1410,13 +1404,12 @@ static void php_uv_close_cb(uv_handle_t *handle)
 	MAKE_STD_ZVAL(h);
 	ZVAL_RESOURCE(h, uv->resource_id);
 
-	if (uv->close_cb != NULL) {
-		params[0] = &h;
-		php_uv_do_callback(&retval_ptr, uv->close_cb, params, 1 TSRMLS_CC);
-		if (retval_ptr != NULL) {
-			zval_ptr_dtor(&retval_ptr);
-		}
+	params[0] = &h;
+	php_uv_do_callback2(&retval_ptr, uv, params, 1, PHP_UV_CLOSE_CB TSRMLS_CC);
+	if (retval_ptr != NULL) {
+		zval_ptr_dtor(&retval_ptr);
 	}
+	
 	PHP_UV_DEBUG_RESOURCE_REFCOUNT(uv_close_cb, uv->resource_id);
 	zend_hash_index_del(&EG(regular_list), uv->resource_id);
 
@@ -2771,19 +2764,21 @@ PHP_FUNCTION(uv_shutdown)
 */
 PHP_FUNCTION(uv_close)
 {
-	zval *client, *callback = NULL;
+	zval *client = NULL;
 	php_uv_t *uv;
+	zend_fcall_info fci       = empty_fcall_info;
+	zend_fcall_info_cache fcc = empty_fcall_info_cache;
+	php_uv_cb_t *cb;
+
 	
 	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
-		"r|z",&client, &callback) == FAILURE) {
+		"r|f!",&client, &fci, &fcc) == FAILURE) {
 		return;
 	}
 
 	ZEND_FETCH_RESOURCE(uv, php_uv_t *, &client, -1, PHP_UV_RESOURCE_NAME, uv_resource_handle);
-	if (callback != NULL) {
-		Z_ADDREF_P(callback);
-		uv->close_cb = callback;
-	}
+	
+	php_uv_cb_init(&cb, uv, &fci, &fcc, PHP_UV_CLOSE_CB);
 	
 	zend_list_addref(uv->resource_id);
 	uv_close((uv_handle_t*)php_uv_get_current_stream(uv), (uv_close_cb)php_uv_close_cb);
