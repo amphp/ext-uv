@@ -281,6 +281,27 @@ cleanup:
 	return r;
 }
 
+
+static inline void php_uv_cb_init(php_uv_cb_t **result, php_uv_t *uv, zend_fcall_info *fci, zend_fcall_info_cache *fcc, enum php_uv_callback_type type)
+{
+	php_uv_cb_t *cb;
+
+	cb = emalloc(sizeof(php_uv_cb_t));
+	memcpy(&cb->fci, fci, sizeof(zend_fcall_info));
+	memcpy(&cb->fcc, fcc, sizeof(zend_fcall_info_cache));
+
+	if (ZEND_FCI_INITIALIZED(*fci)) {
+		Z_ADDREF_P(cb->fci.function_name);
+#if PHP_VERSION_ID >= 50300
+		if (fci->object_ptr) {
+			Z_ADDREF_P(cb->fci.object_ptr);
+		}
+#endif
+	}
+
+	uv->callback[type] = cb;
+}
+
 /* util */
 
 static void php_uv_ares_destroy()
@@ -638,6 +659,27 @@ static int php_uv_do_callback(zval **retval_ptr, zval *callback, zval ***params,
 	return error;
 }
 
+
+static int php_uv_do_callback2(zval **retval_ptr, php_uv_t *uv, zval ***params, int param_count, enum php_uv_callback_type type TSRMLS_DC)
+{
+	int error = 0;
+	
+	if (ZEND_FCI_INITIALIZED(uv->callback[type]->fci)) {
+		uv->callback[type]->fci.params         = params;
+		uv->callback[type]->fci.retval_ptr_ptr = retval_ptr;
+		uv->callback[type]->fci.param_count    = 2;
+		uv->callback[type]->fci.no_separation  = 0;
+
+		if (zend_call_function(&uv->callback[type]->fci, &uv->callback[type]->fcc TSRMLS_CC) != SUCCESS) {
+			error = -1;
+		}
+	} else {
+		error = -2;
+	}
+
+	return error;
+}
+
 static void php_uv_tcp_connect_cb(uv_connect_t *req, int status)
 {
 	zval *retval_ptr, *stat, *client= NULL;
@@ -652,16 +694,11 @@ static void php_uv_tcp_connect_cb(uv_connect_t *req, int status)
 
 	params[0] = &client;
 	params[1] = &stat;
-	
-	if (ZEND_FCI_INITIALIZED(uv->callback[PHP_UV_CONNECT_CB]->fci)) {
-		uv->callback[PHP_UV_CONNECT_CB]->fci.params         = params;
-		uv->callback[PHP_UV_CONNECT_CB]->fci.retval_ptr_ptr = &retval_ptr;
-		uv->callback[PHP_UV_CONNECT_CB]->fci.param_count    = 2;
-		uv->callback[PHP_UV_CONNECT_CB]->fci.no_separation  = 0;
 
-		if (zend_call_function(&uv->callback[PHP_UV_CONNECT_CB]->fci, &uv->callback[PHP_UV_CONNECT_CB]->fcc TSRMLS_CC) == SUCCESS && retval_ptr) {
-			zval_ptr_dtor(&retval_ptr);
-		}
+	php_uv_do_callback2(&retval_ptr, uv, params, 2, PHP_UV_CONNECT_CB TSRMLS_CC);
+	
+	if (retval_ptr != NULL) {
+		zval_ptr_dtor(&retval_ptr);
 	}
 	
 	zval_ptr_dtor(&stat);
@@ -2959,7 +2996,6 @@ PHP_FUNCTION(uv_listen)
 }
 /* }}} */
 
-
 /* {{{ proto void uv_tcp_connect(resource $handle, string $ipv4_addr, callable $callback)
 */
 PHP_FUNCTION(uv_tcp_connect)
@@ -2983,23 +3019,10 @@ PHP_FUNCTION(uv_tcp_connect)
 	Z_ADDREF_P(address);
 	
 	req = (uv_connect_t*)emalloc(sizeof(uv_connect_t));
+	php_uv_cb_init(&cb, uv, &fci, &fcc, PHP_UV_CONNECT_CB);
 	
 	req->data = uv;
 	uv->address = address;
-	
-	cb = emalloc(sizeof(php_uv_cb_t));
-	memcpy(&cb->fci, &fci, sizeof(zend_fcall_info));
-	memcpy(&cb->fcc, &fcc, sizeof(zend_fcall_info_cache));
-
-	if (ZEND_FCI_INITIALIZED(fci)) {
-		Z_ADDREF_P(cb->fci.function_name);
-#if PHP_VERSION_ID >= 50300
-		if (fci.object_ptr) {
-			Z_ADDREF_P(cb->fci.object_ptr);
-		}
-#endif
-	}
-	uv->callback[PHP_UV_CONNECT_CB] = cb;
 
 	uv_tcp_connect(req, &uv->uv.tcp, addr->addr.ipv4, php_uv_tcp_connect_cb);
 }
@@ -3033,19 +3056,7 @@ PHP_FUNCTION(uv_tcp_connect6)
 	req->data = uv;
 	uv->address = address;
 	
-	cb = emalloc(sizeof(php_uv_cb_t));
-	memcpy(&cb->fci, &fci, sizeof(zend_fcall_info));
-	memcpy(&cb->fcc, &fcc, sizeof(zend_fcall_info_cache));
-
-	if (ZEND_FCI_INITIALIZED(fci)) {
-		Z_ADDREF_P(cb->fci.function_name);
-#if PHP_VERSION_ID >= 50300
-		if (fci.object_ptr) {
-			Z_ADDREF_P(cb->fci.object_ptr);
-		}
-#endif
-	}
-	uv->callback[PHP_UV_CONNECT_CB] = cb;
+	php_uv_cb_init(&cb, uv, &fci, &fcc, PHP_UV_CONNECT_CB);
 
 	uv_tcp_connect6(req, &uv->uv.tcp, addr->addr.ipv6, php_uv_tcp_connect_cb);
 }
