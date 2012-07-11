@@ -54,6 +54,10 @@
 
 #define PHP_UV_INIT_ZVALS(uv) \
 	{ \
+		int ix = 0;\
+		for (ix = 0; ix < 20; ix++) {\
+			uv->callback[ix] = NULL;\
+		}\
 		uv->in_free     = 0;\
 		uv->address     = NULL; \
 		uv->listen_cb   = NULL; \
