@@ -60,7 +60,6 @@
 		}\
 		uv->in_free     = 0;\
 		uv->address     = NULL; \
-		uv->getaddr_cb  = NULL; \
 	}
 
 #if PHP_UV_DEBUG>=1
@@ -501,11 +500,6 @@ void static destruct_uv(zend_rsrc_list_entry *rsrc TSRMLS_DC)
 		PHP_UV_DEBUG_PRINT("zval_ptr_dtor: address\n");
 		zval_ptr_dtor(&obj->address);
 		obj->address = NULL;
-	}
-	if (obj->getaddr_cb) {
-		PHP_UV_DEBUG_PRINT("zval_ptr_dtor: getaddr_cb\n");
-		zval_ptr_dtor(&obj->getaddr_cb);
-		obj->getaddr_cb = NULL;
 	}
 
 	if (obj->resource_id) {
@@ -1395,7 +1389,7 @@ static void php_uv_getaddrinfo_cb(uv_getaddrinfo_t* handle, int status, struct a
 
 	params[1] = &tmp;
 	
-	php_uv_do_callback(&retval_ptr, uv->getaddr_cb, params, 2 TSRMLS_CC);
+	php_uv_do_callback2(&retval_ptr, uv, params, 2, PHP_UV_GETADDR_CB TSRMLS_CC);
 	
 	if (retval_ptr != NULL) {
 		zval_ptr_dtor(&retval_ptr);
@@ -3098,21 +3092,23 @@ PHP_FUNCTION(uv_idle_start)
 */
 PHP_FUNCTION(uv_getaddrinfo)
 {
-	zval *z_loop, *hints, *callback = NULL;
+	zval *z_loop, *hints = NULL;
 	uv_loop_t *loop;
 	php_uv_t *uv = NULL;
 	struct addrinfo hint = {0};
 	char *node, *service;
 	int node_len, service_len = 0;
+	zend_fcall_info fci       = empty_fcall_info;
+	zend_fcall_info_cache fcc = empty_fcall_info_cache;
+	php_uv_cb_t *cb;
 	
 	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
-		"zzss|a",&z_loop, &callback, &node, &node_len, &service, &service_len, &hints) == FAILURE) {
+		"zfss|a",&z_loop, &fci, &fcc, &node, &node_len, &service, &service_len, &hints) == FAILURE) {
 		return;
 	}
 
 	ZEND_FETCH_RESOURCE(loop, uv_loop_t *, &z_loop, -1, PHP_UV_LOOP_RESOURCE_NAME, uv_loop_handle);
-	Z_ADDREF_P(callback);
-	
+
 	if (Z_TYPE_P(hints) == IS_ARRAY) {
 		HashTable *h;
 		zval **data;
@@ -3135,10 +3131,10 @@ PHP_FUNCTION(uv_getaddrinfo)
 	uv = (php_uv_t *)emalloc(sizeof(php_uv_t));
 	PHP_UV_INIT_ZVALS(uv)
 	TSRMLS_SET_CTX(uv->thread_ctx);
-	uv->getaddr_cb = callback;
 	uv->uv.addrinfo.data = uv;
 	uv->resource_id = PHP_UV_LIST_INSERT(uv, uv_resource_handle);
 
+	php_uv_cb_init(&cb, uv, &fci, &fcc, PHP_UV_GETADDR_CB);
 	uv_getaddrinfo(loop, &uv->uv.addrinfo, php_uv_getaddrinfo_cb, node, service, &hint);
 }
 /* }}} */
