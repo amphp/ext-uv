@@ -5,7 +5,11 @@ PHP_ARG_ENABLE(httpparser, Whether to enable the "httpparser" module,
     [ --enable-httpparser     Enable "httpparser" module support])
 
 PHP_ARG_ENABLE(uv-debug, for uv debug support,
-    [ --enable-uv-debugEnable enable uv deubg support], no, no)
+    [ --enable-uv-debug       Enable enable uv deubg support], no, no)
+
+PHP_ARG_ENABLE(dtrace, Whether to enable the "dtrace" debug,
+    [ --enable-dtrace     Enable "dtrace" support])
+
 
 if test -z "$PHP_DEBUG"; then
     AC_ARG_ENABLE(debug,
@@ -18,6 +22,14 @@ fi
 if test "$PHP_UV_DEBUG" != "no"; then
     CFLAGS="$CFLAGS -Wall -g -ggdb -O0 -DPHP_UV_DEBUG=1"
     AC_DEFINE(PHP_UV_DEBUG, 1, [Enable uv debug support])
+fi
+
+if test "$PHP_UV_DTRACE" != "no"; then
+  UV_SHARED_DEPENDENCIES=dtrace-fixup
+  UV_SHARED_LIBADD="phpuv.o -Wl,-M$srcdir/kludge.map"
+
+  PHP_ADD_LIBRARY(dtrace, UV_SHARED_LIBADD)
+  PHP_SUBST(UV_SHARED_DEPENDENCIES)
 fi
 
 if test $PHP_UV != "no"; then
@@ -51,4 +63,5 @@ if test $PHP_UV != "no"; then
 
     PHP_SUBST(UV_SHARED_LIBADD)
     PHP_SUBST([CFLAGS])
+    PHP_ADD_MAKEFILE_FRAGMENT
 fi
