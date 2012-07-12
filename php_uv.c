@@ -55,7 +55,7 @@
 #define PHP_UV_INIT_ZVALS(uv) \
 	{ \
 		int ix = 0;\
-		for (ix = 0; ix < 20; ix++) {\
+		for (ix = 0; ix < PHP_UV_CB_MAX; ix++) {\
 			uv->callback[ix] = NULL;\
 		}\
 		uv->in_free     = 0;\
@@ -174,7 +174,7 @@ static void php_uv_idle_cb(uv_timer_t *handle, int status);
 static inline int php_uv_common_init(php_uv_t **result, uv_loop_t *loop, enum php_uv_resource_type type, zval *return_value TSRMLS_DC)
 {
 	php_uv_t *uv;
-	int i, r = 0;
+	int r = 0;
 	
 	uv = (php_uv_t *)emalloc(sizeof(php_uv_t));
 	if (!uv) {
@@ -244,11 +244,6 @@ static inline int php_uv_common_init(php_uv_t **result, uv_loop_t *loop, enum ph
 	PHP_UV_INIT_ZVALS(uv)
 	TSRMLS_SET_CTX(uv->thread_ctx);
 	
-	/* for now */
-	for (i = 0; i < 20; i++) {
-		uv->callback[i] = NULL;
-	}
-
 	if (return_value != NULL) {
 		ZEND_REGISTER_RESOURCE(return_value, uv, uv_resource_handle);
 		uv->resource_id = Z_LVAL_P(return_value);
@@ -546,6 +541,8 @@ static int php_uv_do_callback2(zval **retval_ptr, php_uv_t *uv, zval ***params, 
 	} else {
 		error = -2;
 	}
+	
+	//zend_fcall_info_args_clear(&uv->callback[type]->fci, 0);
 
 	return error;
 }
@@ -3528,7 +3525,7 @@ PHP_FUNCTION(uv_pipe_bind)
 */
 PHP_FUNCTION(uv_pipe_connect)
 {
-	zval *resource,*address = NULL;
+	zval *resource = NULL;
 	php_uv_t *uv;
 	char *name;
 	int name_len = 0;
