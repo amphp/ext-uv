@@ -1704,6 +1704,37 @@ static void php_uv_udp_send(int type, INTERNAL_FUNCTION_PARAMETERS)
 	}
 }
 
+static void php_uv_tcp_connect(int type, INTERNAL_FUNCTION_PARAMETERS)
+{
+	zval *resource,*address;
+	php_uv_t *uv;
+	php_uv_sockaddr_t *addr;
+	uv_connect_t *req;
+	zend_fcall_info fci       = empty_fcall_info;
+	zend_fcall_info_cache fcc = empty_fcall_info_cache;
+	php_uv_cb_t *cb;
+	
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
+		"zzf",&resource,&address, &fci, &fcc) == FAILURE) {
+		return;
+	}
+	
+	ZEND_FETCH_RESOURCE(uv, php_uv_t *, &resource, -1, PHP_UV_RESOURCE_NAME, uv_resource_handle);
+	ZEND_FETCH_RESOURCE(addr, php_uv_sockaddr_t *, &address, -1, PHP_UV_SOCKADDR_RESOURCE_NAME, uv_sockaddr_handle);
+	zend_list_addref(uv->resource_id);
+	
+	req = (uv_connect_t*)emalloc(sizeof(uv_connect_t));
+	php_uv_cb_init(&cb, uv, &fci, &fcc, PHP_UV_CONNECT_CB);
+	
+	req->data = uv;
+
+	if (type == 1) {
+		uv_tcp_connect(req, &uv->uv.tcp, addr->addr.ipv4, php_uv_tcp_connect_cb);
+	} else {
+		uv_tcp_connect6(req, &uv->uv.tcp, addr->addr.ipv6, php_uv_tcp_connect_cb);
+	}
+}
+
 /* zend */
 
 PHP_MINIT_FUNCTION(uv)
@@ -2865,29 +2896,7 @@ PHP_FUNCTION(uv_listen)
 */
 PHP_FUNCTION(uv_tcp_connect)
 {
-	zval *resource,*address;
-	php_uv_t *uv;
-	php_uv_sockaddr_t *addr;
-	uv_connect_t *req;
-	zend_fcall_info fci       = empty_fcall_info;
-	zend_fcall_info_cache fcc = empty_fcall_info_cache;
-	php_uv_cb_t *cb;
-	
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
-		"zzf",&resource,&address, &fci, &fcc) == FAILURE) {
-		return;
-	}
-	
-	ZEND_FETCH_RESOURCE(uv, php_uv_t *, &resource, -1, PHP_UV_RESOURCE_NAME, uv_resource_handle);
-	ZEND_FETCH_RESOURCE(addr, php_uv_sockaddr_t *, &address, -1, PHP_UV_SOCKADDR_RESOURCE_NAME, uv_sockaddr_handle);
-	zend_list_addref(uv->resource_id);
-	
-	req = (uv_connect_t*)emalloc(sizeof(uv_connect_t));
-	php_uv_cb_init(&cb, uv, &fci, &fcc, PHP_UV_CONNECT_CB);
-	
-	req->data = uv;
-
-	uv_tcp_connect(req, &uv->uv.tcp, addr->addr.ipv4, php_uv_tcp_connect_cb);
+	php_uv_tcp_connect(1, INTERNAL_FUNCTION_PARAM_PASSTHRU);
 }
 /* }}} */
 
@@ -2896,29 +2905,7 @@ PHP_FUNCTION(uv_tcp_connect)
 */
 PHP_FUNCTION(uv_tcp_connect6)
 {
-	zval *resource,*address;
-	php_uv_t *uv;
-	php_uv_sockaddr_t *addr;
-	uv_connect_t *req;
-	zend_fcall_info fci       = empty_fcall_info;
-	zend_fcall_info_cache fcc = empty_fcall_info_cache;
-	php_uv_cb_t *cb;
-	
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
-		"zzf",&resource,&address, &fci, &fcc) == FAILURE) {
-		return;
-	}
-	
-	ZEND_FETCH_RESOURCE(uv, php_uv_t *, &resource, -1, PHP_UV_RESOURCE_NAME, uv_resource_handle);
-	ZEND_FETCH_RESOURCE(addr, php_uv_sockaddr_t *, &address, -1, PHP_UV_SOCKADDR_RESOURCE_NAME, uv_sockaddr_handle);
-	zend_list_addref(uv->resource_id);
-	
-	req = (uv_connect_t*)emalloc(sizeof(uv_connect_t));
-	
-	req->data = uv;
-	php_uv_cb_init(&cb, uv, &fci, &fcc, PHP_UV_CONNECT_CB);
-
-	uv_tcp_connect6(req, &uv->uv.tcp, addr->addr.ipv6, php_uv_tcp_connect_cb);
+	php_uv_tcp_connect(2, INTERNAL_FUNCTION_PARAM_PASSTHRU);
 }
 /* }}} */
 
