@@ -265,6 +265,10 @@ static inline void php_uv_cb_init(php_uv_cb_t **result, php_uv_t *uv, zend_fcall
 	cb = emalloc(sizeof(php_uv_cb_t));
 	memcpy(&cb->fci, fci, sizeof(zend_fcall_info));
 	memcpy(&cb->fcc, fcc, sizeof(zend_fcall_info_cache));
+	
+	if (uv->callback[type] != NULL) {
+		efree(uv->callback[type]);
+	}
 
 	if (ZEND_FCI_INITIALIZED(*fci)) {
 		Z_ADDREF_P(cb->fci.function_name);
