@@ -2877,7 +2877,6 @@ PHP_FUNCTION(uv_tcp_connect)
 	ZEND_FETCH_RESOURCE(uv, php_uv_t *, &resource, -1, PHP_UV_RESOURCE_NAME, uv_resource_handle);
 	ZEND_FETCH_RESOURCE(addr, php_uv_sockaddr_t *, &address, -1, PHP_UV_SOCKADDR_RESOURCE_NAME, uv_sockaddr_handle);
 	zend_list_addref(uv->resource_id);
-	Z_ADDREF_P(address);
 	
 	req = (uv_connect_t*)emalloc(sizeof(uv_connect_t));
 	php_uv_cb_init(&cb, uv, &fci, &fcc, PHP_UV_CONNECT_CB);
@@ -2909,7 +2908,6 @@ PHP_FUNCTION(uv_tcp_connect6)
 	ZEND_FETCH_RESOURCE(uv, php_uv_t *, &resource, -1, PHP_UV_RESOURCE_NAME, uv_resource_handle);
 	ZEND_FETCH_RESOURCE(addr, php_uv_sockaddr_t *, &address, -1, PHP_UV_SOCKADDR_RESOURCE_NAME, uv_sockaddr_handle);
 	zend_list_addref(uv->resource_id);
-	Z_ADDREF_P(address);
 	
 	req = (uv_connect_t*)emalloc(sizeof(uv_connect_t));
 	
