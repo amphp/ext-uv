@@ -537,7 +537,7 @@ static int php_uv_do_callback2(zval **retval_ptr, php_uv_t *uv, zval ***params, 
 		uv->callback[type]->fci.params         = params;
 		uv->callback[type]->fci.retval_ptr_ptr = retval_ptr;
 		uv->callback[type]->fci.param_count    = param_count;
-		uv->callback[type]->fci.no_separation  = 0;
+		uv->callback[type]->fci.no_separation  = 1;
 
 		if (zend_call_function(&uv->callback[type]->fci, &uv->callback[type]->fcc TSRMLS_CC) != SUCCESS) {
 			error = -1;
