@@ -25,7 +25,7 @@ uv_timer_start($timer, 100, 100, function($timer) use (&$i){
     fwrite($fp,"hoge");
     fclose($fp);
     
-    if ($i > 3) {
+    if ($i > 4) {
         uv_timer_stop($timer);
         uv_unref($timer);
     }
