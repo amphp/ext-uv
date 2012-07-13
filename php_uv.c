@@ -19,7 +19,6 @@
 
 #include "php_uv.h"
 #include "ext/standard/info.h"
-#include "phpuv.h"
 
 #ifndef PHP_UV_DEBUG
 #define PHP_UV_DEBUG 0
