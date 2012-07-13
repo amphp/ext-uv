@@ -1,3 +1,0 @@
-provider phpuv {
-        probe minit();
-};

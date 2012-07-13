@@ -1,9 +1,5 @@
 dtrace-fixup:
-	if test -f $(builddir)/.libs/phpuv.o ; then \
-		dtrace -h -C -s $(srcdir)/phpuv.d $(builddir)/.libs/phpuv.o ; \
-	else \
-		dtrace -h -C -s  $(srcdir)/phpuv.d phpuv.lo ; \
-	fi
+	dtrace -h -s  $(srcdir)/phpuv_dtrace.d; \
 
 $(srcdir)/libuv/uv.a:
 	$(MAKE) -C $(srcdir)/libuv

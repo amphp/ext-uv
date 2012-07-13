@@ -26,7 +26,6 @@ fi
 
 if test "$PHP_UV_DTRACE" != "no"; then
   UV_SHARED_DEPENDENCIES=dtrace-fixup
-  UV_SHARED_LIBADD="phpuv.o -Wl,-M$srcdir/kludge.map"
 
   PHP_ADD_LIBRARY(dtrace, UV_SHARED_LIBADD)
   PHP_SUBST(UV_SHARED_DEPENDENCIES)
