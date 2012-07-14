@@ -33,6 +33,11 @@
 #include "uv.h"
 #include "http_parser.h"
 
+#include "php_network.h"
+#include "php_streams.h"
+#include "ext/sockets/php_sockets.h"
+
+
 #include "zend_interfaces.h"
 
 /* Define the entry point symbol

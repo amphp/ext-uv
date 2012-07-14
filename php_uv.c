@@ -45,6 +45,15 @@
 		}  \
 	}
 
+#define PHP_UV_ZVAL_TO_FD(fd, zstream) \
+{ \
+	fd = php_uv_zval_to_fd(zstream TSRMLS_CC); \
+	if (fd < 0) { \
+		php_error_docref(NULL TSRMLS_CC, E_WARNING, "invalid variable passed. can't convert to fd."); \
+		return; \
+	} \
+}
+
 #define PHP_UV_FS_ASYNC(loop, func,  ...) \
 	error = uv_fs_##func(loop, (uv_fs_t*)&uv->uv.fs, __VA_ARGS__, php_uv_fs_cb); \
 	if (error) { \
@@ -161,6 +170,39 @@ static void php_uv_timer_cb(uv_timer_t *handle, int status);
 
 static void php_uv_idle_cb(uv_timer_t *handle, int status);
 
+
+static php_socket_t php_uv_zval_to_fd(zval *ptr TSRMLS_DC)
+{
+	php_socket_t fd = -1;
+	php_stream *stream;
+	php_uv_t *uv;
+	php_socket *socket;
+	
+	/* TODO: is this correct on windows platform? */
+	if (Z_TYPE_P(ptr) == IS_RESOURCE) {
+		if (ZEND_FETCH_RESOURCE_NO_RETURN(stream, php_stream *, &ptr, -1, NULL, php_file_le_stream())) {
+			if (php_stream_cast(stream, PHP_STREAM_AS_FD | PHP_STREAM_CAST_INTERNAL, (void*)&fd, 1) != SUCCESS || fd < 0) {
+				fd = -1;
+			}
+		} else if (ZEND_FETCH_RESOURCE_NO_RETURN(uv, php_uv_t*, &ptr, -1, NULL, uv_resource_handle)) {
+			php_error_docref(NULL TSRMLS_CC, E_WARNING, "uv resource does not support yet");
+			fd = -1;
+		} else if (ZEND_FETCH_RESOURCE_NO_RETURN(socket, php_socket *, &ptr, -1, NULL, php_sockets_le_socket())) {
+			/* TODO: is this correct on windows platform? */
+			fd = socket->bsd_socket;
+		} else {
+			php_error_docref(NULL TSRMLS_CC, E_WARNING, "unhandled resource type detected.");
+			fd = -1;
+		}
+	} else if (Z_TYPE_P(ptr) == IS_LONG) {
+		fd = Z_LVAL_P(ptr);
+		if (fd < 0) {
+			fd = -1;
+		}
+	}
+	
+	return fd;
+}
 
 /**
  * common uv initializer.
@@ -1011,7 +1053,7 @@ static void php_uv_fs_cb(uv_fs_t* req)
 	MAKE_STD_ZVAL(result);
 	ZVAL_LONG(result, uv->uv.fs.result);
 	params[0] = &result;
-
+	
 	switch (uv->uv.fs.fs_type) {
 		case UV_FS_SYMLINK:
 		case UV_FS_LINK:
@@ -2213,10 +2255,11 @@ ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_fs_close, 0, 0, 3)
 	ZEND_ARG_INFO(0, callback)
 ZEND_END_ARG_INFO()
 
-ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_fs_write, 0, 0, 4)
+ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_fs_write, 0, 0, 5)
 	ZEND_ARG_INFO(0, loop)
 	ZEND_ARG_INFO(0, fd)
 	ZEND_ARG_INFO(0, buffer)
+	ZEND_ARG_INFO(0, offset)
 	ZEND_ARG_INFO(0, callback)
 ZEND_END_ARG_INFO()
 
@@ -4740,12 +4783,12 @@ PHP_FUNCTION(uv_fs_open)
 /* }}} */
 
 
-/* {{{ proto void uv_fs_read(resoruce $loop, long $fd, callable $callback)
+/* {{{ proto void uv_fs_read(resoruce $loop, zval $fd, callable $callback)
 */
 PHP_FUNCTION(uv_fs_read)
 {
 	int r;
-	zval *zloop = NULL;
+	zval *zstream, *zloop = NULL;
 	uv_loop_t *loop;
 	php_uv_t *uv;
 	unsigned long fd;
@@ -4754,10 +4797,11 @@ PHP_FUNCTION(uv_fs_read)
 	php_uv_cb_t *cb;
 	
 	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
-		"zlf", &zloop, &fd, &fci, &fcc) == FAILURE) {
+		"zzf", &zloop, &zstream, &fci, &fcc) == FAILURE) {
 		return;
 	}
 
+	PHP_UV_ZVAL_TO_FD(fd, zstream);
 	PHP_UV_FETCH_UV_DEFAULT_LOOP(loop, zloop);
 	PHP_UV_INIT_UV(uv, IS_UV_FS)
 
@@ -4774,12 +4818,12 @@ PHP_FUNCTION(uv_fs_read)
 /* }}} */
 
 
-/* {{{ proto void uv_fs_close(resource $loop, long $fd, callable $callback)
+/* {{{ proto void uv_fs_close(resource $loop, zval $fd, callable $callback)
 */
 PHP_FUNCTION(uv_fs_close)
 {
 	int r;
-	zval *zloop = NULL;
+	zval *zstream,*zloop = NULL;
 	uv_loop_t *loop;
 	php_uv_t *uv;
 	unsigned long fd;
@@ -4788,10 +4832,11 @@ PHP_FUNCTION(uv_fs_close)
 	php_uv_cb_t *cb;
 
 	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
-		"zlf", &zloop, &fd, &fci, &fcc) == FAILURE) {
+		"zzf", &zloop, &zstream, &fci, &fcc) == FAILURE) {
 		return;
 	}
 
+	PHP_UV_ZVAL_TO_FD(fd, zstream);
 	PHP_UV_FETCH_UV_DEFAULT_LOOP(loop, zloop);
 	PHP_UV_INIT_UV(uv, IS_UV_FS);
 
@@ -4808,27 +4853,28 @@ PHP_FUNCTION(uv_fs_close)
 /* }}} */
 
 
-/* {{{ proto void uv_fs_write(resource $loop, long $fd, string $buffer, callable $callback)
+/* {{{ proto void uv_fs_write(resource $loop, zval $fd, string $buffer, long $offset, callable $callback)
 */
 PHP_FUNCTION(uv_fs_write)
 {
 	int r;
-	zval *zloop = NULL;
+	zval *zstream, *zloop = NULL;
 	uv_loop_t *loop;
 	php_uv_t *uv;
 	char *buffer;
 	int buffer_len = 0;
 	unsigned long fd;
+	long offset = -1;
 	zend_fcall_info fci       = empty_fcall_info;
 	zend_fcall_info_cache fcc = empty_fcall_info_cache;
 	php_uv_cb_t *cb;
 	
 	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
-		"zlsf", &zloop, &fd, &buffer, &buffer_len, &fci, &fcc) == FAILURE) {
+		"zzslf", &zloop, &zstream, &buffer, &buffer_len, &offset, &fci, &fcc) == FAILURE) {
 		return;
 	}
 
-	
+	PHP_UV_ZVAL_TO_FD(fd, zstream);
 	PHP_UV_FETCH_UV_DEFAULT_LOOP(loop, zloop);
 	PHP_UV_INIT_UV(uv, IS_UV_FS);
 
@@ -4836,7 +4882,7 @@ PHP_FUNCTION(uv_fs_write)
 	uv->uv.fs.data = uv;
 	uv->buffer = estrndup(buffer, buffer_len);
 	
-	r = uv_fs_write(loop, (uv_fs_t*)&uv->uv.fs, fd, uv->buffer, buffer_len, -1, php_uv_fs_cb);
+	r = uv_fs_write(loop, (uv_fs_t*)&uv->uv.fs, fd, uv->buffer, buffer_len, offset, php_uv_fs_cb);
 
 	if (r) {
 		php_error_docref(NULL TSRMLS_CC, E_ERROR, "uv_fs_write failed");
@@ -4845,12 +4891,12 @@ PHP_FUNCTION(uv_fs_write)
 }
 /* }}} */
 
-/* {{{ proto void uv_fs_fsync(resource $loop, long $fd, callable $callback)
+/* {{{ proto void uv_fs_fsync(resource $loop, zval $fd, callable $callback)
 */
 PHP_FUNCTION(uv_fs_fsync)
 {
 	int error;
-	zval *zloop = NULL;
+	zval *zstream, *zloop = NULL;
 	uv_loop_t *loop;
 	php_uv_t *uv;
 	unsigned long fd;
@@ -4859,10 +4905,11 @@ PHP_FUNCTION(uv_fs_fsync)
 	php_uv_cb_t *cb;
 
 	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
-		"zlf!", &zloop, &fd, &fci, &fcc) == FAILURE) {
+		"zzf!", &zloop, &zstream, &fci, &fcc) == FAILURE) {
 		return;
 	}
 
+	PHP_UV_ZVAL_TO_FD(fd, zstream);
 	PHP_UV_INIT_UV(uv, IS_UV_FS);
 	PHP_UV_FETCH_UV_DEFAULT_LOOP(loop, zloop);
 
@@ -4873,12 +4920,12 @@ PHP_FUNCTION(uv_fs_fsync)
 }
 /* }}} */
 
-/* {{{ proto void uv_fs_fdatasync(resource $loop, long $fd, callable $callback)
+/* {{{ proto void uv_fs_fdatasync(resource $loop, zval $fd, callable $callback)
 */
 PHP_FUNCTION(uv_fs_fdatasync)
 {
 	int error;
-	zval *zloop = NULL;
+	zval *zstream, *zloop = NULL;
 	uv_loop_t *loop;
 	php_uv_t *uv;
 	unsigned long fd;
@@ -4887,10 +4934,11 @@ PHP_FUNCTION(uv_fs_fdatasync)
 	php_uv_cb_t *cb;
 	
 	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
-		"zlf", &zloop, &fd, &fci, &fcc) == FAILURE) {
+		"zzf", &zloop, &zstream, &fci, &fcc) == FAILURE) {
 		return;
 	}
 
+	PHP_UV_ZVAL_TO_FD(fd, zstream);
 	PHP_UV_INIT_UV(uv, IS_UV_FS);
 	PHP_UV_FETCH_UV_DEFAULT_LOOP(loop, zloop);
 
@@ -4901,12 +4949,12 @@ PHP_FUNCTION(uv_fs_fdatasync)
 }
 /* }}} */
 
-/* {{{ proto void uv_fs_ftruncate(resource $loop, long $fd, long $offset, callable $callback)
+/* {{{ proto void uv_fs_ftruncate(resource $loop, zval $fd, long $offset, callable $callback)
 */
 PHP_FUNCTION(uv_fs_ftruncate)
 {
 	int error;
-	zval *zloop = NULL;
+	zval *zstream,*zloop = NULL;
 	uv_loop_t *loop;
 	php_uv_t *uv;
 	long offset = 0;
@@ -4916,10 +4964,11 @@ PHP_FUNCTION(uv_fs_ftruncate)
 	php_uv_cb_t *cb;
 	
 	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
-		"zllf", &zloop, &fd, &offset, &fci, &fcc) == FAILURE) {
+		"zzlf", &zloop, &zstream, &offset, &fci, &fcc) == FAILURE) {
 		return;
 	}
 
+	PHP_UV_ZVAL_TO_FD(fd, zstream);
 	PHP_UV_INIT_UV(uv, IS_UV_FS);
 	PHP_UV_FETCH_UV_DEFAULT_LOOP(loop, zloop);
 
@@ -5078,12 +5127,12 @@ PHP_FUNCTION(uv_fs_utime)
 }
 /* }}} */
 
-/* {{{ proto void uv_fs_futime(resource $loop, long $fd, long $utime, long $atime callable $callback)
+/* {{{ proto void uv_fs_futime(resource $loop, zval $fd, long $utime, long $atime callable $callback)
 */
 PHP_FUNCTION(uv_fs_futime)
 {
 	int error;
-	zval *zloop = NULL;
+	zval *zstream, *zloop = NULL;
 	uv_loop_t *loop;
 	php_uv_t *uv;
 	long utime, atime;
@@ -5093,10 +5142,11 @@ PHP_FUNCTION(uv_fs_futime)
 	php_uv_cb_t *cb;
 
 	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
-		"zlllf", &zloop, &fd, &utime, &atime, &fci, &fcc) == FAILURE) {
+		"zzllf", &zloop, &zstream, &utime, &atime, &fci, &fcc) == FAILURE) {
 		return;
 	}
 
+	PHP_UV_ZVAL_TO_FD(fd, zstream);
 	PHP_UV_INIT_UV(uv, IS_UV_FS);
 	PHP_UV_FETCH_UV_DEFAULT_LOOP(loop, zloop);
 
@@ -5138,12 +5188,12 @@ PHP_FUNCTION(uv_fs_chmod)
 /* }}} */
 
 
-/* {{{ proto void uv_fs_fchmod(resource $loop, long $fd, long $mode, callable $callback)
+/* {{{ proto void uv_fs_fchmod(resource $loop, zval $fd, long $mode, callable $callback)
 */
 PHP_FUNCTION(uv_fs_fchmod)
 {
 	int error;
-	zval *zloop = NULL;
+	zval *zstream,*zloop = NULL;
 	uv_loop_t *loop;
 	php_uv_t *uv;
 	long mode;
@@ -5153,10 +5203,11 @@ PHP_FUNCTION(uv_fs_fchmod)
 	php_uv_cb_t *cb;
 	
 	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
-		"zlllf!", &zloop, &fd, &mode, &fci, &fcc) == FAILURE) {
+		"zzllf!", &zloop, &zstream, &mode, &fci, &fcc) == FAILURE) {
 		return;
 	}
 
+	PHP_UV_ZVAL_TO_FD(fd, zstream);
 	PHP_UV_INIT_UV(uv, IS_UV_FS);
 	PHP_UV_FETCH_UV_DEFAULT_LOOP(loop, zloop);
 
@@ -5198,12 +5249,12 @@ PHP_FUNCTION(uv_fs_chown)
 }
 /* }}} */
 
-/* {{{ proto void uv_fs_fchown(resource $loop, long $fd, long $uid, $long $gid, callable $callback)
+/* {{{ proto void uv_fs_fchown(resource $loop, zval $fd, long $uid, $long $gid, callable $callback)
 */
 PHP_FUNCTION(uv_fs_fchown)
 {
 	int error;
-	zval *zloop = NULL;
+	zval *zstream, *zloop = NULL;
 	uv_loop_t *loop;
 	php_uv_t *uv;
 	long uid, gid;
@@ -5213,10 +5264,11 @@ PHP_FUNCTION(uv_fs_fchown)
 	php_uv_cb_t *cb;
 	
 	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
-		"zlllf!", &zloop, &fd, &uid, &gid, &fci, &fcc) == FAILURE) {
+		"zzllf!", &zloop, &zstream, &uid, &gid, &fci, &fcc) == FAILURE) {
 		return;
 	}
 
+	PHP_UV_ZVAL_TO_FD(fd, zstream);
 	PHP_UV_INIT_UV(uv, IS_UV_FS);
 	PHP_UV_FETCH_UV_DEFAULT_LOOP(loop, zloop);
 
@@ -5374,12 +5426,12 @@ PHP_FUNCTION(uv_fs_lstat)
 }
 /* }}} */
 
-/* {{{ proto void uv_fs_fstat(resource $loop, long $fd, callable $callback)
+/* {{{ proto void uv_fs_fstat(resource $loop, zval $fd, callable $callback)
 */
 PHP_FUNCTION(uv_fs_fstat)
 {
 	int error;
-	zval *zloop = NULL;
+	zval *zstream, *zloop = NULL;
 	uv_loop_t *loop;
 	php_uv_t *uv;
 	unsigned long fd;
@@ -5388,10 +5440,11 @@ PHP_FUNCTION(uv_fs_fstat)
 	php_uv_cb_t *cb;
 	
 	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
-		"zlf", &zloop, &fd, &fci, &fcc) == FAILURE) {
+		"zzf", &zloop, &zstream, &fci, &fcc) == FAILURE) {
 		return;
 	}
-
+	
+	PHP_UV_ZVAL_TO_FD(fd, zstream);
 	PHP_UV_INIT_UV(uv, IS_UV_FS);
 	PHP_UV_FETCH_UV_DEFAULT_LOOP(loop, zloop);
 
@@ -5433,12 +5486,12 @@ PHP_FUNCTION(uv_fs_readdir)
 }
 /* }}} */
 
-/* {{{ proto void uv_fs_sendfile(resource $loop, long $in_fd, long $out_fd, long $offset, long $length, callable $callback)
+/* {{{ proto void uv_fs_sendfile(resource $loop, zval $in_fd, zval $out_fd, long $offset, long $length, callable $callback)
 */
 PHP_FUNCTION(uv_fs_sendfile)
 {
 	int error;
-	zval *zloop = NULL;
+	zval *z_instream, *z_outstream, *zloop = NULL;
 	uv_loop_t *loop;
 	php_uv_t *uv;
 	unsigned long in_fd, out_fd;
@@ -5448,10 +5501,12 @@ PHP_FUNCTION(uv_fs_sendfile)
 	php_uv_cb_t *cb;
 	
 	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
-		"zllllf!", &zloop, &in_fd, &out_fd, &offset, &length, &fci, &fcc) == FAILURE) {
+		"zzzllf!", &zloop, &z_instream, &z_outstream, &offset, &length, &fci, &fcc) == FAILURE) {
 		return;
 	}
 
+	PHP_UV_ZVAL_TO_FD(in_fd, z_instream);
+	PHP_UV_ZVAL_TO_FD(out_fd, z_outstream);
 	PHP_UV_INIT_UV(uv, IS_UV_FS);
 	PHP_UV_FETCH_UV_DEFAULT_LOOP(loop, zloop);
 
@@ -5496,22 +5551,23 @@ PHP_FUNCTION(uv_fs_event_init)
 }
 /* }}} */
 
-/* {{{ proto resource uv_tty_init(resource $loop, long $fd, long $readable)
+/* {{{ proto resource uv_tty_init(resource $loop, zval $fd, long $readable)
 */
 PHP_FUNCTION(uv_tty_init)
 {
 	int error;
-	zval *zloop = NULL;
+	zval *zstream, *zloop = NULL;
 	uv_loop_t *loop;
 	php_uv_t *uv;
 	long readable = 1;
 	unsigned long fd;
 	
 	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
-		"zll", &zloop, &fd, &readable) == FAILURE) {
+		"zzl", &zloop, &zstream, &readable) == FAILURE) {
 		return;
 	}
 
+	PHP_UV_ZVAL_TO_FD(fd, zstream);
 	PHP_UV_INIT_UV(uv, IS_UV_TTY);
 	PHP_UV_FETCH_UV_DEFAULT_LOOP(loop, zloop);
 
@@ -5652,21 +5708,22 @@ PHP_FUNCTION(uv_ip6_name)
 }
 /* }}} */
 
-/* {{{ proto uv uv_poll_init([resource $uv_loop])
+/* {{{ proto uv uv_poll_init([resource $uv_loop], zval fd)
 */
 PHP_FUNCTION(uv_poll_init)
 {
-	zval *zloop = NULL;
+	zval *zstream, *zloop = NULL;
 	uv_loop_t *loop;
 	php_uv_t *uv;
 	int error;
 	unsigned long fd = 0;
 	
 	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
-		"zl", &zloop, &fd) == FAILURE) {
+		"zz", &zloop, &zstream) == FAILURE) {
 		return;
 	}
 
+	PHP_UV_ZVAL_TO_FD(fd, zstream);
 	PHP_UV_INIT_UV(uv, IS_UV_POLL);
 	PHP_UV_FETCH_UV_DEFAULT_LOOP(loop, zloop);
 	
