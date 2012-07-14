@@ -628,6 +628,30 @@ static void php_uv_pipe_connect_cb(uv_connect_t *req, int status)
 }
 
 
+static void php_uv_walk_cb(uv_handle_t* handle, void* arg)
+{
+/*
+	zval *retval_ptr, *stat, *client= NULL;
+	zval **params[2];
+	TSRMLS_FETCH_FROM_CTX(uv->thread_ctx);
+	
+	MAKE_STD_ZVAL(stat);
+	ZVAL_LONG(stat, status);
+	MAKE_STD_ZVAL(client);
+	ZVAL_RESOURCE(client, uv->resource_id);
+
+	params[0] = &stat;
+	params[1] = &client;
+	
+	php_uv_do_callback2(&retval_ptr, uv, params, 2, PHP_UV_PIPE_CONNECT_CB TSRMLS_CC);
+	
+	zval_ptr_dtor(&retval_ptr);
+	zval_ptr_dtor(&stat);
+	zval_ptr_dtor(&client);
+	efree(req);
+*/
+}
+
 static void php_uv_write_cb(uv_write_t* req, int status)
 {
 	write_req_t* wr = (write_req_t*) req;
@@ -1917,6 +1941,12 @@ ZEND_END_ARG_INFO()
 
 ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_is_writable, 0, 0, 1)
 	ZEND_ARG_INFO(0, handle)
+ZEND_END_ARG_INFO()
+
+ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_walk, 0, 0, 1)
+	ZEND_ARG_INFO(0, loop)
+	ZEND_ARG_INFO(0, callback)
+	ZEND_ARG_INFO(0, opaque)
 ZEND_END_ARG_INFO()
 
 ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_ref, 0, 0, 1)
@@ -3472,6 +3502,28 @@ PHP_FUNCTION(uv_is_writable)
 
 	r = uv_is_writable((uv_stream_t*)php_uv_get_current_stream(uv));
 	RETURN_BOOL(r);
+}
+/* }}} */
+
+
+/* {{{ proto bool uv_walk(resource $loop, callable $closure[, array $opaque])
+*/
+PHP_FUNCTION(uv_walk)
+{
+	zval *zloop, *opaque;
+	uv_loop_t *loop;
+	zend_fcall_info fci       = empty_fcall_info;
+	zend_fcall_info_cache fcc = empty_fcall_info_cache;
+	//php_uv_cb_t *cb;
+	
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
+		"rf|a",&zloop, &fci, &fcc, &opaque) == FAILURE) {
+		return;
+	}
+
+	php_error_docref(NULL TSRMLS_CC, E_ERROR, "uv_walk does not support yet");
+	PHP_UV_FETCH_UV_DEFAULT_LOOP(loop, zloop);
+	uv_walk(loop, php_uv_walk_cb, NULL);
 }
 /* }}} */
 
@@ -5873,6 +5925,7 @@ static zend_function_entry uv_functions[] = {
 	PHP_FE(uv_is_active,                arginfo_uv_is_active)
 	PHP_FE(uv_is_readable,              arginfo_uv_is_readable)
 	PHP_FE(uv_is_writable,              arginfo_uv_is_writable)
+	PHP_FE(uv_walk,                     arginfo_uv_walk)
 	/* idle */
 	PHP_FE(uv_idle_init,                arginfo_uv_idle_init)
 	PHP_FE(uv_idle_start,               arginfo_uv_idle_start)
