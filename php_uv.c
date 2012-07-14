@@ -1813,9 +1813,17 @@ ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_read_stop, 0, 0, 1)
 	ZEND_ARG_INFO(0, server)
 ZEND_END_ARG_INFO()
 
-ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_write, 0, 0, 2)
+ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_write, 0, 0, 3)
 	ZEND_ARG_INFO(0, client)
 	ZEND_ARG_INFO(0, data)
+	ZEND_ARG_INFO(0, callback)
+ZEND_END_ARG_INFO()
+
+ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_write2, 0, 0, 4)
+	ZEND_ARG_INFO(0, client)
+	ZEND_ARG_INFO(0, data)
+	ZEND_ARG_INFO(0, send)
+	ZEND_ARG_INFO(0, callback)
 ZEND_END_ARG_INFO()
 
 ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_last_error, 0, 0, 1)
@@ -2613,6 +2621,43 @@ PHP_FUNCTION(uv_write)
 	w->buf = uv_buf_init(data, data_len);
 
 	r = uv_write(&w->req, (uv_stream_t*)php_uv_get_current_stream(uv), &w->buf, 1, php_uv_write_cb);
+	if (r) {
+		php_error_docref(NULL TSRMLS_CC, E_ERROR, "write failed");
+	}
+
+	PHP_UV_DEBUG_RESOURCE_REFCOUNT(uv_write, uv->resource_id);
+}
+/* }}} */
+
+/* {{{ proto void uv_write(resource $handle, string $data, callable $callback)
+*/
+PHP_FUNCTION(uv_write2)
+{
+	zval *z_cli, *z_send;
+	char *data;
+	int r, data_len = 0;
+	php_uv_t *uv, *send;
+	write_req_t *w;
+	zend_fcall_info fci       = empty_fcall_info;
+	zend_fcall_info_cache fcc = empty_fcall_info_cache;
+	php_uv_cb_t *cb;
+	
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
+		"zszf",&z_cli, &data, &data_len, &z_send, &fci, &fcc) == FAILURE) {
+		return;
+	}
+	
+	ZEND_FETCH_RESOURCE(uv, php_uv_t *, &z_cli, -1, PHP_UV_RESOURCE_NAME, uv_resource_handle);
+	ZEND_FETCH_RESOURCE(send, php_uv_t *, &z_send, -1, PHP_UV_RESOURCE_NAME, uv_resource_handle);
+	zend_list_addref(uv->resource_id);
+	
+	php_uv_cb_init(&cb, uv, &fci, &fcc, PHP_UV_WRITE_CB);
+
+	w = emalloc(sizeof(write_req_t));
+	w->req.data = uv;
+	w->buf = uv_buf_init(data, data_len);
+
+	r = uv_write2(&w->req, (uv_stream_t*)php_uv_get_current_stream(uv), &w->buf, 1, (uv_stream_t*)php_uv_get_current_stream(send), php_uv_write_cb);
 	if (r) {
 		php_error_docref(NULL TSRMLS_CC, E_ERROR, "write failed");
 	}
@@ -5814,6 +5859,7 @@ static zend_function_entry uv_functions[] = {
 	PHP_FE(uv_ip4_name,                 arginfo_uv_ip4_name)
 	PHP_FE(uv_ip6_name,                 arginfo_uv_ip6_name)
 	PHP_FE(uv_write,                    arginfo_uv_write)
+	PHP_FE(uv_write2,                   arginfo_uv_write2)
 	PHP_FE(uv_shutdown,                 arginfo_uv_shutdown)
 	PHP_FE(uv_close,                    arginfo_uv_close)
 	PHP_FE(uv_now,                      arginfo_uv_now)
