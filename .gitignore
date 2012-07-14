@@ -33,3 +33,7 @@ config.log
 config.nice
 config.status
 config.sub
+
+
+# ignore dtrace header
+phpuv_dtrace.h

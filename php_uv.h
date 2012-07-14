@@ -16,6 +16,19 @@
 #include <Iphlpapi.h>
 #endif
 
+#ifndef PHP_UV_DTRACE
+#define PHP_UV_DTRACE 0
+#endif
+
+#if PHP_UV_DTRACE >= 1
+#include <dtrace.h>
+#include <sys/sdt.h>
+#include "phpuv_dtrace.h"
+#define PHP_UV_PROBE(PROBE) PHPUV_TRACE_##PROBE();
+#else
+#define PHP_UV_PROBE(PROBE)
+#endif
+
 #include "php.h"
 #include "uv.h"
 #include "http_parser.h"

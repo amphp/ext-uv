@@ -24,10 +24,6 @@
 #define PHP_UV_DEBUG 0
 #endif
 
-#include <dtrace.h>
-#include <sys/sdt.h>
-#include "phpuv_dtrace.h"
-
 #define PHP_UV_INIT_UV(uv, uv_type) \
 	uv = (php_uv_t *)emalloc(sizeof(php_uv_t)); \
 	if (!uv) { \
@@ -1712,7 +1708,7 @@ static void php_uv_udp_send(int type, INTERNAL_FUNCTION_PARAMETERS)
 
 PHP_MINIT_FUNCTION(uv)
 {
-	PHPUV_TRACE_MINIT();
+	PHP_UV_PROBE(MINIT);
 	php_uv_init(TSRMLS_C);
 
 	uv_resource_handle   = zend_register_list_destructors_ex(destruct_uv, NULL, PHP_UV_RESOURCE_NAME, module_number);
