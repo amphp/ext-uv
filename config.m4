@@ -5,7 +5,11 @@ PHP_ARG_ENABLE(httpparser, Whether to enable the "httpparser" module,
     [ --enable-httpparser     Enable "httpparser" module support])
 
 PHP_ARG_ENABLE(uv-debug, for uv debug support,
-    [ --enable-uv-debugEnable enable uv deubg support], no, no)
+    [ --enable-uv-debug       Enable enable uv deubg support], no, no)
+
+PHP_ARG_ENABLE(dtrace, Whether to enable the "dtrace" debug,
+    [ --enable-dtrace         Enable "dtrace" support], no, no)
+
 
 if test -z "$PHP_DEBUG"; then
     AC_ARG_ENABLE(debug,
@@ -18,6 +22,23 @@ fi
 if test "$PHP_UV_DEBUG" != "no"; then
     CFLAGS="$CFLAGS -Wall -g -ggdb -O0 -DPHP_UV_DEBUG=1"
     AC_DEFINE(PHP_UV_DEBUG, 1, [Enable uv debug support])
+    echo "damepo"
+fi
+
+if test "$PHP_DTRACE" != "no"; then
+    dnl TODO: we should move this line to Makefile.frag or somewhere.
+    case $host in
+        *darwin*)
+             dtrace -h -s phpuv_dtrace.d
+             UV_SHARED_DEPENDENCIES=phpuv_dtrace.h
+             PHP_ADD_LIBRARY(dtrace, UV_SHARED_LIBADD)
+             AC_DEFINE(PHP_UV_DTRACE, 1, [Enable uv dtrace support])
+             PHP_SUBST(UV_SHARED_DEPENDENCIES)
+             PHP_ADD_MAKEFILE_FRAGMENT
+        ;;
+        *linux*)
+             echo "dtrace does not support this machine. currently OSX only"
+    esac
 fi
 
 if test $PHP_UV != "no"; then
