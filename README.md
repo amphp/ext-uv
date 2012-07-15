@@ -628,25 +628,194 @@ $udp = uv_udp_init();
 
 ### array uv_loadavg(void)
 
+##### *Description*
+
+retunrs current loadaverage.
+
+##### *Parameters*
+
+##### *Return Value*
+
+*array $loadaverage*: 
+
+##### *Example*
+
+````php
+<?php
+var_dump(uv_loadavg());
+//array(3) {
+//  [0]=>
+//  float(1.7421875)
+//  [1]=>
+//  float(1.427734375)
+//  [2]=>
+//  float(1.3955078125)
+//}
+````
+
+##### *Note*
+
+returns array on windows box. (does not support load average on windows)
+
+
 
 ### double uv_uptime(void)
+
+##### *Description*
+
+returns current uptime.
+
+##### *Parameters*
+
+##### *Return Value*
+
+*long $uptime*: 
+
+##### *Example*
+
+````php
+<?php
+var_dump(uv_uptime());
+//float(1247516)
+````
+
 
 
 ### long uv_get_free_memory(void)
 
+##### *Description*
+
+returns current free memory size.
+
+##### *Parameters*
+
+##### *Return Value*
+
+*long $free*: 
+
+##### *Example*
+
+````php
+<?php
+var_dump(uv_get_free_memory());
+//int(135860224)
+````
+
+
 
 ### long uv_get_total_memory(void)
+
+##### *Description*
+
+returns total memory size.
+
+##### *Parameters*
+
+##### *Return Value*
+
+*long $free*: 
+
+##### *Example*
+
+````php
+<?php
+var_dump(uv_get_total_memory());
+//int(8589934592)
+````
+
 
 
 ### long uv_hrtime(void)
 
+##### *TODO*
+
+check implmentation
+
+
 
 ### string uv_exepath(void)
 
+##### *Description*
 
-### string uv_cwd(void) 
+returns current exepath. basically this will returns current php path.
+
+##### *Parameters*
+
+##### *Return Value*
+
+*string $exepath*: 
+
+##### *Example*
+
+````php
+<?php
+var_dump(uv_exepath());
+//string(53) "/Users/chobie/.phpenv/versions/5.4.1-zts-goto/bin/php"
+```
+
+
+
+### string uv_cwd(void)
+
+##### *Description*
+
+returns current working directory.
+
+##### *Parameters*
+
+##### *Return Value*
+
+*string $cwd*: 
+
+##### *Example*
+
+````php
+<?php
+var_dump(uv_cwd());
+//string(24) "/Users/chobie/src/php-uv"
+````
+
+
 
 ### array uv_cpu_info(void)
+
+##### *Description*
+
+returns current cpu informations.
+
+##### *Parameters*
+
+##### *Return Value*
+
+*array $cpu_info*: 
+
+##### *Example*
+
+````php
+<?php
+var_dump(uv_cpu_info());
+//array(8) {
+//  [0]=>
+//  array(3) {
+//    ["model"]=>
+//    string(13) "MacBookPro8,2"
+//    ["speed"]=>
+//    int(2200)
+//    ["times"]=>
+//    array(5) {
+//      ["sys"]=>
+//      int(69952140)
+//      ["user"]=>
+//      int(38153450)
+//      ["idle"]=>
+//      int(776709120)
+//      ["irq"]=>
+//      int(0)
+//      ["nice"]=>
+//      int(0)
+//    }
+//  }...
+
 
 
 ### array uv_interface_addresses(void)
