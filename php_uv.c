@@ -2713,7 +2713,7 @@ PHP_FUNCTION(uv_write)
 }
 /* }}} */
 
-/* {{{ proto void uv_write(resource $handle, string $data, callable $callback)
+/* {{{ proto void uv_write2(resource $handle, string $data, resource $send, callable $callback)
 */
 PHP_FUNCTION(uv_write2)
 {
@@ -2743,10 +2743,10 @@ PHP_FUNCTION(uv_write2)
 
 	r = uv_write2(&w->req, (uv_stream_t*)php_uv_get_current_stream(uv), &w->buf, 1, (uv_stream_t*)php_uv_get_current_stream(send), php_uv_write_cb);
 	if (r) {
-		php_error_docref(NULL TSRMLS_CC, E_ERROR, "write failed");
+		php_error_docref(NULL TSRMLS_CC, E_ERROR, "write2 failed");
 	}
 
-	PHP_UV_DEBUG_RESOURCE_REFCOUNT(uv_write, uv->resource_id);
+	PHP_UV_DEBUG_RESOURCE_REFCOUNT(uv_write2, uv->resource_id);
 }
 /* }}} */
 
