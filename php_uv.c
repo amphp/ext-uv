@@ -2488,6 +2488,11 @@ ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_poll_init, 0, 0, 2)
 	ZEND_ARG_INFO(0, fd)
 ZEND_END_ARG_INFO()
 
+ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_poll_init_socket, 0, 0, 2)
+	ZEND_ARG_INFO(0, loop)
+	ZEND_ARG_INFO(0, fd)
+ZEND_END_ARG_INFO()
+
 ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_poll_start, 0, 0, 3)
 	ZEND_ARG_INFO(0, handle)
 	ZEND_ARG_INFO(0, events)
@@ -6154,6 +6159,37 @@ PHP_FUNCTION(uv_poll_init)
 
 /* }}} */
 
+/* {{{ proto uv uv_poll_init_socket([resource $uv_loop], zval fd)
+*/
+PHP_FUNCTION(uv_poll_init_socket)
+{
+	zval *zstream, *zloop = NULL;
+	uv_loop_t *loop;
+	php_uv_t *uv;
+	int error;
+	unsigned long fd = 0;
+	
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
+		"zz", &zloop, &zstream) == FAILURE) {
+		return;
+	}
+
+	PHP_UV_INIT_UV(uv, IS_UV_POLL);
+	PHP_UV_FETCH_UV_DEFAULT_LOOP(loop, zloop);
+	PHP_UV_ZVAL_TO_FD(fd, zstream);
+	
+	error = uv_poll_init_socket(loop, &uv->uv.poll, fd);
+	if (error) {
+		php_error_docref(NULL TSRMLS_CC, E_ERROR, "uv_poll_init_socket failed");
+		return;
+	}
+	
+	uv->sock = fd;
+	ZVAL_RESOURCE(return_value, uv->resource_id);
+}
+
+/* }}} */
+
 
 /* {{{ proto uv uv_poll_start(resource $handle, $events, $callback)
 */
@@ -6523,6 +6559,7 @@ static zend_function_entry uv_functions[] = {
 	PHP_FE(uv_udp_set_membership,       arginfo_uv_udp_set_membership)
 	/* poll */
 	PHP_FE(uv_poll_init,                arginfo_uv_poll_init)
+	PHP_FE(uv_poll_init_socket,         arginfo_uv_poll_init_socket)
 	PHP_FE(uv_poll_start,               arginfo_uv_poll_start)
 	PHP_FE(uv_poll_stop,                arginfo_uv_poll_stop)
 	PHP_FE(uv_fs_poll_init,             arginfo_uv_fs_poll_init)
