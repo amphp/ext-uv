@@ -2678,6 +2678,23 @@ PHP_FUNCTION(uv_tcp_bind6)
 
 
 /* {{{ proto void uv_write(resource $handle, string $data, callable $callback)
+
+##### *Description*
+
+send buffer to speicified uv resource.
+
+##### *Parameters*
+
+*resource $handle*: uv resources (uv_tcp, uv_udp, uv_pipe ...etc.)
+*string $data*: buffer.
+*callable $callback*: callable variables. this callback expects (resource $handle, long $status)
+
+##### *Return Value*
+
+*void*: 
+
+##### *Example*
+
 */
 PHP_FUNCTION(uv_write)
 {
@@ -2793,6 +2810,22 @@ PHP_FUNCTION(uv_accept)
 
 
 /* {{{ proto void uv_shutdown(resource $handle, callable $callback)
+
+##### *Description*
+
+shutdown uv handle.
+
+##### *Parameters*
+
+*resource $handle*: uv resources (uv_tcp, uv_udp, uv_pipe ...etc.)
+*callable $callback*: callable variables. this callback expects (resource $handle, long $status)
+
+##### *Return Value*
+
+*void*: 
+
+##### *Example*
+
 */
 PHP_FUNCTION(uv_shutdown)
 {
@@ -2826,6 +2859,22 @@ PHP_FUNCTION(uv_shutdown)
 /* }}} */
 
 /* {{{ proto void uv_close(resource $handle, callable $callback)
+
+##### *Description*
+
+close uv handle.
+
+##### *Parameters*
+
+*resource $handle*: uv resources (uv_tcp, uv_udp, uv_pipe ...etc.)
+*callable $callback*: callable variables. this callback expects (resource $handle, long $status)
+
+##### *Return Value*
+
+*void*: 
+
+##### *Example*
+
 */
 PHP_FUNCTION(uv_close)
 {
@@ -2851,6 +2900,26 @@ PHP_FUNCTION(uv_close)
 /* }}} */
 
 /* {{{ proto void uv_read_start(resource $handle, callable $callback)
+
+##### *Description*
+
+starts read callback for uv resources.
+
+##### *Parameters*
+
+*resource $handle*: uv resources (uv_tcp, uv_udp, uv_pipe ...etc.)
+*callable $callback*: callable variables. this callback expects (resource $handle, long $nread, string buffer)
+
+##### *Return Value*
+
+*void*: 
+
+##### *Example*
+
+##### *Note*
+
+You have to handle erorrs correctly. otherwise this will leak.
+
 */
 PHP_FUNCTION(uv_read_start)
 {
@@ -6203,6 +6272,7 @@ ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_http_parser_execute, 0, 0, 3)
 ZEND_END_ARG_INFO()
 
 /* {{{ proto resource uv_http_parser_init(long $target = UV::HTTP_REQUEST)
+
 */
 PHP_FUNCTION(uv_http_parser_init)
 {
