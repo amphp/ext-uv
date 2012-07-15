@@ -73,6 +73,14 @@ static int php_uv_class_init(TSRMLS_D)
 	zend_declare_class_constant_long(uv_class_entry,  "HTTP_REQUEST", sizeof("HTTP_REQUEST")-1, HTTP_REQUEST TSRMLS_CC);
 	zend_declare_class_constant_long(uv_class_entry,  "HTTP_RESPONSE", sizeof("HTTP_RESPONSE")-1, HTTP_RESPONSE TSRMLS_CC);
 
+	zend_declare_class_constant_long(uv_class_entry,  "UNKNOWN_HANDLE", sizeof("UNKNOWN_HANDLE")-1, UV_UNKNOWN_HANDLE TSRMLS_CC);
+	zend_declare_class_constant_long(uv_class_entry,  "ARES_TASK", sizeof("ARES_TASK")-1, UV_ARES_TASK TSRMLS_CC);
+	zend_declare_class_constant_long(uv_class_entry,  "FILE", sizeof("FILE")-1, UV_FILE TSRMLS_CC);
+#define XX(uc, lc) zend_declare_class_constant_long(uv_class_entry,  #uc, sizeof(#uc)-1, UV_##uc TSRMLS_CC);
+	UV_HANDLE_TYPE_MAP(XX)
+#undef XX
+	zend_declare_class_constant_long(uv_class_entry,  "HANDLE_TYPE_MAX", sizeof("HANDLE_TYPE_MAX")-1, UV_HANDLE_TYPE_MAX TSRMLS_CC);
+
 	return 0;
 }
 

@@ -2019,10 +2019,14 @@ ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_is_writable, 0, 0, 1)
 	ZEND_ARG_INFO(0, handle)
 ZEND_END_ARG_INFO()
 
-ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_walk, 0, 0, 1)
+ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_walk, 0, 0, 3)
 	ZEND_ARG_INFO(0, loop)
 	ZEND_ARG_INFO(0, callback)
 	ZEND_ARG_INFO(0, opaque)
+ZEND_END_ARG_INFO()
+
+ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_guess_handle, 0, 0, 1)
+	ZEND_ARG_INFO(0, fd)
 ZEND_END_ARG_INFO()
 
 ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_ref, 0, 0, 1)
@@ -4072,6 +4076,31 @@ PHP_FUNCTION(uv_walk)
 	php_error_docref(NULL TSRMLS_CC, E_ERROR, "uv_walk does not support yet");
 	PHP_UV_FETCH_UV_DEFAULT_LOOP(loop, zloop);
 	uv_walk(loop, php_uv_walk_cb, NULL);
+}
+/* }}} */
+
+/* {{{ proto long uv_guess_handle(resource $uv)
+*/
+PHP_FUNCTION(uv_guess_handle)
+{
+	zval *handle;
+	php_uv_t *uv = NULL;
+	long fd = -1;
+	uv_handle_type type;
+	
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
+		"z",&handle) == FAILURE) {
+		return;
+	}
+
+	fd = php_uv_zval_to_fd(handle TSRMLS_CC);
+	if (fd < 0) {
+		php_error_docref(NULL TSRMLS_CC, E_WARNING, "invalid variable passed. can't convert to fd.");
+		return;
+	}
+	type = uv_guess_handle(fd);
+	
+	RETURN_LONG(type);
 }
 /* }}} */
 
@@ -6847,6 +6876,7 @@ static zend_function_entry uv_functions[] = {
 	PHP_FE(uv_is_readable,              arginfo_uv_is_readable)
 	PHP_FE(uv_is_writable,              arginfo_uv_is_writable)
 	PHP_FE(uv_walk,                     arginfo_uv_walk)
+	PHP_FE(uv_guess_handle,             arginfo_uv_guess_handle)
 	/* idle */
 	PHP_FE(uv_idle_init,                arginfo_uv_idle_init)
 	PHP_FE(uv_idle_start,               arginfo_uv_idle_start)
