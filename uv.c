@@ -73,6 +73,28 @@ static int php_uv_class_init(TSRMLS_D)
 	zend_declare_class_constant_long(uv_class_entry,  "HTTP_REQUEST", sizeof("HTTP_REQUEST")-1, HTTP_REQUEST TSRMLS_CC);
 	zend_declare_class_constant_long(uv_class_entry,  "HTTP_RESPONSE", sizeof("HTTP_RESPONSE")-1, HTTP_RESPONSE TSRMLS_CC);
 
+	/* for uv_handle_type */
+	zend_declare_class_constant_long(uv_class_entry,  "IS_UV_TCP", sizeof("IS_UV_TCP")-1, IS_UV_TCP TSRMLS_CC);
+	zend_declare_class_constant_long(uv_class_entry,  "IS_UV_UDP", sizeof("IS_UV_UDP")-1, IS_UV_UDP TSRMLS_CC);
+	zend_declare_class_constant_long(uv_class_entry,  "IS_UV_PIPE", sizeof("IS_UV_PIPE")-1, IS_UV_PIPE TSRMLS_CC);
+	zend_declare_class_constant_long(uv_class_entry,  "IS_UV_IDLE", sizeof("IS_UV_IDLE")-1, IS_UV_IDLE TSRMLS_CC);
+	zend_declare_class_constant_long(uv_class_entry,  "IS_UV_TIMER", sizeof("IS_UV_TIMER")-1, IS_UV_TIMER TSRMLS_CC);
+	zend_declare_class_constant_long(uv_class_entry,  "IS_UV_ASYNC", sizeof("IS_UV_ASYNC")-1, IS_UV_ASYNC TSRMLS_CC);
+	zend_declare_class_constant_long(uv_class_entry,  "IS_UV_LOOP", sizeof("IS_UV_LOOP")-1, IS_UV_LOOP TSRMLS_CC);
+	zend_declare_class_constant_long(uv_class_entry,  "IS_UV_HANDLE", sizeof("IS_UV_HANDLE")-1, IS_UV_HANDLE TSRMLS_CC);
+	zend_declare_class_constant_long(uv_class_entry,  "IS_UV_STREAM", sizeof("IS_UV_STREAM")-1, IS_UV_STREAM TSRMLS_CC);
+	zend_declare_class_constant_long(uv_class_entry,  "IS_UV_ADDRINFO", sizeof("IS_UV_ADDRINFO")-1, IS_UV_ADDRINFO TSRMLS_CC);
+	zend_declare_class_constant_long(uv_class_entry,  "IS_UV_PROCESS", sizeof("IS_UV_PROCESS")-1, IS_UV_PROCESS TSRMLS_CC);
+	zend_declare_class_constant_long(uv_class_entry,  "IS_UV_PREPARE", sizeof("IS_UV_PREPARE")-1, IS_UV_PREPARE TSRMLS_CC);
+	zend_declare_class_constant_long(uv_class_entry,  "IS_UV_CHECK", sizeof("IS_UV_CHECK")-1, IS_UV_CHECK TSRMLS_CC);
+	zend_declare_class_constant_long(uv_class_entry,  "IS_UV_WORK", sizeof("IS_UV_WORK")-1, IS_UV_WORK TSRMLS_CC);
+	zend_declare_class_constant_long(uv_class_entry,  "IS_UV_FS", sizeof("IS_UV_FS")-1, IS_UV_FS TSRMLS_CC);
+	zend_declare_class_constant_long(uv_class_entry,  "IS_UV_FS_EVENT", sizeof("IS_UV_FS_EVENT")-1, IS_UV_FS_EVENT TSRMLS_CC);
+	zend_declare_class_constant_long(uv_class_entry,  "IS_UV_TTY", sizeof("IS_UV_TTY")-1, IS_UV_TTY TSRMLS_CC);
+	zend_declare_class_constant_long(uv_class_entry,  "IS_UV_FS_POLL", sizeof("IS_UV_FS_POLL")-1, IS_UV_FS_POLL TSRMLS_CC);
+	zend_declare_class_constant_long(uv_class_entry,  "IS_UV_POLL", sizeof("IS_UV_POLL")-1, IS_UV_POLL TSRMLS_CC);
+
+	/* for guess handle */
 	zend_declare_class_constant_long(uv_class_entry,  "UNKNOWN_HANDLE", sizeof("UNKNOWN_HANDLE")-1, UV_UNKNOWN_HANDLE TSRMLS_CC);
 	zend_declare_class_constant_long(uv_class_entry,  "ARES_TASK", sizeof("ARES_TASK")-1, UV_ARES_TASK TSRMLS_CC);
 	zend_declare_class_constant_long(uv_class_entry,  "FILE", sizeof("FILE")-1, UV_FILE TSRMLS_CC);

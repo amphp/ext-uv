@@ -2029,6 +2029,11 @@ ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_guess_handle, 0, 0, 1)
 	ZEND_ARG_INFO(0, fd)
 ZEND_END_ARG_INFO()
 
+ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_handle_type, 0, 0, 1)
+	ZEND_ARG_INFO(0, handle)
+ZEND_END_ARG_INFO()
+
+
 ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_ref, 0, 0, 1)
 	ZEND_ARG_INFO(0, loop)
 ZEND_END_ARG_INFO()
@@ -4103,6 +4108,24 @@ PHP_FUNCTION(uv_guess_handle)
 	RETURN_LONG(type);
 }
 /* }}} */
+
+/* {{{ proto long uv_handle_type(resource $uv)
+*/
+PHP_FUNCTION(uv_handle_type)
+{
+	zval *handle;
+	php_uv_t *uv = NULL;
+
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
+		"z",&handle) == FAILURE) {
+		return;
+	}
+	ZEND_FETCH_RESOURCE(uv, php_uv_t *, &handle, -1, PHP_UV_RESOURCE_NAME, uv_resource_handle);
+	
+	RETURN_LONG(uv->type);
+}
+/* }}} */
+
 
 /* {{{ proto resource uv_pipe_init(resource $loop, long $ipc)
 */
@@ -6877,6 +6900,7 @@ static zend_function_entry uv_functions[] = {
 	PHP_FE(uv_is_writable,              arginfo_uv_is_writable)
 	PHP_FE(uv_walk,                     arginfo_uv_walk)
 	PHP_FE(uv_guess_handle,             arginfo_uv_guess_handle)
+	PHP_FE(uv_handle_type,              arginfo_uv_handle_type)
 	/* idle */
 	PHP_FE(uv_idle_init,                arginfo_uv_idle_init)
 	PHP_FE(uv_idle_start,               arginfo_uv_idle_start)
