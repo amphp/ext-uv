@@ -4476,7 +4476,9 @@ PHP_FUNCTION(uv_cwd)
 
 ##### *Description*
 
-returns current cpu informations.
+returns current cpu informations
+
+.
 
 ##### *Parameters*
 
@@ -4510,6 +4512,7 @@ var_dump(uv_cpu_info());
 //      int(0)
 //    }
 //  }...
+````
 
 */
 PHP_FUNCTION(uv_cpu_info)

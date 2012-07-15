@@ -815,7 +815,7 @@ var_dump(uv_cpu_info());
 //      int(0)
 //    }
 //  }...
-
+````
 
 
 ### array uv_interface_addresses(void)
