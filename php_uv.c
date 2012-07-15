@@ -1070,7 +1070,7 @@ static void php_uv_fs_cb(uv_fs_t* req)
 
 	MAKE_STD_ZVAL(result);
 	if (uv->fs_fd != NULL) {
-		ZVAL_ZVAL(result, uv->fs_fd, 1, 1);
+		ZVAL_ZVAL(result, uv->fs_fd, 1, 0);
 	} else {
 		ZVAL_LONG(result, uv->uv.fs.result);
 	}
@@ -1320,7 +1320,7 @@ static void php_uv_poll_cb(uv_poll_t* handle, int status, int events)
 	
 	MAKE_STD_ZVAL(fd);
 	if (uv->fs_fd != NULL) {
-		ZVAL_ZVAL(fd, uv->fs_fd, 1, 1);
+		ZVAL_ZVAL(fd, uv->fs_fd, 1, 0);
 	} else {
 		ZVAL_LONG(fd, uv->sock);
 	}
