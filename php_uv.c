@@ -2936,6 +2936,7 @@ starts read callback for uv resources.
 ##### *Parameters*
 
 *resource $handle*: uv resources (uv_tcp, uv_udp, uv_pipe ...etc.)
+
 *callable $callback*: callable variables. this callback parameter expects (resource $handle, long $nread, string buffer)
 
 ##### *Return Value*
@@ -3045,6 +3046,28 @@ PHP_FUNCTION(uv_read_stop)
 /* }}} */
 
 /* {{{ proto resource uv_ip4_addr(string $ipv4_addr, long $port)
+
+##### *Description*
+
+create a ipv4 sockaddr.
+
+##### *Parameters*
+
+*string $ipv4_addr*: ipv4 address
+
+*long $port*: port number.
+
+##### *Return Value*
+
+*resource $uv_sockaddr*: sockaddr resource
+
+##### *Example*
+
+````php
+<?php
+$sockaddr = uv_ip4_addr("127.0.0.1", 8080);
+````
+
 */
 PHP_FUNCTION(uv_ip4_addr)
 {
@@ -3069,6 +3092,28 @@ PHP_FUNCTION(uv_ip4_addr)
 /* }}} */
 
 /* {{{ proto resource uv_ip6_addr(string $ipv6_addr, long $port)
+
+##### *Description*
+
+create a ipv6 sockaddr.
+
+##### *Parameters*
+
+*string $ipv6_addr*: ipv6 address
+
+*long $port*: port number.
+
+##### *Return Value*
+
+*resource $uv_sockaddr*: sockaddr resource
+
+##### *Example*
+
+````php
+<?php
+$sockaddr = uv_ip6_addr("::1", 8080);
+````
+
 */
 PHP_FUNCTION(uv_ip6_addr)
 {
@@ -3094,6 +3139,44 @@ PHP_FUNCTION(uv_ip6_addr)
 
 
 /* {{{ proto void uv_listen(resource $handle, long $backlog, callable $callback)
+
+##### *Description*
+
+listens for a connection on a uv handle.
+
+##### *Parameters*
+
+*resource $handle*: uv resource handle (tcp, udp and pipe)
+
+*long $backlog*: backlog
+
+*callable $callback*: this callback parameter expects (resource $connection, long $status)
+
+##### *Return Value*
+
+*void *:
+
+##### *Example*
+
+````php
+<?php
+$tcp = uv_tcp_init();
+
+uv_tcp_bind($tcp, uv_ip4_addr('0.0.0.0',9999));
+
+uv_listen($tcp,100, function($server, $status){
+    $client = uv_tcp_init();
+    uv_accept($server, $client);
+    uv_read_start($client, function($socket, $nread, $buffer) use ($server){
+        var_dump($buffer);
+        uv_close($socket);
+        uv_close($server);
+    });
+});
+uv_run();
+
+````
+
 */
 PHP_FUNCTION(uv_listen)
 {

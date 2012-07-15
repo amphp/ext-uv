@@ -184,6 +184,7 @@ starts read callback for uv resources.
 ##### *Parameters*
 
 *resource $handle*: uv resources (uv_tcp, uv_udp, uv_pipe ...etc.)
+
 *callable $callback*: callable variables. this callback parameter expects (resource $handle, long $nread, string buffer)
 
 ##### *Return Value*
@@ -207,11 +208,93 @@ starts read callback for uv resources.
 
 ### resource uv_ip4_addr(string $ipv4_addr, long $port)
 
+##### *Description*
+
+create a ipv4 sockaddr.
+
+##### *Parameters*
+
+*string $ipv4_addr*: ipv4 address
+
+*long $port*: port number.
+
+##### *Return Value*
+
+*resource $uv_sockaddr*: sockaddr resource
+
+##### *Example*
+
+````php
+<?php
+$sockaddr = uv_ip4_addr("127.0.0.1", 8080);
+````
+
+
 
 ### resource uv_ip6_addr(string $ipv6_addr, long $port)
 
+##### *Description*
+
+create a ipv6 sockaddr.
+
+##### *Parameters*
+
+*string $ipv6_addr*: ipv6 address
+
+*long $port*: port number.
+
+##### *Return Value*
+
+*resource $uv_sockaddr*: sockaddr resource
+
+##### *Example*
+
+````php
+<?php
+$sockaddr = uv_ip6_addr("::1", 8080);
+````
+
+
 
 ### void uv_listen(resource $handle, long $backlog, callable $callback)
+
+##### *Description*
+
+listens for a connection on a uv handle.
+
+##### *Parameters*
+
+*resource $handle*: uv resource handle (tcp, udp and pipe)
+
+*long $backlog*: backlog
+
+*callable $callback*: this callback parameter expects (resource $connection, long $status)
+
+##### *Return Value*
+
+*void *:
+
+##### *Example*
+
+````php
+<?php
+$tcp = uv_tcp_init();
+
+uv_tcp_bind($tcp, uv_ip4_addr('0.0.0.0',9999));
+
+uv_listen($tcp,100, function($server, $status){
+    $client = uv_tcp_init();
+    uv_accept($server, $client);
+    uv_read_start($client, function($socket, $nread, $buffer) use ($server){
+        var_dump($buffer);
+        uv_close($socket);
+        uv_close($server);
+    });
+});
+uv_run();
+
+````
+
 
 
 ### void uv_tcp_connect(resource $handle, resource $ipv4_addr, callable $callback)
@@ -781,7 +864,9 @@ var_dump(uv_cwd());
 
 ##### *Description*
 
-returns current cpu informations.
+returns current cpu informations
+
+.
 
 ##### *Parameters*
 
@@ -816,6 +901,7 @@ var_dump(uv_cpu_info());
 //    }
 //  }...
 ````
+
 
 
 ### array uv_interface_addresses(void)
