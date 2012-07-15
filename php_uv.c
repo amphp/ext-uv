@@ -5256,8 +5256,7 @@ PHP_FUNCTION(uv_fs_write)
 	php_uv_t *uv;
 	char *buffer;
 	int buffer_len = 0;
-	unsigned long fd;
-	long offset = -1;
+	long fd, offset = -1;
 	zend_fcall_info fci       = empty_fcall_info;
 	zend_fcall_info_cache fcc = empty_fcall_info_cache;
 	php_uv_cb_t *cb;
