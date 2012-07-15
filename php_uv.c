@@ -52,6 +52,10 @@
 		php_error_docref(NULL TSRMLS_CC, E_WARNING, "invalid variable passed. can't convert to fd."); \
 		return; \
 	} \
+	if (uv->fs_fd == NULL) { \
+		uv->fs_fd = zstream;\
+		Z_ADDREF_P(zstream);\
+	}\
 }
 
 #define PHP_UV_FS_ASYNC(loop, func,  ...) \
@@ -67,7 +71,9 @@
 		for (ix = 0; ix < PHP_UV_CB_MAX; ix++) {\
 			uv->callback[ix] = NULL;\
 		}\
-		uv->in_free     = 0;\
+		uv->address = NULL; \
+		uv->fs_fd   = NULL; \
+		uv->in_free = 0;\
 	}
 
 #if PHP_UV_DEBUG>=1
@@ -537,6 +543,15 @@ void static destruct_uv(zend_rsrc_list_entry *rsrc TSRMLS_DC)
 			efree(cb);
 			cb = NULL;
 		}
+	}
+
+	if (obj->address != NULL) {
+		zval_ptr_dtor(&obj->address);
+		obj->address = NULL;
+	}
+	if (obj->fs_fd != NULL) {
+		zval_ptr_dtor(&obj->fs_fd);
+		obj->fs_fd = NULL;
 	}
 	
 	if (obj->resource_id) {
@@ -1054,7 +1069,11 @@ static void php_uv_fs_cb(uv_fs_t* req)
 	PHP_UV_DEBUG_PRINT("# php_uv_fs_cb %d\n", uv->resource_id);
 
 	MAKE_STD_ZVAL(result);
-	ZVAL_LONG(result, uv->uv.fs.result);
+	if (uv->fs_fd != NULL) {
+		ZVAL_ZVAL(result, uv->fs_fd, 1, 1);
+	} else {
+		ZVAL_LONG(result, uv->uv.fs.result);
+	}
 	params[0] = &result;
 	
 	switch (uv->uv.fs.fs_type) {
@@ -1300,7 +1319,11 @@ static void php_uv_poll_cb(uv_poll_t* handle, int status, int events)
 	ZVAL_LONG(ev, events);
 	
 	MAKE_STD_ZVAL(fd);
-	ZVAL_LONG(fd, uv->sock);
+	if (uv->fs_fd != NULL) {
+		ZVAL_ZVAL(fd, uv->fs_fd, 1, 1);
+	} else {
+		ZVAL_LONG(fd, uv->sock);
+	}
 	
 	params[0] = &rsc;
 	params[1] = &stat;
@@ -5194,9 +5217,9 @@ PHP_FUNCTION(uv_fs_read)
 		return;
 	}
 
-	PHP_UV_ZVAL_TO_FD(fd, zstream);
 	PHP_UV_FETCH_UV_DEFAULT_LOOP(loop, zloop);
 	PHP_UV_INIT_UV(uv, IS_UV_FS)
+	PHP_UV_ZVAL_TO_FD(fd, zstream);
 
 	php_uv_cb_init(&cb, uv, &fci, &fcc, PHP_UV_FS_CB);
 	uv->uv.fs.data = uv;
@@ -5229,9 +5252,9 @@ PHP_FUNCTION(uv_fs_close)
 		return;
 	}
 
-	PHP_UV_ZVAL_TO_FD(fd, zstream);
 	PHP_UV_FETCH_UV_DEFAULT_LOOP(loop, zloop);
 	PHP_UV_INIT_UV(uv, IS_UV_FS);
+	PHP_UV_ZVAL_TO_FD(fd, zstream);
 
 	php_uv_cb_init(&cb, uv, &fci, &fcc, PHP_UV_FS_CB);
 	uv->uv.fs.data = uv;
@@ -5266,9 +5289,9 @@ PHP_FUNCTION(uv_fs_write)
 		return;
 	}
 
-	PHP_UV_ZVAL_TO_FD(fd, zstream);
 	PHP_UV_FETCH_UV_DEFAULT_LOOP(loop, zloop);
 	PHP_UV_INIT_UV(uv, IS_UV_FS);
+	PHP_UV_ZVAL_TO_FD(fd, zstream);
 
 	php_uv_cb_init(&cb, uv, &fci, &fcc, PHP_UV_FS_CB);
 	uv->uv.fs.data = uv;
@@ -5301,9 +5324,9 @@ PHP_FUNCTION(uv_fs_fsync)
 		return;
 	}
 
-	PHP_UV_ZVAL_TO_FD(fd, zstream);
 	PHP_UV_INIT_UV(uv, IS_UV_FS);
 	PHP_UV_FETCH_UV_DEFAULT_LOOP(loop, zloop);
+	PHP_UV_ZVAL_TO_FD(fd, zstream);
 
 	php_uv_cb_init(&cb, uv, &fci, &fcc, PHP_UV_FS_CB);
 	uv->uv.fs.data = uv;
@@ -5330,9 +5353,9 @@ PHP_FUNCTION(uv_fs_fdatasync)
 		return;
 	}
 
-	PHP_UV_ZVAL_TO_FD(fd, zstream);
 	PHP_UV_INIT_UV(uv, IS_UV_FS);
 	PHP_UV_FETCH_UV_DEFAULT_LOOP(loop, zloop);
+	PHP_UV_ZVAL_TO_FD(fd, zstream);
 
 	php_uv_cb_init(&cb, uv, &fci, &fcc, PHP_UV_FS_CB);
 	uv->uv.fs.data = uv;
@@ -5360,9 +5383,9 @@ PHP_FUNCTION(uv_fs_ftruncate)
 		return;
 	}
 
-	PHP_UV_ZVAL_TO_FD(fd, zstream);
 	PHP_UV_INIT_UV(uv, IS_UV_FS);
 	PHP_UV_FETCH_UV_DEFAULT_LOOP(loop, zloop);
+	PHP_UV_ZVAL_TO_FD(fd, zstream);
 
 	php_uv_cb_init(&cb, uv, &fci, &fcc, PHP_UV_FS_CB);
 	uv->uv.fs.data = uv;
@@ -5538,9 +5561,9 @@ PHP_FUNCTION(uv_fs_futime)
 		return;
 	}
 
-	PHP_UV_ZVAL_TO_FD(fd, zstream);
 	PHP_UV_INIT_UV(uv, IS_UV_FS);
 	PHP_UV_FETCH_UV_DEFAULT_LOOP(loop, zloop);
+	PHP_UV_ZVAL_TO_FD(fd, zstream);
 
 	php_uv_cb_init(&cb, uv, &fci, &fcc, PHP_UV_FS_CB);
 	uv->uv.fs.data = uv;
@@ -5599,9 +5622,9 @@ PHP_FUNCTION(uv_fs_fchmod)
 		return;
 	}
 
-	PHP_UV_ZVAL_TO_FD(fd, zstream);
 	PHP_UV_INIT_UV(uv, IS_UV_FS);
 	PHP_UV_FETCH_UV_DEFAULT_LOOP(loop, zloop);
+	PHP_UV_ZVAL_TO_FD(fd, zstream);
 
 	php_uv_cb_init(&cb, uv, &fci, &fcc, PHP_UV_FS_CB);
 	uv->uv.fs.data = uv;
@@ -5660,9 +5683,9 @@ PHP_FUNCTION(uv_fs_fchown)
 		return;
 	}
 
-	PHP_UV_ZVAL_TO_FD(fd, zstream);
 	PHP_UV_INIT_UV(uv, IS_UV_FS);
 	PHP_UV_FETCH_UV_DEFAULT_LOOP(loop, zloop);
+	PHP_UV_ZVAL_TO_FD(fd, zstream);
 
 	php_uv_cb_init(&cb, uv, &fci, &fcc, PHP_UV_FS_CB);
 	uv->uv.fs.data = uv;
@@ -5836,9 +5859,9 @@ PHP_FUNCTION(uv_fs_fstat)
 		return;
 	}
 	
-	PHP_UV_ZVAL_TO_FD(fd, zstream);
 	PHP_UV_INIT_UV(uv, IS_UV_FS);
 	PHP_UV_FETCH_UV_DEFAULT_LOOP(loop, zloop);
+	PHP_UV_ZVAL_TO_FD(fd, zstream);
 
 	php_uv_cb_init(&cb, uv, &fci, &fcc, PHP_UV_FS_CB);
 	uv->uv.fs.data = uv;
@@ -5897,10 +5920,10 @@ PHP_FUNCTION(uv_fs_sendfile)
 		return;
 	}
 
-	PHP_UV_ZVAL_TO_FD(in_fd, z_instream);
-	PHP_UV_ZVAL_TO_FD(out_fd, z_outstream);
 	PHP_UV_INIT_UV(uv, IS_UV_FS);
 	PHP_UV_FETCH_UV_DEFAULT_LOOP(loop, zloop);
+	PHP_UV_ZVAL_TO_FD(in_fd, z_instream);
+	PHP_UV_ZVAL_TO_FD(out_fd, z_outstream);
 
 	php_uv_cb_init(&cb, uv, &fci, &fcc, PHP_UV_FS_CB);
 	uv->uv.fs.data = uv;
@@ -5959,9 +5982,9 @@ PHP_FUNCTION(uv_tty_init)
 		return;
 	}
 
-	PHP_UV_ZVAL_TO_FD(fd, zstream);
 	PHP_UV_INIT_UV(uv, IS_UV_TTY);
 	PHP_UV_FETCH_UV_DEFAULT_LOOP(loop, zloop);
+	PHP_UV_ZVAL_TO_FD(fd, zstream);
 
 	uv->uv.tty.data = uv;
 	
@@ -6115,9 +6138,9 @@ PHP_FUNCTION(uv_poll_init)
 		return;
 	}
 
-	PHP_UV_ZVAL_TO_FD(fd, zstream);
 	PHP_UV_INIT_UV(uv, IS_UV_POLL);
 	PHP_UV_FETCH_UV_DEFAULT_LOOP(loop, zloop);
+	PHP_UV_ZVAL_TO_FD(fd, zstream);
 	
 	error = uv_poll_init(loop, &uv->uv.poll, fd);
 	if (error) {

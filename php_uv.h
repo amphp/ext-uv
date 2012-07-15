@@ -142,6 +142,7 @@ typedef struct {
 	} uv;
 	char *buffer;
 	zval *address;
+	zval *fs_fd;
 	php_uv_cb_t *callback[PHP_UV_CB_MAX];
 } php_uv_t;
 
