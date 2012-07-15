@@ -35,8 +35,10 @@
 
 #include "php_network.h"
 #include "php_streams.h"
-#include "ext/sockets/php_sockets.h"
 
+#ifndef PHP_WIN32
+#include "ext/sockets/php_sockets.h"
+#endif
 
 #include "zend_interfaces.h"
 

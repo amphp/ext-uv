@@ -176,8 +176,9 @@ static php_socket_t php_uv_zval_to_fd(zval *ptr TSRMLS_DC)
 	php_socket_t fd = -1;
 	php_stream *stream;
 	php_uv_t *uv;
+#ifndef PHP_WIN32
 	php_socket *socket;
-	
+#endif
 	/* TODO: is this correct on windows platform? */
 	if (Z_TYPE_P(ptr) == IS_RESOURCE) {
 		if (ZEND_FETCH_RESOURCE_NO_RETURN(stream, php_stream *, &ptr, -1, NULL, php_file_le_stream())) {
@@ -187,9 +188,11 @@ static php_socket_t php_uv_zval_to_fd(zval *ptr TSRMLS_DC)
 		} else if (ZEND_FETCH_RESOURCE_NO_RETURN(uv, php_uv_t*, &ptr, -1, NULL, uv_resource_handle)) {
 			php_error_docref(NULL TSRMLS_CC, E_WARNING, "uv resource does not support yet");
 			fd = -1;
+#ifndef PHP_WIN32
 		} else if (ZEND_FETCH_RESOURCE_NO_RETURN(socket, php_socket *, &ptr, -1, NULL, php_sockets_le_socket())) {
 			/* TODO: is this correct on windows platform? */
 			fd = socket->bsd_socket;
+#endif
 		} else {
 			php_error_docref(NULL TSRMLS_CC, E_WARNING, "unhandled resource type detected.");
 			fd = -1;
