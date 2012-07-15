@@ -4031,7 +4031,6 @@ PHP_FUNCTION(uv_spawn)
 	php_uv_cb_t *cb;
 
 	options.stdio = stdio;
-	options.stdio_count = 3;
 
 	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
 		"zsaaf", &zloop, &command, &command_len, &args, &context, &fci, &fcc) == FAILURE) {
@@ -4087,7 +4086,7 @@ PHP_FUNCTION(uv_spawn)
 			ulong key_index;
 			
 			pipes = Z_ARRVAL_P(*data);
-
+			options.stdio_count = zend_hash_num_elements(pipes);
 			for (zend_hash_internal_pointer_reset_ex(pipes, &pos);
 				(key_type = zend_hash_get_current_key_ex(pipes, &key, &key_len, &key_index, 0, &pos)) != HASH_KEY_NON_EXISTANT;
 				zend_hash_move_forward_ex(pipes, &pos)) {
