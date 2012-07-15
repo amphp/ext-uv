@@ -3298,6 +3298,17 @@ PHP_FUNCTION(uv_default_loop)
 }
 /* }}} */
 
+/* {{{ proto resource uv_loop_new()
+*/
+PHP_FUNCTION(uv_loop_new)
+{
+	uv_loop_t *loop;
+	
+	loop = uv_loop_new();
+	ZEND_REGISTER_RESOURCE(return_value, loop, uv_loop_handle);
+}
+/* }}} */
+
 
 /* {{{ proto resource uv_udp_init([resource $loop])
 */
@@ -5963,6 +5974,7 @@ static zend_function_entry uv_functions[] = {
 	PHP_FE(uv_update_time,              arginfo_uv_update_time)
 	PHP_FE(uv_ref,                      arginfo_uv_ref)
 	PHP_FE(uv_unref,                    arginfo_uv_unref)
+	PHP_FE(uv_loop_new,                 NULL)
 	PHP_FE(uv_default_loop,             NULL)
 	PHP_FE(uv_run,                      arginfo_uv_run)
 	PHP_FE(uv_run_once,                 arginfo_uv_run_once)
