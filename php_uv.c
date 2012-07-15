@@ -2918,7 +2918,8 @@ starts read callback for uv resources.
 
 ##### *Note*
 
-You have to handle erorrs correctly. otherwise this will leak.
+* You have to handle erorrs correctly. otherwise this will leak.
+* if you want to use PHP's stream or socket resource. see uv_fs_poll_init and uv_fs_read.
 
 */
 PHP_FUNCTION(uv_read_start)
