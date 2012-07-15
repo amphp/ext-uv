@@ -37,3 +37,11 @@ config.sub
 
 # ignore dtrace header
 phpuv_dtrace.h
+
+# ignore test outputs
+tests/*.diff
+tests/*.exp
+tests/*.log
+tests/*.php
+tests/*.sh
+tests/*.out
