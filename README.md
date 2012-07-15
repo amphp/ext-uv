@@ -184,7 +184,7 @@ starts read callback for uv resources.
 ##### *Parameters*
 
 *resource $handle*: uv resources (uv_tcp, uv_udp, uv_pipe ...etc.)
-*callable $callback*: callable variables. this callback expects (resource $handle, long $nread, string buffer)
+*callable $callback*: callable variables. this callback parameter expects (resource $handle, long $nread, string buffer)
 
 ##### *Return Value*
 
@@ -194,7 +194,8 @@ starts read callback for uv resources.
 
 ##### *Note*
 
-You have to handle erorrs correctly. otherwise this will leak.
+* You have to handle erorrs correctly. otherwise this will leak.
+* if you want to use PHP's stream or socket resource. see uv_fs_poll_init and uv_fs_read.
 
 
 
@@ -839,8 +840,77 @@ TODO:
 
 ### uv uv_poll_init([resource $uv_loop], zval fd)
 
+##### *Description*
+
+initialize poll
+
+##### *Parameters*
+
+*resource $uv_loop*: uv_loop resource.
+
+*mixed $fd*: this expects long fd, PHP's stream or PHP's socket resource.
+
+##### *Return Value*
+
+*resource uv*: uv resource which initialized poll.
+
+##### *Example*
+
+````php
+<?php
+$fd = fopen("php://stdout","w+");
+
+$poll = uv_poll_init(uv_default_loop(), $fd);
+
+````
+
+##### *Note*
+
+* if you want to use a socket. please use uv_poll_init_socket instead of this. Windows can't handle socket with this function.
+
+
+
+### uv uv_poll_init_socket([resource $uv_loop], zval fd)
+
 
 ### uv uv_poll_start(resource $handle, $events, $callback)
+
+##### *Description*
+
+start polling
+
+##### *Parameters*
+
+*resource $poll*: uv poll resource.
+
+*long $events*: UV::READBLE and UV::WRITABLE flags.
+
+*callable $callback*: this callback parameter expects (resource $poll, long $status, long $events, mixed $connection). the connection parameter passes uv_poll_init'd fd.
+
+##### *Return Value*
+
+*void*: 
+
+##### *Example*
+
+````php
+<?php
+$fd = fopen("php://stdout","w+");
+
+$poll = uv_poll_init(uv_default_loop(), $fd);
+uv_poll_start($poll, UV::WRITABLE, function($poll, $stat, $ev, $conn){
+        fwrite($conn, "Hello");
+        fclose($conn);
+        uv_poll_stop($poll);
+});
+
+uv_run();
+````
+
+##### *Note*
+
+* if you want to use a socket. please use uv_poll_init_socket instead of this. Windows can't handle socket with this function.
+
 
 
 ### void uv_poll_stop(resource $poll)
@@ -948,4 +1018,7 @@ Cache-Control: max-age=0
 }
 
 ````
+
+
+
 
