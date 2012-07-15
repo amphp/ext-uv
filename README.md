@@ -281,6 +281,21 @@ uv_run();
 
 ### void uv_timer_again(resource $timer)
 
+##### *Description*
+
+restart timer.
+
+##### *Parameters*
+
+*resource $timer*: uv_timer resource.
+
+##### *Return Value*
+
+*void*:
+
+##### *Example*
+
+
 
 ### void uv_timer_set_repeat(resource $timer, long $repeat)
 
@@ -290,11 +305,80 @@ uv_run();
 
 ### void uv_idle_start(resource $idle, callable $callback)
 
+##### *Description*
+
+start idle callback.
+
+##### *Parameters*
+
+*resource $idle*: uv_idle resource.
+*callable $callback*: idle callback.
+
+##### *Return Value*
+
+*void*:
+
+##### *Example*
+
+````php
+<?php
+$loop = uv_default_loop();
+$idle = uv_idle_init();
+
+$i = 0;
+uv_idle_start($idle, function($idle_handle, $stat) use (&$i){
+    echo "count: {$i}" . PHP_EOL;
+    $i++;
+
+    if ($i > 3) {
+        uv_idle_stop($idle);
+    }
+    sleep(1);
+});
+
+uv_run();
+````
+
+
 
 ### void uv_getaddrinfo(resource $loop, callable $callback, string $node, string $service, array $hints)
 
 
 ### void uv_idle_stop(resource $idle)
+
+##### *Description*
+
+stop idle callback.
+
+##### *Parameters*
+
+*resource $idle*: uv_idle resource.
+
+##### *Return Value*
+
+*void*:
+
+##### *Example*
+
+````php
+<?php
+$loop = uv_default_loop();
+$idle = uv_idle_init();
+
+$i = 0;
+uv_idle_start($idle, function($idle_handle, $stat) use (&$i){
+    echo "count: {$i}" . PHP_EOL;
+    $i++;
+
+    if ($i > 3) {
+        uv_idle_stop($idle);
+    }
+    sleep(1);
+});
+
+uv_run();
+````
+
 
 
 ### resource uv_tcp_init([resource $loop])
@@ -322,14 +406,91 @@ $tcp = uv_tcp_init();
 
 ### resource uv_idle_init([resource $loop])
 
+##### *Description*
+
+initialize uv idle handle.
+
+##### *Parameters*
+
+*resource $loop*: uv_loop resource.
+
+##### *Return Value*
+
+*resource $idle*: initialized idle handle.
+
+##### *Example*
+
+````php
+<?php
+$loop = uv_default_loop();
+$idle = uv_idle_init($loop);
+````
+
+
 
 ### resource uv_default_loop()
+
+##### *Description*
+
+return default loop handle.
+
+##### *Parameters*
+
+##### *Return Value*
+
+*resource $loop*:
+
+##### *Example*
+
+````php
+<?php
+$loop = uv_default_loop();
+````
+
 
 
 ### resource uv_loop_new()
 
+##### *Description*
+
+create a new loop handle.
+
+##### *Parameters*
+
+##### *Return Value*
+
+*resource $loop*:
+
+##### *Example*
+
+````php
+<?php
+$loop = uv_loop_new();
+````
+
+
 
 ### resource uv_udp_init([resource $loop])
+
+##### *Description*
+
+create a udp socket.
+
+##### *Parameters*
+
+*resource $loop*: loop resource or null. if not specified loop resource then use uv_default_loop resource.
+
+##### *Return Value*
+
+*resource php_uv*: uv resource which initialized for udp.
+
+##### *Example*
+
+````php
+<?php
+$udp = uv_udp_init();
+````
+
 
 
 ### void uv_udp_bind(resource $resource, resource $address, long $flags)
@@ -629,6 +790,5 @@ TODO:
 
 
 ### bool uv_http_parser_execute(resource $parser, string $body, array &$result)
-
 
 

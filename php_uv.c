@@ -3417,6 +3417,40 @@ PHP_FUNCTION(uv_getaddrinfo)
 /* }}} */
 
 /* {{{ proto void uv_idle_stop(resource $idle)
+
+##### *Description*
+
+stop idle callback.
+
+##### *Parameters*
+
+*resource $idle*: uv_idle resource.
+
+##### *Return Value*
+
+*void*:
+
+##### *Example*
+
+````php
+<?php
+$loop = uv_default_loop();
+$idle = uv_idle_init();
+
+$i = 0;
+uv_idle_start($idle, function($idle_handle, $stat) use (&$i){
+    echo "count: {$i}" . PHP_EOL;
+    $i++;
+
+    if ($i > 3) {
+        uv_idle_stop($idle);
+    }
+    sleep(1);
+});
+
+uv_run();
+````
+
 */
 PHP_FUNCTION(uv_idle_stop)
 {
@@ -3473,6 +3507,27 @@ PHP_FUNCTION(uv_tcp_init)
 /* }}} */
 	
 /* {{{ proto resource uv_idle_init([resource $loop])
+
+##### *Description*
+
+initialize uv idle handle.
+
+##### *Parameters*
+
+*resource $loop*: uv_loop resource.
+
+##### *Return Value*
+
+*resource $idle*: initialized idle handle.
+
+##### *Example*
+
+````php
+<?php
+$loop = uv_default_loop();
+$idle = uv_idle_init($loop);
+````
+
 */
 PHP_FUNCTION(uv_idle_init)
 {
@@ -3490,6 +3545,24 @@ PHP_FUNCTION(uv_idle_init)
 /* }}} */
 
 /* {{{ proto resource uv_default_loop()
+
+##### *Description*
+
+return default loop handle.
+
+##### *Parameters*
+
+##### *Return Value*
+
+*resource $loop*:
+
+##### *Example*
+
+````php
+<?php
+$loop = uv_default_loop();
+````
+
 */
 PHP_FUNCTION(uv_default_loop)
 {
@@ -3498,6 +3571,24 @@ PHP_FUNCTION(uv_default_loop)
 /* }}} */
 
 /* {{{ proto resource uv_loop_new()
+
+##### *Description*
+
+create a new loop handle.
+
+##### *Parameters*
+
+##### *Return Value*
+
+*resource $loop*:
+
+##### *Example*
+
+````php
+<?php
+$loop = uv_loop_new();
+````
+
 */
 PHP_FUNCTION(uv_loop_new)
 {
@@ -3510,6 +3601,26 @@ PHP_FUNCTION(uv_loop_new)
 
 
 /* {{{ proto resource uv_udp_init([resource $loop])
+
+##### *Description*
+
+create a udp socket.
+
+##### *Parameters*
+
+*resource $loop*: loop resource or null. if not specified loop resource then use uv_default_loop resource.
+
+##### *Return Value*
+
+*resource php_uv*: uv resource which initialized for udp.
+
+##### *Example*
+
+````php
+<?php
+$udp = uv_udp_init();
+````
+
 */
 PHP_FUNCTION(uv_udp_init)
 {
