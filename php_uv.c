@@ -3255,6 +3255,26 @@ PHP_FUNCTION(uv_idle_stop)
 /* }}} */
 
 /* {{{ proto resource uv_tcp_init([resource $loop])
+
+##### *Description*
+
+create a tcp socket.
+
+##### *Parameters*
+
+*resource $loop*: loop resource or null. if not specified loop resource then use uv_default_loop resource.
+
+##### *Return Value*
+
+*resource php_uv*: uv resource which initialized for tcp.
+
+##### *Example*
+
+````php
+<?php
+$tcp = uv_tcp_init();
+````
+
 */
 PHP_FUNCTION(uv_tcp_init)
 {
