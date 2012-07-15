@@ -1388,21 +1388,29 @@ static void php_uv_close_cb(uv_handle_t *handle)
 
 static void php_uv_idle_cb(uv_timer_t *handle, int status)
 {
-	zval *retval_ptr, *stat = NULL;
-	zval **params[1];
+	zval *retval_ptr, *idle, *stat = NULL;
+	zval **params[2];
 
 	php_uv_t *uv = (php_uv_t*)handle->data;
 	TSRMLS_FETCH_FROM_CTX(uv->thread_ctx);
 	
+	MAKE_STD_ZVAL(idle);
+	ZVAL_RESOURCE(idle, uv->resource_id);
+	zend_list_addref(uv->resource_id);
+	
 	MAKE_STD_ZVAL(stat);
 	ZVAL_LONG(stat, status);
-	params[0] = &stat;
-	
-	php_uv_do_callback2(&retval_ptr, uv, params, 1, PHP_UV_IDLE_CB TSRMLS_CC);
 
+	params[0] = &idle;
+	params[1] = &stat;
+	
+	php_uv_do_callback2(&retval_ptr, uv, params, 2, PHP_UV_IDLE_CB TSRMLS_CC);
+
+	
 	if (retval_ptr != NULL) {
 		zval_ptr_dtor(&retval_ptr);
 	}
+	zval_ptr_dtor(&idle);
 	zval_ptr_dtor(&stat);
 }
 
@@ -3228,6 +3236,21 @@ PHP_FUNCTION(uv_timer_stop)
 /* }}} */
 
 /* {{{ proto void uv_timer_again(resource $timer)
+
+##### *Description*
+
+restart timer.
+
+##### *Parameters*
+
+*resource $timer*: uv_timer resource.
+
+##### *Return Value*
+
+*void*:
+
+##### *Example*
+
 */
 PHP_FUNCTION(uv_timer_again)
 {
@@ -3285,6 +3308,41 @@ PHP_FUNCTION(uv_timer_get_repeat)
 /* }}} */
 
 /* {{{ proto void uv_idle_start(resource $idle, callable $callback)
+
+##### *Description*
+
+start idle callback.
+
+##### *Parameters*
+
+*resource $idle*: uv_idle resource.
+*callable $callback*: idle callback.
+
+##### *Return Value*
+
+*void*:
+
+##### *Example*
+
+````php
+<?php
+$loop = uv_default_loop();
+$idle = uv_idle_init();
+
+$i = 0;
+uv_idle_start($idle, function($idle_handle, $stat) use (&$i){
+    echo "count: {$i}" . PHP_EOL;
+    $i++;
+
+    if ($i > 3) {
+        uv_idle_stop($idle);
+    }
+    sleep(1);
+});
+
+uv_run();
+````
+
 */
 PHP_FUNCTION(uv_idle_start)
 {
