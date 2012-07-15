@@ -69,9 +69,9 @@ static int php_uv_class_init(TSRMLS_D)
 	zend_declare_class_constant_long(uv_class_entry, "LEAVE_GROUP",  sizeof("LEAVE_GROUP")-1, UV_LEAVE_GROUP TSRMLS_CC);
 	zend_declare_class_constant_long(uv_class_entry, "JOIN_GROUP",  sizeof("JOIN_GROUP")-1, UV_JOIN_GROUP TSRMLS_CC);
 
-	zend_declare_class_constant_long(uv_class_entry,  "HTTP_BOTH", sizeof("HTTP_BOTH"), HTTP_BOTH TSRMLS_CC);
-	zend_declare_class_constant_long(uv_class_entry,  "HTTP_REQUEST", sizeof("HTTP_REQUEST"), HTTP_REQUEST TSRMLS_CC);
-	zend_declare_class_constant_long(uv_class_entry,  "HTTP_RESPONSE", sizeof("HTTP_RESPONSE"), HTTP_RESPONSE TSRMLS_CC);
+	zend_declare_class_constant_long(uv_class_entry,  "HTTP_BOTH", sizeof("HTTP_BOTH")-1, HTTP_BOTH TSRMLS_CC);
+	zend_declare_class_constant_long(uv_class_entry,  "HTTP_REQUEST", sizeof("HTTP_REQUEST")-1, HTTP_REQUEST TSRMLS_CC);
+	zend_declare_class_constant_long(uv_class_entry,  "HTTP_RESPONSE", sizeof("HTTP_RESPONSE")-1, HTTP_RESPONSE TSRMLS_CC);
 
 	return 0;
 }

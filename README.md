@@ -857,7 +857,95 @@ TODO:
 
 ### resource uv_http_parser_init(long $target = UV::HTTP_REQUEST)
 
+##### *Description*
+
+initialize http parser. 
+
+##### *Parameters*
+
+*long $target*: this expects UV::HTTP_REQUEST, UV::HTTP_RESPONSE or UV::HTTP_BOTH.
+
+##### *Return Value*
+
+*resource uv_http*: 
+
+##### *Example*
+
+````php
+<?php
+$parser = uv_http_parser_init(UV::HTTP_REQUEST);
+````
+
+
 
 ### bool uv_http_parser_execute(resource $parser, string $body, array &$result)
 
+##### *Description*
+
+execute http parser.
+
+##### *Parameters*
+
+*resource $parser*: uv_http_parser resoruce.
+
+*string $body*: http message.
+
+*array &$result*: result array.
+
+
+##### *Return Value*
+
+*bool finished*: this parser returns false when specified http message is invalid or not enough message.
+
+##### *Example*
+
+````php
+<?php
+$parser = uv_http_parser_init(UV::HTTP_REQUEST);
+if (uv_http_parser_execute($parser, "GET /img/http-parser.png?key=value#frag HTTP/1.1
+Host: chobie.net
+User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10.7; rv:12.0) Gecko/20100101 Firefox/12.0
+Accept-Language: en-us,en;q=0.5
+Accept-Encoding: gzip, deflate
+Connection: keep-alive
+Referer: http://chobie.net/
+Cookie: key=value
+Cache-Control: max-age=0
+
+",$result)) {
+	var_dump($result);
+//array(6) {
+//  ["headers"]=>
+//  array(8) {
+//    ["Host"]=>
+//    string(10) "chobie.net"
+//    ["User-Agent"]=>
+//    string(81) "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.7; rv:12.0) Gecko/20100101 Firefox/12.0"
+//    ["Accept-Language"]=>
+//    string(14) "en-us,en;q=0.5"
+//    ["Accept-Encoding"]=>
+//    string(13) "gzip, deflate"
+//    ["Connection"]=>
+//    string(10) "keep-alive"
+//    ["Referer"]=>
+//    string(18) "http://chobie.net/"
+//    ["Cookie"]=>
+//    string(9) "key=value"
+//    ["Cache-Control"]=>
+//    string(9) "max-age=0"
+//  }
+//  ["QUERY_STRING"]=>
+//  string(35) "/img/http-parser.png?key=value#frag"
+//  ["path"]=>
+//  string(20) "/img/http-parser.png"
+//  ["query"]=>
+//  string(9) "key=value"
+//  ["fragment"]=>
+//  string(4) "frag"
+//  ["REQUEST_METHOD"]=>
+//  string(3) "GET"
+//}
+}
+
+````
 
