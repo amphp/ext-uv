@@ -3014,7 +3014,33 @@ PHP_FUNCTION(uv_listen)
 }
 /* }}} */
 
-/* {{{ proto void uv_tcp_connect(resource $handle, string $ipv4_addr, callable $callback)
+/* {{{ proto void uv_tcp_connect(resource $handle, resource $ipv4_addr, callable $callback)
+
+##### *Description*
+
+connect to specified ip address and port.
+
+##### *Parameters*
+
+*resource $handle*: requires `uv_tcp_init()` resource.
+*resource $ipv4_addr*: requires uv_sockaddr resource.
+*callable $callback*: callable variables.
+
+##### *Return Value*
+
+*void*: 
+
+##### *Example*
+
+````php
+<?php
+$tcp = uv_tcp_init();
+uv_tcp_connect($tcp, uv_ip4_addr("127.0.0.1",8080), function($tcp_handle, $status){
+	uv_close($tcp_handle);
+});
+
+uv_run();
+````
 */
 PHP_FUNCTION(uv_tcp_connect)
 {
@@ -3023,7 +3049,33 @@ PHP_FUNCTION(uv_tcp_connect)
 /* }}} */
 
 
-/* {{{ proto void uv_tcp_connect6(resource $handle, string $ipv6_addr, callable $callback)
+/* {{{ proto void uv_tcp_connect6(resource $handle, resource $ipv6_addr, callable $callback)
+
+##### *Description*
+
+connect to specified ip address and port.
+
+##### *Parameters*
+
+*resource $handle*: requires `uv_tcp_init()` resource.
+*resource $ipv4_addr*: requires uv_sockaddr resource.
+*callable $callback*: callable variables.
+
+##### *Return Value*
+
+*void*: 
+
+##### *Example*
+
+````php
+<?php
+$tcp = uv_tcp_init();
+uv_tcp_connect($tcp, uv_ip6_addr("::1",8080), function($tcp_handle, $status){
+	uv_close($tcp_handle);
+});
+
+uv_run();
+````
 */
 PHP_FUNCTION(uv_tcp_connect6)
 {
@@ -3033,7 +3085,27 @@ PHP_FUNCTION(uv_tcp_connect6)
 
 
 /* {{{ proto resource uv_timer_init([resource $loop])
+
+##### *Description*
+
+initialize timer handle.
+
+##### *Parameters*
+
+*resource $loop*: uv_loop resource.
+
+##### *Return Value*
+
+*resource $timer*: initialized timer resource.
+
+##### *Example*
+
+````php
+<?php
+$timer = uv_timer_init();
+````
 */
+
 PHP_FUNCTION(uv_timer_init)
 {
 	int r;
@@ -3065,6 +3137,30 @@ PHP_FUNCTION(uv_timer_init)
 /* }}} */
 
 /* {{{ proto void uv_timer_start(resource $timer, long $timeout, long $repeat, callable $callback)
+
+##### *Description*
+
+initialize timer handle.
+
+##### *Parameters*
+
+*resource $loop*: uv_loop resource.
+
+##### *Return Value*
+
+*resource $timer*: initialized timer resource.
+
+##### *Example*
+
+````php
+<?php
+$timer = uv_timer_init();
+uv_timer_start($timer, 100, 100, function($timer, $status){
+	echo "Hello\n";
+});
+
+uv_run();
+````
 */
 PHP_FUNCTION(uv_timer_start)
 {
@@ -3089,6 +3185,31 @@ PHP_FUNCTION(uv_timer_start)
 /* }}} */
 
 /* {{{ proto void uv_timer_stop(resource $timer)
+
+##### *Description*
+
+stop specified timer.
+
+##### *Parameters*
+
+*resource $timer*: uv timer resource.
+
+##### *Return Value*
+
+*void*:
+
+##### *Example*
+
+````php
+<?php
+$timer = uv_timer_init();
+uv_timer_start($timer, 100, 100, function($timer, $status){
+	echo "Hello\n";
+	uv_timer_stop($timer);
+});
+
+uv_run();
+````
 */
 PHP_FUNCTION(uv_timer_stop)
 {
