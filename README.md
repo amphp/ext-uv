@@ -357,7 +357,29 @@ send buffer to speicified uv resource.
 ### void uv_write2(resource $handle, string $data, resource $send, callable $callback)
 
 
-### void uv_tcp_nodelay(resource $handle, bool $flag)
+### void uv_tcp_nodelay(resource $handle, bool $enable)
+
+##### *Description*
+
+set Nagel's flags for specified tcp resource.
+
+##### *Parameters*
+
+*resource $handle*: libuv tcp resource
+
+*bool $enable*: true means enabled. false means disabled.
+
+##### *Return Value*
+
+*void*: 
+
+##### *Example*
+
+````php
+<?php
+$tcp = uv_tcp_init();
+uv_tcp_nodelay($tcp, true);
+````
 
 
 ### void uv_accept(resource $server, resource $client)
@@ -977,14 +999,148 @@ $udp = uv_udp_init();
 
 ### void uv_udp_bind(resource $resource, resource $address, long $flags)
 
+##### *Description*
+
+listens for a connection on a uv udp handle.
+
+##### *Parameters*
+
+*resource $handle*: uv resource handle (udp)
+
+*resource $uv_ip_addr*: uv sockaddr(ipv4) resource.
+
+*long $flags*: unused.
+
+##### *Return Value*
+
+*void *:
+
+##### *Example*
+
+````php
+<?php
+$udp = uv_udp_init();
+var_dump($udp);
+
+uv_udp_bind($udp, uv_ip4_addr('0.0.0.0',10000));
+
+uv_udp_recv_start($udp,function($stream, $nread, $buffer){
+    echo "recv:" .  $buffer;
+    
+    uv_close($stream);
+});
+
+$uv = uv_udp_init();
+uv_udp_send($uv, "Hello", uv_ip4_addr("0.0.0.0",10000),function($uv, $s){
+    echo "success" . PHP_EOL;
+    uv_close($uv);
+});
+
+uv_run();
+````
+
+
 
 ### void uv_udp_bind6(resource $resource, resource $address, long $flags)
+
+##### *Description*
+
+listens for a connection on a uv udp handle.
+
+##### *Parameters*
+
+*resource $handle*: uv resource handle (udp)
+
+*resource $uv_ip_addr*: uv sockaddr(ipv6) resource.
+
+*long $flags*: Should be 0 or UV::UDP_IPV6ONLY
+
+##### *Return Value*
+
+*void *:
+
+##### *Example*
+
+````php
+<?php
+$udp = uv_udp_init();
+var_dump($udp);
+
+uv_udp_bind6($udp, uv_ip6_addr('::1',10000));
+
+uv_udp_recv_start($udp,function($stream, $nread, $buffer){
+    echo "recv:" .  $buffer;
+    
+    uv_close($stream);
+});
+
+$uv = uv_udp_init();
+uv_udp_send6($uv, "Hello", uv_ip6_addr("::1",10000),function($uv, $s){
+    echo "success" . PHP_EOL;
+    uv_close($uv);
+});
+
+uv_run();
+````
+
 
 
 ### void uv_udp_recv_start(resource $handle, callable $callback)
 
+##### *Description*
+
+start receive callback.
+
+##### *Parameters*
+
+*resource $handle*: uv resource handle (udp)
+
+*callable $callback*: this callback parameter expects (resource $stream, long $nread, string $buffer).
+
+##### *Return Value*
+
+*void *:
+
+##### *Example*
+
+````php
+<?php
+$udp = uv_udp_init();
+var_dump($udp);
+
+uv_udp_bind6($udp, uv_ip6_addr('::1',10000));
+
+uv_udp_recv_start($udp,function($stream, $nread, $buffer){
+    echo "recv:" .  $buffer;
+    
+    uv_close($stream);
+});
+
+$uv = uv_udp_init();
+uv_udp_send6($uv, "Hello", uv_ip6_addr("::1",10000),function($uv, $s){
+    echo "success" . PHP_EOL;
+    uv_close($uv);
+});
+
+uv_run();
+````
+
+
 
 ### void uv_udp_recv_stop(resource $handle)
+
+##### *Description*
+
+stop receive callback.
+
+##### *Parameters*
+
+*resource $handle*: uv resource handle (udp)
+
+##### *Return Value*
+
+*void *:
+
 
 
 ### long uv_udp_set_membership(resource $handle, string $multicast_addr, string $interface_addr, long $membership)
@@ -1001,8 +1157,92 @@ $udp = uv_udp_init();
 
 ### void uv_udp_send(resource $handle, string $data, resource $uv_addr, callable $callback)
 
+##### *Description*
+
+send buffer to specified address.
+
+##### *Parameters*
+
+*resource $handle*: uv resource handle (udp)
+
+*string $data*: data
+
+*resource uv_addr*: uv_ip4_addr
+
+*callable $callback*: this callback parameter expects (resource $stream, long $status).
+
+##### *Return Value*
+
+*void *:
+
+##### *Example*
+
+````php
+<?php
+$udp = uv_udp_init();
+var_dump($udp);
+
+uv_udp_bind($udp, uv_ip4_addr('::1',10000));
+
+uv_udp_recv_start($udp,function($stream, $nread, $buffer){
+    echo "recv:" .  $buffer;
+    
+    uv_close($stream);
+});
+
+$uv = uv_udp_init();
+uv_udp_send($uv, "Hello", uv_ip4_addr("::1",10000),function($uv, $s){
+    echo "success" . PHP_EOL;
+    uv_close($uv);
+});
+
+uv_run();
+````
+
 
 ### void uv_udp_send6(resource $handle, string $data, resource $uv_addr6, callable $callback)
+
+##### *Description*
+
+send buffer to specified address.
+
+##### *Parameters*
+
+*resource $handle*: uv resource handle (udp)
+
+*string $data*: data
+
+*resource uv_addr*: uv_ip6_addr
+
+*callable $callback*: this callback parameter expects (resource $stream, long $status).
+
+##### *Return Value*
+
+*void *:
+
+##### *Example*
+
+````php
+<?php
+$udp = uv_udp_init();
+var_dump($udp);
+
+uv_udp_bind6($udp, uv_ip6_addr('::1',10000));
+
+uv_udp_recv_start($udp,function($stream, $nread, $buffer){
+    echo "recv:" .  $buffer;
+    
+    uv_close($stream);
+});
+
+$uv = uv_udp_init();
+uv_udp_send6($uv, "Hello", uv_ip6_addr("::1",10000),function($uv, $s){
+    echo "success" . PHP_EOL;
+    uv_close($uv);
+});
+
+uv_run();
+````
 
 
 ### bool uv_is_active(resource $handle)
@@ -1029,7 +1269,7 @@ $udp = uv_udp_init();
 
 ##### *Description*
 
-returns current uv type. (this is not libuv function.)
+returns current uv type. (this is not libuv function. util for php-uv)
 
 ##### *Parameters*
 
@@ -1296,6 +1536,11 @@ var_dump(uv_cpu_info());
 
 ### resource uv_spawn(resource $loop, string $command, array $args, array $context, callable $callback)
 
+##### *Todo*
+
+* fix context keys and values.
+
+
 
 ### void uv_process_kill(resource $handle, long $signal)
 TODO: 
@@ -1347,20 +1592,154 @@ TODO:
 
 ### resource uv_prepare_init(resource $loop)
 
+##### *Description*
+
+initialize prepare resource
+
+##### *Parameters*
+
+*resource $loop*: uv loop handle
+
+##### *Return Value*
+
+*resource $uv_prepare*:
+
+##### *Example*
+
+````php
+<?php
+$prepare = uv_prepare_init(uv_default_loop());
+````
+
+
 
 ### void uv_prepare_start(resource $handle, callable $callback)
+
+##### *Description*
+
+setup prepare loop callback. (pre loop callback)
+
+##### *Parameters*
+
+*resource $handle*: uv resource handle (prepare)
+
+*callable $callback*: this callback parameter expects (resource $prepare, long $status).
+
+##### *Return Value*
+
+*void *:
+
+##### *Example*
+````php
+
+<?php
+$loop = uv_default_loop();
+$prepare = uv_prepare_init($loop);
+
+uv_prepare_start($prepare, function($rsc, $status){
+    echo "Hello";
+    uv_unref($rsc);
+});
+
+uv_run();
+````
 
 
 ### void uv_prepare_stop(resource $handle)
 
+##### *Description*
+
+stop prepare callback
+
+##### *Parameters*
+
+*resource $prepare*: uv resource handle (prepare)
+
+##### *Return Value*
+
+*void *:
+
+
 
 ### resoruce uv_check_init([resource $loop])
+
+##### *Description*
+
+setup check resource
+
+##### *Parameters*
+
+*resource $loop*: uv loop handle
+
+##### *Return Value*
+
+*resource uv_check*:
+
+##### *Example*
+````php
+<?php
+$check = uv_check_init(uv_default_loop());
+````
 
 
 ### void uv_check_start(resource $handle, callable $callback)
 
+##### *Description*
+
+stats check loop callback. (after loop callback)
+
+##### *Parameters*
+
+*resource $handle*: uv resource handle (check)
+
+*callable $callback*: this callback parameter expects (resource $check, long $status).
+
+##### *Return Value*
+
+*void *:
+
+##### *Example*
+````php
+<?php
+$loop = uv_default_loop();
+$check = uv_check_init($loop);
+
+$idle = uv_idle_init();
+
+$i = 0;
+uv_idle_start($idle, function($stat) use (&$i, $idle, $loop){
+    echo "count: {$i}" . PHP_EOL;
+    $i++;
+    
+    if ($i > 3) {
+        uv_idle_stop($idle);
+    }
+    sleep(1);
+});
+
+uv_check_start($check, function($check, $status){
+    echo "Hello";
+    uv_check_stop($check);
+});
+
+uv_run();
+````
+
 
 ### void uv_check_stop(resource $handle)
+
+##### *Description*
+
+stop check callback
+
+##### *Parameters*
+
+*resource $check*: uv resource handle (check)
+
+##### *Return Value*
+
+*void *:
+
 
 
 ### resource uv_async_init(resource $loop, callable $callback)
@@ -1376,6 +1755,23 @@ TODO:
 
 
 ### void uv_fs_read(resoruce $loop, zval $fd, callable $callback)
+
+##### *Description*
+
+async read.
+
+##### *Parameters*
+
+*resource $loop*: uv loop handle
+
+*zval $fd*: this expects long $fd, resource $php_stream or resource $php_socket.
+
+*resource $callback*: this callback parameter expects (zval $fd, long $nread, string $buffer).
+
+##### *Return Value*
+
+*void *:
+
 
 
 ### void uv_fs_close(resource $loop, zval $fd, callable $callback)
