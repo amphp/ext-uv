@@ -2515,6 +2515,32 @@ ZEND_END_ARG_INFO()
 /* PHP Functions */
 
 /* {{{ proto void uv_unref(resource $uv_t)
+
+##### *Description*
+
+decrement reference
+
+##### *Parameters*
+
+*resource $uv_t*: uv resource handle.
+
+##### *Return Value*
+
+*void *:
+
+##### *Example*
+
+````php
+<?php
+$tcp = uv_tcp_init();
+uv_unref($tcp);
+
+````
+
+##### *TODO*
+
+* support uv_loop_t
+
 */
 PHP_FUNCTION(uv_unref)
 {
@@ -2532,6 +2558,26 @@ PHP_FUNCTION(uv_unref)
 /* }}} */
 
 /* {{{ proto long uv_last_error([resource $uv_loop])
+
+##### *Description*
+
+get last error code.
+
+##### *Parameters*
+
+*resource $uv_loop*: uv loop handle 
+
+##### *Return Value*
+
+*long $error_code*: error code
+
+##### *Example*
+
+````php
+<?php
+$err = uv_last_error();
+var_dump($err);
+````
 */
 PHP_FUNCTION(uv_last_error)
 {
@@ -2551,6 +2597,26 @@ PHP_FUNCTION(uv_last_error)
 /* }}} */
 
 /* {{{ proto string uv_err_name(long $error_code)
+
+##### *Description*
+
+get error code name.
+
+##### *Parameters*
+
+*long $error_code*: libuv error code
+
+##### *Return Value*
+
+*string $erorr_name*: error name
+
+##### *Example*
+
+````php
+<?php
+$err = uv_last_error();
+var_dump(uv_err_name($err));
+````
 */
 PHP_FUNCTION(uv_err_name)
 {
@@ -2571,6 +2637,27 @@ PHP_FUNCTION(uv_err_name)
 
 
 /* {{{ proto string uv_strerror(long $error_code)
+
+##### *Description*
+
+get error message.
+
+##### *Parameters*
+
+*long $error_code*: libuv error code
+
+##### *Return Value*
+
+*string $erorr_message*: error message
+
+##### *Example*
+
+````php
+<?php
+$err = uv_last_error();
+var_dump(uv_strerror($err));
+````
+
 */
 PHP_FUNCTION(uv_strerror)
 {
@@ -2606,6 +2693,31 @@ PHP_FUNCTION(uv_update_time)
 /* }}} */
 
 /* {{{ proto void uv_ref(resource $uv_handle)
+
+##### *Description*
+
+increment reference count
+
+##### *Parameters*
+
+*resource $uv_handle*: uv resource.
+
+##### *Return Value*
+
+*void*: 
+
+##### *Example*
+
+````php
+<?php
+$tcp = uv_tcp_init();
+uv_ref($tcp);
+````
+
+##### *TODO*
+
+* support uv_loop resource
+
 */
 PHP_FUNCTION(uv_ref)
 {
@@ -2623,6 +2735,34 @@ PHP_FUNCTION(uv_ref)
 /* }}} */
 
 /* {{{ proto void uv_run([resource $uv_loop])
+
+##### *Description*
+
+run event loop
+
+##### *Parameters*
+
+*resource $uv_loopg*: uv_loop resource
+
+##### *Return Value*
+
+*void*: 
+
+##### *Example*
+
+````php
+<?php
+$loop = uv_default_loop();
+$async = uv_async_init($loop, function($async, $status){
+    var_dump(1);
+    uv_close($async);
+});
+
+uv_async_send($async);
+
+uv_run();
+````
+
 */
 PHP_FUNCTION(uv_run)
 {
@@ -2656,6 +2796,21 @@ PHP_FUNCTION(uv_run_once)
 /* }}} */
 
 /* {{{ proto void uv_loop_delete(resource $uv_loop)
+
+##### *Description*
+
+delete specified loop resource.
+
+##### *Parameters*
+
+*resource $uv_loop*: uv_loop resource
+
+##### *Return Value*
+
+*void*: 
+
+##### *Example*
+
 */
 PHP_FUNCTION(uv_loop_delete)
 {
@@ -2697,7 +2852,43 @@ PHP_FUNCTION(uv_now)
 /* }}} */
 
 
-/* {{{ proto void uv_tcp_bind(resource $uv_sockaddr)
+/* {{{ proto void uv_tcp_bind(resource $uv_tcp, resource $uv_sockaddr)
+
+##### *Description*
+
+binds a name to a socket.
+
+##### *Parameters*
+
+*resource $uv_tcp*: uv_tcp resource
+
+*resource $uv_sockaddr*: uv sockaddr4 resource.
+
+##### *Return Value*
+
+*void*: 
+
+##### *Example*
+
+````php
+<?php
+$tcp = uv_tcp_init();
+
+uv_tcp_bind($tcp, uv_ip4_addr('0.0.0.0',9999));
+
+uv_listen($tcp,100, function($server){
+    $client = uv_tcp_init();
+    uv_accept($server, $client);
+    var_dump(uv_tcp_getsockname($server));
+
+    uv_read_start($client, function($socket, $nread, $buffer) use ($server){
+        var_dump($buffer);
+        uv_close($socket);
+        uv_close($server);
+    });
+});
+````
+
 */
 PHP_FUNCTION(uv_tcp_bind)
 {
@@ -2705,7 +2896,42 @@ PHP_FUNCTION(uv_tcp_bind)
 }
 /* }}} */
 
-/* {{{ proto void uv_tcp_bind6(resource $uv_sockaddr)
+/* {{{ proto void uv_tcp_bind6(resource $uv_tcp, resource $uv_sockaddr)
+
+##### *Description*
+
+binds a name to a socket.
+
+##### *Parameters*
+
+*resource $uv_tcp*: uv_tcp resource
+
+*resource $uv_sockaddr*: uv sockaddr6 resource.
+
+##### *Return Value*
+
+*void*: 
+
+##### *Example*
+
+````php
+<?php
+$tcp = uv_tcp_init();
+uv_tcp_bind6($tcp, uv_ip6_addr('::1',9999));
+
+uv_listen($tcp,100, function($server){
+    $client = uv_tcp_init();
+    uv_accept($server, $client);
+    var_dump(uv_tcp_getsockname($server));
+
+    uv_read_start($client, function($socket, $nread, $buffer) use ($server){
+        var_dump($buffer);
+        uv_close($socket);
+        uv_close($server);
+    });
+});
+````
+
 */
 PHP_FUNCTION(uv_tcp_bind6)
 {
@@ -2823,6 +3049,42 @@ PHP_FUNCTION(uv_tcp_nodelay)
 /* }}} */
 
 /* {{{ proto void uv_accept(resource $server, resource $client)
+
+##### *Description*
+
+accepts a connection on a socket.
+
+##### *Parameters*
+
+*resource $uv_tcp*: uv_tcp server resource
+
+*resource $uv_tcp*: uv_tcp client resource.
+
+##### *Return Value*
+
+*void*: 
+
+##### *Example*
+
+````php
+<?php
+$tcp = uv_tcp_init();
+
+uv_tcp_bind($tcp, uv_ip4_addr('0.0.0.0',9999));
+
+uv_listen($tcp,100, function($server){
+    $client = uv_tcp_init();
+    uv_accept($server, $client);
+    var_dump(uv_tcp_getsockname($server));
+
+    uv_read_start($client, function($socket, $nread, $buffer) use ($server){
+        var_dump($buffer);
+        uv_close($socket);
+        uv_close($server);
+    });
+});
+````
+
 */
 PHP_FUNCTION(uv_accept)
 {
@@ -3037,6 +3299,41 @@ PHP_FUNCTION(uv_read2_start)
 /* }}} */
 
 /* {{{ proto void uv_read_stop(resource $handle)
+
+##### *Description*
+
+stop read callback
+
+##### *Parameters*
+
+*resource $uv*: uv resource handle which started uv_read.
+
+##### *Return Value*
+
+*void*: 
+
+##### *Example*
+
+````php
+<?php
+$tcp = uv_tcp_init();
+
+uv_tcp_bind($tcp, uv_ip4_addr('0.0.0.0',9999));
+
+uv_listen($tcp,100, function($server){
+    $client = uv_tcp_init();
+    uv_accept($server, $client);
+    var_dump(uv_tcp_getsockname($server));
+
+    uv_read_start($client, function($socket, $nread, $buffer) use ($server){
+        uv_read_stop($socket);
+        var_dump($buffer);
+        uv_close($socket);
+        uv_close($server);
+    });
+});
+````
+
 */
 PHP_FUNCTION(uv_read_stop)
 {
@@ -3459,6 +3756,23 @@ PHP_FUNCTION(uv_timer_again)
 /* }}} */
 
 /* {{{ proto void uv_timer_set_repeat(resource $timer, long $repeat)
+
+##### *Description*
+
+set repeat count.
+
+##### *Parameters*
+
+*resource $uv_timer*: uv_timer resource
+
+*long $repeat*: repeat count
+
+##### *Return Value*
+
+*void*: 
+
+##### *Example*
+
 */
 PHP_FUNCTION(uv_timer_set_repeat)
 {
@@ -3478,6 +3792,21 @@ PHP_FUNCTION(uv_timer_set_repeat)
 /* }}} */
 
 /* {{{ proto long uv_timer_get_repeat(resource $timer)
+
+##### *Description*
+
+returns repeat interval.
+
+##### *Parameters*
+
+*resource $uv_timer*: uv_timer resource
+
+##### *Return Value*
+
+*long $repeat_time*: 
+
+##### *Example*
+
 */
 PHP_FUNCTION(uv_timer_get_repeat)
 {
@@ -4064,6 +4393,11 @@ PHP_FUNCTION(uv_is_writable)
 
 
 /* {{{ proto bool uv_walk(resource $loop, callable $closure[, array $opaque])
+
+##### *TODO*
+
+* implement this.
+
 */
 PHP_FUNCTION(uv_walk)
 {
@@ -4110,6 +4444,31 @@ PHP_FUNCTION(uv_guess_handle)
 /* }}} */
 
 /* {{{ proto long uv_handle_type(resource $uv)
+
+##### *Description*
+
+returns current uv type. (this is not libuv function.)
+
+##### *Parameters*
+
+*resource $uv_handle*: uv_handle
+
+##### *Return Value*
+
+*long $handle_type*: should return UV::IS_UV_* constatns. e.g) UV::IS_UV_TCP
+
+##### *Example*
+
+````php
+<?php
+$tcp = uv_tcp_init();
+var_dump(uv_handle_type($tcp));
+````
+
+##### *Note*
+
+* this may change.
+
 */
 PHP_FUNCTION(uv_handle_type)
 {
@@ -4128,6 +4487,28 @@ PHP_FUNCTION(uv_handle_type)
 
 
 /* {{{ proto resource uv_pipe_init(resource $loop, long $ipc)
+
+##### *Description*
+
+initialize pipe resource
+
+##### *Parameters*
+
+*resource $uv_loop*: uv_loop resource
+
+*long $ipc*: when this pipe use for ipc, please set 1 otherwise 0.
+
+##### *Return Value*
+
+*resource $uv_pipe*: 
+
+##### *Example*
+
+````php
+<?php
+$pipe = uv_pipe_init(uv_default_loop(), 0);
+````
+
 */
 PHP_FUNCTION(uv_pipe_init)
 {
