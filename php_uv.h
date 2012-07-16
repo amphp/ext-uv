@@ -46,7 +46,7 @@
  * Zend will use when loading this module
  */
 extern zend_module_entry uv_module_entry;
-#define phpext_uv_ptr &uv_module_entry;
+#define phpext_uv_ptr &uv_module_entry
 
 extern zend_class_entry *uv_class_entry;
 
