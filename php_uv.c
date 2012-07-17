@@ -4788,6 +4788,23 @@ PHP_FUNCTION(uv_pipe_init)
 /* }}} */
 
 /* {{{ proto void uv_pipe_open(resource $handle, long $pipe)
+
+##### *Description*
+
+open a pipe resource.
+
+##### *Parameters*
+
+*resource $uv_handle*: uv pipe handle
+
+*long $pipe: dunnno. maybe file descriptor.
+
+##### *Return Value*
+
+*void*: 
+
+##### *Example*
+
 */
 PHP_FUNCTION(uv_pipe_open)
 {
@@ -4807,6 +4824,23 @@ PHP_FUNCTION(uv_pipe_open)
 /* }}} */
 
 /* {{{ proto long uv_pipe_bind(resource $handle, string $name)
+
+##### *Description*
+
+create a named pipe.
+
+##### *Parameters*
+
+*resource $uv_handle*: uv pipe handle
+
+*long $pipe: dunnno. maybe file descriptor.
+
+##### *Return Value*
+
+*void*: 
+
+##### *Example*
+
 */
 PHP_FUNCTION(uv_pipe_bind)
 {
@@ -4829,6 +4863,37 @@ PHP_FUNCTION(uv_pipe_bind)
 /* }}} */
 
 /* {{{ proto void uv_pipe_connect(resource $handle, string $path, callable $callback)
+
+##### *Description*
+
+connect to named pipe.
+
+##### *Parameters*
+
+*resource $uv_handle*: uv pipe handle
+
+*string $path: named pipe path
+
+*callable $callback: this callback parameter expects (resource $pipe, long $status)
+
+##### *Return Value*
+
+*void*: 
+
+##### *Example*
+
+````php
+<?php
+b = uv_pipe_init(uv_default_loop(), 0);
+uv_pipe_connect($b, PIPE_PATH, function($a,$b){
+    uv_write($b,"Hello", function($stream,$stat){
+        uv_close($stream);
+    });
+});
+
+uv_run();
+````
+
 */
 PHP_FUNCTION(uv_pipe_connect)
 {
