@@ -2537,23 +2537,27 @@ uv_unref($tcp);
 
 ````
 
-##### *TODO*
-
-* support uv_loop_t
-
 */
 PHP_FUNCTION(uv_unref)
 {
 	zval *handle = NULL;
 	php_uv_t *uv;
+	uv_loop_t *loop;
 	
 	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
 		"z",&handle) == FAILURE) {
 		return;
 	}
-	ZEND_FETCH_RESOURCE(uv, php_uv_t *, &handle, -1, PHP_UV_RESOURCE_NAME, uv_resource_handle);
-	uv_unref((uv_handle_t *)php_uv_get_current_stream(uv));
-	zend_list_delete(uv->resource_id);
+	
+	if (ZEND_FETCH_RESOURCE_NO_RETURN(loop, uv_loop_t*, &handle, -1, NULL, uv_loop_handle)) {
+		uv_unref((uv_handle_t *)loop);
+		zend_list_delete(Z_RESVAL_P(handle));
+	} else if (ZEND_FETCH_RESOURCE_NO_RETURN(uv, php_uv_t*, &handle, -1, NULL, uv_resource_handle)) {
+		uv_unref((uv_handle_t *)php_uv_get_current_stream(uv));
+		zend_list_delete(uv->resource_id);
+	} else {
+		php_error_docref(NULL TSRMLS_CC, E_ERROR, "passes unexpected resource.");
+	}
 }
 /* }}} */
 
@@ -2723,14 +2727,21 @@ PHP_FUNCTION(uv_ref)
 {
 	zval *handle = NULL;
 	php_uv_t *uv;
+	uv_loop_t *loop;
 	
 	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
 		"z",&handle) == FAILURE) {
 		return;
 	}
-	ZEND_FETCH_RESOURCE(uv, php_uv_t *, &handle, -1, PHP_UV_RESOURCE_NAME, uv_resource_handle);
-	uv_ref((uv_handle_t *)php_uv_get_current_stream(uv));
-	zend_list_addref(uv->resource_id);
+	if (ZEND_FETCH_RESOURCE_NO_RETURN(loop, uv_loop_t*, &handle, -1, NULL, uv_loop_handle)) {
+		uv_ref((uv_handle_t *)loop);
+		zend_list_delete(Z_RESVAL_P(handle));
+	} else if (ZEND_FETCH_RESOURCE_NO_RETURN(uv, php_uv_t*, &handle, -1, NULL, uv_resource_handle)) {
+		uv_ref((uv_handle_t *)php_uv_get_current_stream(uv));
+		zend_list_addref(uv->resource_id);
+	} else {
+		php_error_docref(NULL TSRMLS_CC, E_ERROR, "passes unexpected resource.");
+	}
 }
 /* }}} */
 
