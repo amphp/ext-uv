@@ -1818,6 +1818,47 @@ stop check callback
 
 ### resource uv_fs_open(resource $loop, string $path, long $flag, long $mode, callable $callback)
 
+##### *Description*
+
+open specified file
+
+##### *Parameters*
+
+*resource $loop*: uv_loop resource.
+
+*string $path*: file path
+
+*long $flag*: file flag. this should be UV::O_RDONLY and some constants flag.
+
+*long $mode*: mode flag. this should be UV::S_IRWXU and some mode flag.
+
+*callable $calback*: this callback parameter expects (resource $stream)
+
+
+##### *Return Value*
+
+*void*: 
+
+##### *Example*
+
+````php
+<?php
+uv_fs_open(uv_default_loop(),"/tmp/hello", 
+    UV::O_WRONLY | UV::O_CREAT | UV::O_APPEND,
+    UV::S_IRWXU | UV::S_IRUSR,
+    function($r){
+
+    uv_fs_write(uv_default_loop(),$r,"hello",0, function($a) use ($r){
+        uv_fs_fdatasync(uv_default_loop(),$r,function(){
+            echo "fsync finished";
+        });
+    });
+});
+
+uv_run();
+````
+
+
 
 ### void uv_fs_read(resoruce $loop, zval $fd, callable $callback)
 
@@ -1841,8 +1882,52 @@ async read.
 
 ### void uv_fs_close(resource $loop, zval $fd, callable $callback)
 
+##### *Description*
+
+close specified file descriptor.
+
+##### *Parameters*
+
+*resource $loop*: uv_loop resource.
+
+*zval $fd*: file descriptor. this expects long $fd, resource $php_stream or resource $php_socket.
+
+*callable $calback*: this callback parameter expects (resource $stream)
+
+##### *Return Value*
+
+*void*: 
+
+##### *Example*
+
+##### *todo*
+
+* handling PHP's stream and socket correctly.
+
+
 
 ### void uv_fs_write(resource $loop, zval $fd, string $buffer, long $offset, callable $callback)
+
+##### *Description*
+
+write buffer to specified file descriptor.
+
+##### *Parameters*
+
+*resource $loop*: uv_loop resource.
+
+*zval $fd*: file descriptor. this expects long $fd, resource $php_stream or resource $php_socket.
+
+*string $buffer*: buffer.
+
+*callable $calback*: this callback parameter expects (resource $stream)
+
+##### *Return Value*
+
+*void*: 
+
+##### *Example*
+
 
 
 ### void uv_fs_fsync(resource $loop, zval $fd, callable $callback)
