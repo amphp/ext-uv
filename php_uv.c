@@ -4663,7 +4663,6 @@ PHP_FUNCTION(uv_walk)
 PHP_FUNCTION(uv_guess_handle)
 {
 	zval *handle;
-	php_uv_t *uv = NULL;
 	long fd = -1;
 	uv_handle_type type;
 	
