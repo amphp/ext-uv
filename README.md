@@ -95,10 +95,6 @@ uv_unref($tcp);
 
 ````
 
-##### *TODO*
-
-* support uv_loop_t
-
 
 
 ### long uv_last_error([resource $uv_loop])
@@ -1145,14 +1141,86 @@ stop receive callback.
 
 ### long uv_udp_set_membership(resource $handle, string $multicast_addr, string $interface_addr, long $membership)
 
+##### *Description*
+
+join or leave udp muticast group..
+
+##### *Parameters*
+
+*resource $handle*: uv resource handle (udp)
+
+*string $multicast_addr*: multicast address
+
+*string $interface_addr*: interface address
+
+*long $membership*: UV::JOIN_GROUP or UV::LEAVE_GROUP
+
+##### *Return Value*
+
+*long *: result code
+
+##### *Example*
+
+
 
 ### void uv_udp_set_multicast_loop(resource $handle, long $enabled)
+
+##### *Description*
+
+set multicast loop
+
+##### *Parameters*
+
+*resource $handle*: uv resource handle (udp)
+
+*long $enabled*: 
+
+##### *Return Value*
+
+*void*: 
+
+##### *Example*
+
 
 
 ### void uv_udp_set_multicast_ttl(resource $handle, long $ttl)
 
+##### *Description*
+
+set multicast ttl
+
+##### *Parameters*
+
+*resource $handle*: uv resource handle (udp)
+
+*long $ttl*: multicast ttl
+
+##### *Return Value*
+
+*void*: 
+
+##### *Example*
+
+
 
 ### void uv_udp_set_broadcast(resource $handle, bool $enabled)
+
+##### *Description*
+
+set udp broadcast
+
+##### *Parameters*
+
+*resource $handle*: uv resource handle (udp)
+
+*long $enabled*: 
+
+##### *Return Value*
+
+*void*: 
+
+##### *Example*
+
 
 
 ### void uv_udp_send(resource $handle, string $data, resource $uv_addr, callable $callback)
@@ -1608,51 +1676,257 @@ var_dump(uv_cpu_info());
 
 
 ### void uv_process_kill(resource $handle, long $signal)
-TODO: 
+
+##### *Description*
+
+send signal to specified uv process resource.
+
+##### *Parameters*
+
+*resource $handle*: uv resource handle (process)
+
+*long $signal*: 
+
+##### *Return Value*
+
+*void*: 
+
+##### *Example*
+
+
 
 ### void uv_kill(long $pid, long $signal)
+
+##### *Description*
+
+send signal to specified pid.
+
+##### *Parameters*
+
+*long $pid*: process id
+
+*long $signal*:
+
+##### *Return Value*
+
+*void*: 
+
+##### *Example*
+
 
 
 ### bool uv_chdir(string $directory)
 
+##### *Description*
+
+change working directory.
+
+##### *Parameters*
+
+*string $directory*:
+
+##### *Return Value*
+
+*bool *: 
+
+##### *Example*
+
+
 
 ### resource uv_rwlock_init(void)
+
+##### *Description*
+
+initialize rwlock resource
+
+##### *Parameters*
+
+##### *Return Value*
+
+*resource $rwlock*: returns uv rwlock resource
+
+##### *Example*
+
 
 
 ### uv_rwlock_rdlock(resource $handle)
 
+##### *Description*
+
+set read lock
+
+##### *Parameters*
+
+*resource $handle*: uv resource handle (uv rwlock)
+
+##### *Return Value*
+
+*void *: 
+
+##### *Example*
+
+
 
 ### bool uv_rwlock_tryrdlock(resource $handle)
+
+##### *TODO*
+
+* implemnt this correctly
+
 
 
 ### void uv_rwlock_rdunlock(resource $handle)
 
+##### *Description*
+
+unlock read lock
+
+##### *Parameters*
+
+*resource $handle*: uv resource handle (uv rwlock)
+
+##### *Return Value*
+
+*void*: 
+
+##### *Example*
+
+
 
 ### uv_rwlock_wrlock(resource $handle)
+
+##### *Description*
+
+set write lock
+
+##### *Parameters*
+
+*resource $handle*: uv resource handle (uv rwlock)
+
+##### *Return Value*
+
+*void *: 
+
+##### *Example*
+
 
 
 ### uv_rwlock_trywrlock(resource $handle)
 
+##### *TODO*
+
+* implement this correctly
+
+
 
 ### uv_rwlock_wrunlock(resource $handle)
 
+##### *Description*
 
-### uv_lock uv_mutex_init(void) 
+unlock write lock
+
+##### *Parameters*
+
+*resource $handle*: uv resource handle (uv rwlock)
+
+##### *Return Value*
+
+*void*: 
+
+##### *Example*
+
+
+
+### uv_lock uv_mutex_init(void)
+
+##### *Description*
+
+initialize mutex resource
+
+##### *Parameters*
+
+##### *Return Value*
+
+*resource $uv_mutex*: uv mutex resource
+
+##### *Example*
+
+
 
 ### void uv_mutex_lock(uv_lock $lock)
 
-### bool uv_mutex_trylock(uv_lock $lock) 
+##### *Description*
+
+lock mutex
+
+##### *Parameters*
+
+*resource $handle*: uv resource handle (uv mutex)
+
+##### *Return Value*
+
+*void*: 
+
+##### *Example*
+
+
+
+### bool uv_mutex_trylock(uv_lock $lock)
+
+##### *TODO*
+
+* implement this correctly
+
+
 
 ### uv_lock uv_sem_init(void)
+
+##### *Description*
+
+initialize semaphore resource
+
+##### *Parameters*
+
+##### *Return Value*
+
+*resource $uv_sem*: 
+
+##### *Example*
+
 
 
 ### void uv_sem_post(uv_lock $sem)
 
+##### *Description*
+
+post semaphore
+
+##### *Parameters*
+
+*resource $handle*: uv resource handle (uv sem)
+
+##### *Return Value*
+
+*void*: 
+
+##### *Example*
+
+
 
 ### void uv_sem_wait(uv_lock $sem)
 
+##### *Todo*
+
+* implemnt this correctly
+
+
 
 ### void uv_sem_trywait(uv_lock $sem)
+
+##### *Todo*
+
+* implment this correctly
+
 
 
 ### resource uv_prepare_init(resource $loop)
@@ -1809,8 +2083,40 @@ stop check callback
 
 ### resource uv_async_init(resource $loop, callable $callback)
 
+##### *Description*
+
+setup async callback
+
+##### *Parameters*
+
+*resource $loop*: uv loop resource
+
+*callback $callback*: 
+
+##### *Return Value*
+
+*resource *: uv async resource
+
+##### *Example*
+
+
 
 ### void uv_async_send(resource $handle)
+
+##### *Description*
+
+send async callback immidiately
+
+##### *Parameters*
+
+*resource $handle*: uv async handle
+
+##### *Return Value*
+
+*void*: 
+
+##### *Example*
+
 
 
 ### void uv_queue_work(resource $loop, callable $callback, callable $after_callback)
@@ -1932,71 +2238,534 @@ write buffer to specified file descriptor.
 
 ### void uv_fs_fsync(resource $loop, zval $fd, callable $callback)
 
+##### *Description*
+
+async fsync
+
+##### *Parameters*
+
+*resource $handle*: uv loop handle
+
+*zval $fd*: 
+
+
+*callable $callback*: 
+
+##### *Return Value*
+
+*void*: 
+
+##### *Example*
+
+
 
 ### void uv_fs_fdatasync(resource $loop, zval $fd, callable $callback)
+
+##### *Description*
+
+async fdatasync
+
+##### *Parameters*
+
+*resource $handle*: uv loop handle
+
+*zval $fd*: 
+
+*callable $callback*: 
+
+##### *Return Value*
+
+*void*: 
+
+##### *Example*
 
 
 ### void uv_fs_ftruncate(resource $loop, zval $fd, long $offset, callable $callback)
 
+##### *Description*
+
+async ftruncate
+
+##### *Parameters*
+
+*resource $handle*: uv loop handle
+
+*zval $fd*: 
+
+*long $offset*:
+
+*callable $callback*: 
+
+##### *Return Value*
+
+*void*: 
+
+##### *Example*
+
 
 ### void uv_fs_mkdir(resource $loop, string $path, long $mode, callable $callback)
+
+##### *Description*
+
+async mkdir
+
+##### *Parameters*
+
+*resource $handle*: uv loop handle
+
+*string $path*: 
+
+*long $mode*:
+
+*callable $callback*: 
+
+##### *Return Value*
+
+*void*: 
+
+##### *Example*
 
 
 ### void uv_fs_rmdir(resource $loop, string $path, callable $callback)
 
+##### *Description*
+
+async rmdir
+
+##### *Parameters*
+
+*resource $handle*: uv loop handle
+
+*string $path*: 
+
+*callable $callback*: 
+
+##### *Return Value*
+
+*void*: 
+
+##### *Example*
+
 
 ### void uv_fs_unlink(resource $loop, string $path, callable $callback)
+
+##### *Description*
+
+async unlink
+
+##### *Parameters*
+
+*resource $handle*: uv loop handle
+
+*string $path*: 
+
+*callable $callback*: 
+
+##### *Return Value*
+
+*void*: 
+
+##### *Example*
 
 
 ### void uv_fs_rename(resource $loop, string $from, string $to, callable $callback)
 
+##### *Description*
+
+async rename
+
+##### *Parameters*
+
+*resource $handle*: uv loop handle
+
+*string $from*: 
+
+*string $to*:
+
+*callable $callback*: 
+
+##### *Return Value*
+
+*void*: 
+
+##### *Example*
+
+
 
 ### void uv_fs_utime(resource $loop, string $path, long $utime, long $atime, callable $callback)
+
+##### *Description*
+
+async utime
+
+##### *Parameters*
+
+*resource $handle*: uv loop handle
+
+*string $path*: 
+
+*long $utime*:
+
+*long $atime*:
+
+*callable $callback*: 
+
+##### *Return Value*
+
+*void*: 
+
+##### *Example*
+
 
 
 ### void uv_fs_futime(resource $loop, zval $fd, long $utime, long $atime callable $callback)
 
+##### *Description*
+
+async futime
+
+##### *Parameters*
+
+*resource $handle*: uv loop handle
+
+*zval $fd*: 
+
+*long $utime*:
+
+*long $atime*:
+
+*callable $callback*: 
+
+##### *Return Value*
+
+*void*: 
+
+##### *Example*
+
 
 ### void uv_fs_chmod(resource $loop, string $path, long $mode, callable $callback)
+
+##### *Description*
+
+async chmod
+
+##### *Parameters*
+
+*resource $handle*: uv loop handle
+
+*string $path*: 
+
+*long $mode*:
+
+*callable $callback*: 
+
+##### *Return Value*
+
+*void*: 
+
+##### *Example*
 
 
 ### void uv_fs_fchmod(resource $loop, zval $fd, long $mode, callable $callback)
 
+##### *Description*
+
+async fchmod
+
+##### *Parameters*
+
+*resource $handle*: uv loop handle
+
+*zval $fd*: 
+
+*long $mode*:
+
+*callable $callback*: 
+
+##### *Return Value*
+
+*void*: 
+
+##### *Example*
+
 
 ### void uv_fs_chown(resource $loop, string $path, long $uid, long $gid, callable $callback)
+
+##### *Description*
+
+async chown
+
+##### *Parameters*
+
+*resource $handle*: uv loop handle
+
+*string $paht*: 
+
+*long $uid*:
+
+*long $gid*:
+
+*callable $callback*: 
+
+##### *Return Value*
+
+*void*: 
+
+##### *Example*
 
 
 ### void uv_fs_fchown(resource $loop, zval $fd, long $uid, $long $gid, callable $callback)
 
+##### *Description*
+
+async fchown
+
+##### *Parameters*
+
+*resource $handle*: uv loop handle
+
+*zval $fd*: 
+
+*long $uid*:
+
+*long $gid*:
+
+*callable $callback*: 
+
+##### *Return Value*
+
+*void*: 
+
+##### *Example*
+
 
 ### void uv_fs_link(resource $loop, string $from, string $to, callable $callback)
+
+##### *Description*
+
+async link
+
+##### *Parameters*
+
+*resource $handle*: uv loop handle
+
+*string $from*: 
+
+*string $to*:
+
+*callable $callback*: 
+
+##### *Return Value*
+
+*void*: 
+
+##### *Example*
 
 
 ### void uv_fs_symlink(resource $loop, string $from, string $to, long $flags, callable $callback)
 
+##### *Description*
+
+async symlink
+
+##### *Parameters*
+
+*resource $handle*: uv loop handle
+
+*string $from*: 
+
+*string $to*:
+
+*long $flags*:
+
+*callable $callback*: 
+
+##### *Return Value*
+
+*void*: 
+
+##### *Example*
+
 
 ### void uv_fs_readlink(resource $loop, string $path, callable $callback)
+
+##### *Description*
+
+async readlink
+
+##### *Parameters*
+
+*resource $handle*: uv loop handle
+
+*string $path*: 
+
+*callable $callback*: 
+
+##### *Return Value*
+
+*void*: 
+
+##### *Example*
 
 
 ### void uv_fs_stat(resource $loop, string $path, callable $callback)
 
+##### *Description*
+
+async stat
+
+##### *Parameters*
+
+*resource $handle*: uv loop handle
+
+*string $path*: 
+
+*callable $callback*: 
+
+##### *Return Value*
+
+*void*: 
+
+##### *Example*
+
+
 
 ### void uv_fs_lstat(resource $loop, string $path, callable $callback)
+
+##### *Description*
+
+async lstat
+
+##### *Parameters*
+
+*resource $handle*: uv loop handle
+
+*string $path*: 
+
+*callable $callback*: 
+
+##### *Return Value*
+
+*void*: 
+
+##### *Example*
+
 
 
 ### void uv_fs_fstat(resource $loop, zval $fd, callable $callback)
 
+##### *Description*
+
+async fstat
+
+##### *Parameters*
+
+*resource $handle*: uv loop handle
+
+*zval $fd*: 
+
+*callable $callback*: 
+
+##### *Return Value*
+
+*void*: 
+
+##### *Example*
+
+
 
 ### uv_fs_readdir(resource $loop, string $path, long $flags, callable $callback)
+
+##### *Description*
+
+async readdir
+
+##### *Parameters*
+
+*resource $handle*: uv loop handle
+
+*string $path*: 
+
+*long $flags*:
+
+*callable $callback*: 
+
+##### *Return Value*
+
+*void*: 
+
+##### *Example*
 
 
 ### void uv_fs_sendfile(resource $loop, zval $in_fd, zval $out_fd, long $offset, long $length, callable $callback)
 
+##### *Description*
+
+async sendfile
+
+##### *Parameters*
+
+*resource $handle*: uv loop handle
+
+*zval $in_fd*: 
+
+*zval $out_fd*:
+
+*long $offset*:
+
+*long $length*:
+
+*callable $callback*: 
+
+##### *Return Value*
+
+*void*: 
+
+##### *Example*
+
 
 ### resource uv_fs_event_init(resource $loop, string $path, callable $callback, long $flags = 0)
 
+##### *Description*
+
+initialize fs event.
+
+##### *Parameters*
+
+*resource $handle*: uv loop handle
+
+*string $path*: 
+
+*callable $callback*: 
+
+##### *Return Value*
+
+*void*: 
+
+##### *Example*
+
+
 
 ### resource uv_tty_init(resource $loop, zval $fd, long $readable)
+
+##### *Description*
+
+initialize tty resource. you have to open tty your hand.
+
+##### *Parameters*
+
+*resource $handle*: uv loop handle
+
+*zval $fd*: 
+
+*long $readable*: 
+
+##### *Return Value*
+
+*resource $uv_tty*: 
+
+##### *Example*
+
 
 
 ### long uv_tty_get_winsize(resource $tty, long &$width, long &$height)

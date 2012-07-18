@@ -4386,6 +4386,27 @@ PHP_FUNCTION(uv_udp_recv_stop)
 /* }}} */
 
 /* {{{ proto long uv_udp_set_membership(resource $handle, string $multicast_addr, string $interface_addr, long $membership)
+
+##### *Description*
+
+join or leave udp muticast group..
+
+##### *Parameters*
+
+*resource $handle*: uv resource handle (udp)
+
+*string $multicast_addr*: multicast address
+
+*string $interface_addr*: interface address
+
+*long $membership*: UV::JOIN_GROUP or UV::LEAVE_GROUP
+
+##### *Return Value*
+
+*long *: result code
+
+##### *Example*
+
 */
 PHP_FUNCTION(uv_udp_set_membership)
 {
@@ -4409,6 +4430,23 @@ PHP_FUNCTION(uv_udp_set_membership)
 
 
 /* {{{ proto void uv_udp_set_multicast_loop(resource $handle, long $enabled)
+
+##### *Description*
+
+set multicast loop
+
+##### *Parameters*
+
+*resource $handle*: uv resource handle (udp)
+
+*long $enabled*: 
+
+##### *Return Value*
+
+*void*: 
+
+##### *Example*
+
 */
 PHP_FUNCTION(uv_udp_set_multicast_loop)
 {
@@ -4432,6 +4470,23 @@ PHP_FUNCTION(uv_udp_set_multicast_loop)
 /* }}} */
 
 /* {{{ proto void uv_udp_set_multicast_ttl(resource $handle, long $ttl)
+
+##### *Description*
+
+set multicast ttl
+
+##### *Parameters*
+
+*resource $handle*: uv resource handle (udp)
+
+*long $ttl*: multicast ttl
+
+##### *Return Value*
+
+*void*: 
+
+##### *Example*
+
 */
 PHP_FUNCTION(uv_udp_set_multicast_ttl)
 {
@@ -4460,6 +4515,23 @@ PHP_FUNCTION(uv_udp_set_multicast_ttl)
 /* }}} */
 
 /* {{{ proto void uv_udp_set_broadcast(resource $handle, bool $enabled)
+
+##### *Description*
+
+set udp broadcast
+
+##### *Parameters*
+
+*resource $handle*: uv resource handle (udp)
+
+*long $enabled*: 
+
+##### *Return Value*
+
+*void*: 
+
+##### *Example*
+
 */
 PHP_FUNCTION(uv_udp_set_broadcast)
 {
@@ -5594,7 +5666,24 @@ PHP_FUNCTION(uv_spawn)
 
 
 /* {{{ proto void uv_process_kill(resource $handle, long $signal)
-TODO: */
+
+##### *Description*
+
+send signal to specified uv process resource.
+
+##### *Parameters*
+
+*resource $handle*: uv resource handle (process)
+
+*long $signal*: 
+
+##### *Return Value*
+
+*void*: 
+
+##### *Example*
+
+*/
 PHP_FUNCTION(uv_process_kill)
 {
 	php_uv_t *uv;
@@ -5611,6 +5700,23 @@ PHP_FUNCTION(uv_process_kill)
 /* }}} */
 
 /* {{{ proto void uv_kill(long $pid, long $signal)
+
+##### *Description*
+
+send signal to specified pid.
+
+##### *Parameters*
+
+*long $pid*: process id
+
+*long $signal*:
+
+##### *Return Value*
+
+*void*: 
+
+##### *Example*
+
 */
 PHP_FUNCTION(uv_kill)
 {
@@ -5625,6 +5731,21 @@ PHP_FUNCTION(uv_kill)
 /* }}} */
 
 /* {{{ proto bool uv_chdir(string $directory)
+
+##### *Description*
+
+change working directory.
+
+##### *Parameters*
+
+*string $directory*:
+
+##### *Return Value*
+
+*bool *: 
+
+##### *Example*
+
 */
 PHP_FUNCTION(uv_chdir)
 {
@@ -5632,7 +5753,6 @@ PHP_FUNCTION(uv_chdir)
 	char *directory;
 	int directory_len;
 	
-
 	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
 		"s", &directory, &directory_len) == FAILURE) {
 		return;
@@ -5648,6 +5768,19 @@ PHP_FUNCTION(uv_chdir)
 
 
 /* {{{ proto resource uv_rwlock_init(void)
+
+##### *Description*
+
+initialize rwlock resource
+
+##### *Parameters*
+
+##### *Return Value*
+
+*resource $rwlock*: returns uv rwlock resource
+
+##### *Example*
+
 */
 PHP_FUNCTION(uv_rwlock_init)
 {
@@ -5667,6 +5800,21 @@ PHP_FUNCTION(uv_rwlock_init)
 /* }}} */
 
 /* {{{ proto uv_rwlock_rdlock(resource $handle)
+
+##### *Description*
+
+set read lock
+
+##### *Parameters*
+
+*resource $handle*: uv resource handle (uv rwlock)
+
+##### *Return Value*
+
+*void *: 
+
+##### *Example*
+
 */
 PHP_FUNCTION(uv_rwlock_rdlock)
 {
@@ -5685,6 +5833,11 @@ PHP_FUNCTION(uv_rwlock_rdlock)
 /* }}} */
 
 /* {{{ proto bool uv_rwlock_tryrdlock(resource $handle)
+
+##### *TODO*
+
+* implemnt this correctly
+
 */
 PHP_FUNCTION(uv_rwlock_tryrdlock)
 {
@@ -5709,6 +5862,21 @@ PHP_FUNCTION(uv_rwlock_tryrdlock)
 /* }}} */
 
 /* {{{ proto void uv_rwlock_rdunlock(resource $handle)
+
+##### *Description*
+
+unlock read lock
+
+##### *Parameters*
+
+*resource $handle*: uv resource handle (uv rwlock)
+
+##### *Return Value*
+
+*void*: 
+
+##### *Example*
+
 */
 PHP_FUNCTION(uv_rwlock_rdunlock)
 {
@@ -5729,6 +5897,21 @@ PHP_FUNCTION(uv_rwlock_rdunlock)
 /* }}} */
 
 /* {{{ proto uv_rwlock_wrlock(resource $handle)
+
+##### *Description*
+
+set write lock
+
+##### *Parameters*
+
+*resource $handle*: uv resource handle (uv rwlock)
+
+##### *Return Value*
+
+*void *: 
+
+##### *Example*
+
 */
 PHP_FUNCTION(uv_rwlock_wrlock)
 {
@@ -5747,6 +5930,11 @@ PHP_FUNCTION(uv_rwlock_wrlock)
 /* }}} */
 
 /* {{{ proto uv_rwlock_trywrlock(resource $handle)
+
+##### *TODO*
+
+* implement this correctly
+
 */
 PHP_FUNCTION(uv_rwlock_trywrlock)
 {
@@ -5771,6 +5959,21 @@ PHP_FUNCTION(uv_rwlock_trywrlock)
 /* }}} */
 
 /* {{{ proto uv_rwlock_wrunlock(resource $handle)
+
+##### *Description*
+
+unlock write lock
+
+##### *Parameters*
+
+*resource $handle*: uv resource handle (uv rwlock)
+
+##### *Return Value*
+
+*void*: 
+
+##### *Example*
+
 */
 PHP_FUNCTION(uv_rwlock_wrunlock)
 {
@@ -5790,7 +5993,21 @@ PHP_FUNCTION(uv_rwlock_wrunlock)
 }
 /* }}} */
 
-/* {{{ proto uv_lock uv_mutex_init(void) */
+/* {{{ proto uv_lock uv_mutex_init(void)
+
+##### *Description*
+
+initialize mutex resource
+
+##### *Parameters*
+
+##### *Return Value*
+
+*resource $uv_mutex*: uv mutex resource
+
+##### *Example*
+
+*/
 PHP_FUNCTION(uv_mutex_init)
 {
 	php_uv_lock_t *mutex;
@@ -5808,7 +6025,23 @@ PHP_FUNCTION(uv_mutex_init)
 }
 /* }}} */
 
-/* {{{ proto void uv_mutex_lock(uv_lock $lock)*/
+/* {{{ proto void uv_mutex_lock(uv_lock $lock)
+
+##### *Description*
+
+lock mutex
+
+##### *Parameters*
+
+*resource $handle*: uv resource handle (uv mutex)
+
+##### *Return Value*
+
+*void*: 
+
+##### *Example*
+
+*/
 PHP_FUNCTION(uv_mutex_lock)
 {
 	php_uv_lock_t *mutex;
@@ -5825,7 +6058,13 @@ PHP_FUNCTION(uv_mutex_lock)
 }
 /* }}} */
 
-/* {{{ proto bool uv_mutex_trylock(uv_lock $lock) */
+/* {{{ proto bool uv_mutex_trylock(uv_lock $lock)
+
+##### *TODO*
+
+* implement this correctly
+
+*/
 PHP_FUNCTION(uv_mutex_trylock)
 {
 	php_uv_lock_t *mutex;
@@ -5849,7 +6088,23 @@ PHP_FUNCTION(uv_mutex_trylock)
 }
 /* }}} */
 
-/* {{{ void uv_mutex_unlock(uv_lock $lock) */
+/* {{{ void uv_mutex_unlock(uv_lock $lock)
+
+##### *Description*
+
+unlock mutex
+
+##### *Parameters*
+
+*resource $handle*: uv resource handle (uv mutex)
+
+##### *Return Value*
+
+*void *:
+
+##### *Example*
+
+*/
 PHP_FUNCTION(uv_mutex_unlock)
 {
 	php_uv_lock_t *mutex;
@@ -5869,6 +6124,19 @@ PHP_FUNCTION(uv_mutex_unlock)
 /* }}} */
 
 /* {{{ proto uv_lock uv_sem_init(void)
+
+##### *Description*
+
+initialize semaphore resource
+
+##### *Parameters*
+
+##### *Return Value*
+
+*resource $uv_sem*: 
+
+##### *Example*
+
 */
 PHP_FUNCTION(uv_sem_init)
 {
@@ -5895,6 +6163,21 @@ PHP_FUNCTION(uv_sem_init)
 /* }}} */
 
 /* {{{ proto void uv_sem_post(uv_lock $sem)
+
+##### *Description*
+
+post semaphore
+
+##### *Parameters*
+
+*resource $handle*: uv resource handle (uv sem)
+
+##### *Return Value*
+
+*void*: 
+
+##### *Example*
+
 */
 PHP_FUNCTION(uv_sem_post)
 {
@@ -5912,6 +6195,11 @@ PHP_FUNCTION(uv_sem_post)
 /* }}} */
 
 /* {{{ proto void uv_sem_wait(uv_lock $sem)
+
+##### *Todo*
+
+* implemnt this correctly
+
 */
 PHP_FUNCTION(uv_sem_wait)
 {
@@ -5929,6 +6217,11 @@ PHP_FUNCTION(uv_sem_wait)
 /* }}} */
 
 /* {{{ proto void uv_sem_trywait(uv_lock $sem)
+
+##### *Todo*
+
+* implment this correctly
+
 */
 PHP_FUNCTION(uv_sem_trywait)
 {
@@ -6227,6 +6520,23 @@ PHP_FUNCTION(uv_check_stop)
 
 
 /* {{{ proto resource uv_async_init(resource $loop, callable $callback)
+
+##### *Description*
+
+setup async callback
+
+##### *Parameters*
+
+*resource $loop*: uv loop resource
+
+*callback $callback*: 
+
+##### *Return Value*
+
+*resource *: uv async resource
+
+##### *Example*
+
 */
 PHP_FUNCTION(uv_async_init)
 {
@@ -6261,6 +6571,21 @@ PHP_FUNCTION(uv_async_init)
 /* }}} */
 
 /* {{{ proto void uv_async_send(resource $handle)
+
+##### *Description*
+
+send async callback immidiately
+
+##### *Parameters*
+
+*resource $handle*: uv async handle
+
+##### *Return Value*
+
+*void*: 
+
+##### *Example*
+
 */
 PHP_FUNCTION(uv_async_send)
 {
@@ -6556,6 +6881,26 @@ PHP_FUNCTION(uv_fs_write)
 /* }}} */
 
 /* {{{ proto void uv_fs_fsync(resource $loop, zval $fd, callable $callback)
+
+##### *Description*
+
+async fsync
+
+##### *Parameters*
+
+*resource $handle*: uv loop handle
+
+*zval $fd*: 
+
+
+*callable $callback*: 
+
+##### *Return Value*
+
+*void*: 
+
+##### *Example*
+
 */
 PHP_FUNCTION(uv_fs_fsync)
 {
@@ -6585,6 +6930,24 @@ PHP_FUNCTION(uv_fs_fsync)
 /* }}} */
 
 /* {{{ proto void uv_fs_fdatasync(resource $loop, zval $fd, callable $callback)
+
+##### *Description*
+
+async fdatasync
+
+##### *Parameters*
+
+*resource $handle*: uv loop handle
+
+*zval $fd*: 
+
+*callable $callback*: 
+
+##### *Return Value*
+
+*void*: 
+
+##### *Example*
 */
 PHP_FUNCTION(uv_fs_fdatasync)
 {
@@ -6614,6 +6977,26 @@ PHP_FUNCTION(uv_fs_fdatasync)
 /* }}} */
 
 /* {{{ proto void uv_fs_ftruncate(resource $loop, zval $fd, long $offset, callable $callback)
+
+##### *Description*
+
+async ftruncate
+
+##### *Parameters*
+
+*resource $handle*: uv loop handle
+
+*zval $fd*: 
+
+*long $offset*:
+
+*callable $callback*: 
+
+##### *Return Value*
+
+*void*: 
+
+##### *Example*
 */
 PHP_FUNCTION(uv_fs_ftruncate)
 {
@@ -6644,6 +7027,26 @@ PHP_FUNCTION(uv_fs_ftruncate)
 /* }}} */
 
 /* {{{ proto void uv_fs_mkdir(resource $loop, string $path, long $mode, callable $callback)
+
+##### *Description*
+
+async mkdir
+
+##### *Parameters*
+
+*resource $handle*: uv loop handle
+
+*string $path*: 
+
+*long $mode*:
+
+*callable $callback*: 
+
+##### *Return Value*
+
+*void*: 
+
+##### *Example*
 */
 PHP_FUNCTION(uv_fs_mkdir)
 {
@@ -6675,6 +7078,24 @@ PHP_FUNCTION(uv_fs_mkdir)
 
 
 /* {{{ proto void uv_fs_rmdir(resource $loop, string $path, callable $callback)
+
+##### *Description*
+
+async rmdir
+
+##### *Parameters*
+
+*resource $handle*: uv loop handle
+
+*string $path*: 
+
+*callable $callback*: 
+
+##### *Return Value*
+
+*void*: 
+
+##### *Example*
 */
 PHP_FUNCTION(uv_fs_rmdir)
 {
@@ -6704,6 +7125,24 @@ PHP_FUNCTION(uv_fs_rmdir)
 /* }}} */
 
 /* {{{ proto void uv_fs_unlink(resource $loop, string $path, callable $callback)
+
+##### *Description*
+
+async unlink
+
+##### *Parameters*
+
+*resource $handle*: uv loop handle
+
+*string $path*: 
+
+*callable $callback*: 
+
+##### *Return Value*
+
+*void*: 
+
+##### *Example*
 */
 PHP_FUNCTION(uv_fs_unlink)
 {
@@ -6733,6 +7172,27 @@ PHP_FUNCTION(uv_fs_unlink)
 /* }}} */
 
 /* {{{ proto void uv_fs_rename(resource $loop, string $from, string $to, callable $callback)
+
+##### *Description*
+
+async rename
+
+##### *Parameters*
+
+*resource $handle*: uv loop handle
+
+*string $from*: 
+
+*string $to*:
+
+*callable $callback*: 
+
+##### *Return Value*
+
+*void*: 
+
+##### *Example*
+
 */
 PHP_FUNCTION(uv_fs_rename)
 {
@@ -6762,6 +7222,29 @@ PHP_FUNCTION(uv_fs_rename)
 /* }}} */
 
 /* {{{ proto void uv_fs_utime(resource $loop, string $path, long $utime, long $atime, callable $callback)
+
+##### *Description*
+
+async utime
+
+##### *Parameters*
+
+*resource $handle*: uv loop handle
+
+*string $path*: 
+
+*long $utime*:
+
+*long $atime*:
+
+*callable $callback*: 
+
+##### *Return Value*
+
+*void*: 
+
+##### *Example*
+
 */
 PHP_FUNCTION(uv_fs_utime)
 {
@@ -6792,6 +7275,28 @@ PHP_FUNCTION(uv_fs_utime)
 /* }}} */
 
 /* {{{ proto void uv_fs_futime(resource $loop, zval $fd, long $utime, long $atime callable $callback)
+
+##### *Description*
+
+async futime
+
+##### *Parameters*
+
+*resource $handle*: uv loop handle
+
+*zval $fd*: 
+
+*long $utime*:
+
+*long $atime*:
+
+*callable $callback*: 
+
+##### *Return Value*
+
+*void*: 
+
+##### *Example*
 */
 PHP_FUNCTION(uv_fs_futime)
 {
@@ -6822,6 +7327,26 @@ PHP_FUNCTION(uv_fs_futime)
 /* }}} */
 
 /* {{{ proto void uv_fs_chmod(resource $loop, string $path, long $mode, callable $callback)
+
+##### *Description*
+
+async chmod
+
+##### *Parameters*
+
+*resource $handle*: uv loop handle
+
+*string $path*: 
+
+*long $mode*:
+
+*callable $callback*: 
+
+##### *Return Value*
+
+*void*: 
+
+##### *Example*
 */
 PHP_FUNCTION(uv_fs_chmod)
 {
@@ -6853,6 +7378,26 @@ PHP_FUNCTION(uv_fs_chmod)
 
 
 /* {{{ proto void uv_fs_fchmod(resource $loop, zval $fd, long $mode, callable $callback)
+
+##### *Description*
+
+async fchmod
+
+##### *Parameters*
+
+*resource $handle*: uv loop handle
+
+*zval $fd*: 
+
+*long $mode*:
+
+*callable $callback*: 
+
+##### *Return Value*
+
+*void*: 
+
+##### *Example*
 */
 PHP_FUNCTION(uv_fs_fchmod)
 {
@@ -6884,6 +7429,28 @@ PHP_FUNCTION(uv_fs_fchmod)
 
 
 /* {{{ proto void uv_fs_chown(resource $loop, string $path, long $uid, long $gid, callable $callback)
+
+##### *Description*
+
+async chown
+
+##### *Parameters*
+
+*resource $handle*: uv loop handle
+
+*string $paht*: 
+
+*long $uid*:
+
+*long $gid*:
+
+*callable $callback*: 
+
+##### *Return Value*
+
+*void*: 
+
+##### *Example*
 */
 PHP_FUNCTION(uv_fs_chown)
 {
@@ -6914,6 +7481,28 @@ PHP_FUNCTION(uv_fs_chown)
 /* }}} */
 
 /* {{{ proto void uv_fs_fchown(resource $loop, zval $fd, long $uid, $long $gid, callable $callback)
+
+##### *Description*
+
+async fchown
+
+##### *Parameters*
+
+*resource $handle*: uv loop handle
+
+*zval $fd*: 
+
+*long $uid*:
+
+*long $gid*:
+
+*callable $callback*: 
+
+##### *Return Value*
+
+*void*: 
+
+##### *Example*
 */
 PHP_FUNCTION(uv_fs_fchown)
 {
@@ -6944,6 +7533,26 @@ PHP_FUNCTION(uv_fs_fchown)
 /* }}} */
 	
 /* {{{ proto void uv_fs_link(resource $loop, string $from, string $to, callable $callback)
+
+##### *Description*
+
+async link
+
+##### *Parameters*
+
+*resource $handle*: uv loop handle
+
+*string $from*: 
+
+*string $to*:
+
+*callable $callback*: 
+
+##### *Return Value*
+
+*void*: 
+
+##### *Example*
 */
 PHP_FUNCTION(uv_fs_link)
 {
@@ -6974,6 +7583,28 @@ PHP_FUNCTION(uv_fs_link)
 
 
 /* {{{ proto void uv_fs_symlink(resource $loop, string $from, string $to, long $flags, callable $callback)
+
+##### *Description*
+
+async symlink
+
+##### *Parameters*
+
+*resource $handle*: uv loop handle
+
+*string $from*: 
+
+*string $to*:
+
+*long $flags*:
+
+*callable $callback*: 
+
+##### *Return Value*
+
+*void*: 
+
+##### *Example*
 */
 PHP_FUNCTION(uv_fs_symlink)
 {
@@ -7004,6 +7635,24 @@ PHP_FUNCTION(uv_fs_symlink)
 /* }}} */
 
 /* {{{ proto void uv_fs_readlink(resource $loop, string $path, callable $callback)
+
+##### *Description*
+
+async readlink
+
+##### *Parameters*
+
+*resource $handle*: uv loop handle
+
+*string $path*: 
+
+*callable $callback*: 
+
+##### *Return Value*
+
+*void*: 
+
+##### *Example*
 */
 PHP_FUNCTION(uv_fs_readlink)
 {
@@ -7033,6 +7682,25 @@ PHP_FUNCTION(uv_fs_readlink)
 /* }}} */
 
 /* {{{ proto void uv_fs_stat(resource $loop, string $path, callable $callback)
+
+##### *Description*
+
+async stat
+
+##### *Parameters*
+
+*resource $handle*: uv loop handle
+
+*string $path*: 
+
+*callable $callback*: 
+
+##### *Return Value*
+
+*void*: 
+
+##### *Example*
+
 */
 PHP_FUNCTION(uv_fs_stat)
 {
@@ -7062,6 +7730,25 @@ PHP_FUNCTION(uv_fs_stat)
 /* }}} */
 
 /* {{{ proto void uv_fs_lstat(resource $loop, string $path, callable $callback)
+
+##### *Description*
+
+async lstat
+
+##### *Parameters*
+
+*resource $handle*: uv loop handle
+
+*string $path*: 
+
+*callable $callback*: 
+
+##### *Return Value*
+
+*void*: 
+
+##### *Example*
+
 */
 PHP_FUNCTION(uv_fs_lstat)
 {
@@ -7091,6 +7778,25 @@ PHP_FUNCTION(uv_fs_lstat)
 /* }}} */
 
 /* {{{ proto void uv_fs_fstat(resource $loop, zval $fd, callable $callback)
+
+##### *Description*
+
+async fstat
+
+##### *Parameters*
+
+*resource $handle*: uv loop handle
+
+*zval $fd*: 
+
+*callable $callback*: 
+
+##### *Return Value*
+
+*void*: 
+
+##### *Example*
+
 */
 PHP_FUNCTION(uv_fs_fstat)
 {
@@ -7121,6 +7827,26 @@ PHP_FUNCTION(uv_fs_fstat)
 
 
 /* {{{ proto uv_fs_readdir(resource $loop, string $path, long $flags, callable $callback)
+
+##### *Description*
+
+async readdir
+
+##### *Parameters*
+
+*resource $handle*: uv loop handle
+
+*string $path*: 
+
+*long $flags*:
+
+*callable $callback*: 
+
+##### *Return Value*
+
+*void*: 
+
+##### *Example*
 */
 PHP_FUNCTION(uv_fs_readdir)
 {
@@ -7151,6 +7877,30 @@ PHP_FUNCTION(uv_fs_readdir)
 /* }}} */
 
 /* {{{ proto void uv_fs_sendfile(resource $loop, zval $in_fd, zval $out_fd, long $offset, long $length, callable $callback)
+
+##### *Description*
+
+async sendfile
+
+##### *Parameters*
+
+*resource $handle*: uv loop handle
+
+*zval $in_fd*: 
+
+*zval $out_fd*:
+
+*long $offset*:
+
+*long $length*:
+
+*callable $callback*: 
+
+##### *Return Value*
+
+*void*: 
+
+##### *Example*
 */
 PHP_FUNCTION(uv_fs_sendfile)
 {
@@ -7182,6 +7932,25 @@ PHP_FUNCTION(uv_fs_sendfile)
 /* }}} */
 
 /* {{{ proto resource uv_fs_event_init(resource $loop, string $path, callable $callback, long $flags = 0)
+
+##### *Description*
+
+initialize fs event.
+
+##### *Parameters*
+
+*resource $handle*: uv loop handle
+
+*string $path*: 
+
+*callable $callback*: 
+
+##### *Return Value*
+
+*void*: 
+
+##### *Example*
+
 */
 PHP_FUNCTION(uv_fs_event_init)
 {
@@ -7216,6 +7985,25 @@ PHP_FUNCTION(uv_fs_event_init)
 /* }}} */
 
 /* {{{ proto resource uv_tty_init(resource $loop, zval $fd, long $readable)
+
+##### *Description*
+
+initialize tty resource. you have to open tty your hand.
+
+##### *Parameters*
+
+*resource $handle*: uv loop handle
+
+*zval $fd*: 
+
+*long $readable*: 
+
+##### *Return Value*
+
+*resource $uv_tty*: 
+
+##### *Example*
+
 */
 PHP_FUNCTION(uv_tty_init)
 {
