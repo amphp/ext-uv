@@ -82,6 +82,9 @@
 	} \
 	sockaddr->is_ipv4 = ip_type; 
 
+#define PHP_UV_SOCKADDR_IS_IPV4(sockaddr) (sockaddr->is_ipv4 == 1)
+#define PHP_UV_SOCKADDR_IS_IPV6(sockaddr) (sockaddr->is_ipv4 == 0)
+
 #define PHP_UV_SOCKADDR_IPV4(sockaddr) sockaddr->addr.ipv4
 #define PHP_UV_SOCKADDR_IPV4_P(sockaddr) &sockaddr->addr.ipv4
 
@@ -1708,14 +1711,15 @@ static void php_uv_ip_common(int ip_type, INTERNAL_FUNCTION_PARAMETERS)
 	}
 	
 	ZEND_FETCH_RESOURCE(addr, php_uv_sockaddr_t *, &address, -1, PHP_UV_SOCKADDR_RESOURCE_NAME, uv_sockaddr_handle);
+
 	if (ip_type == 1) {
-		if (addr->is_ipv4 != 1) {
+		if (!PHP_UV_SOCKADDR_IS_IPV4(addr)) {
 			RETURN_FALSE;
 		}
 		error = uv_ip4_name(PHP_UV_SOCKADDR_IPV4_P(addr), ip, INET6_ADDRSTRLEN);
 		RETVAL_STRING(ip,1);
 	} else if (ip_type == 2) {
-		if (addr->is_ipv4 == 1) {
+		if (!PHP_UV_SOCKADDR_IS_IPV6(addr)) {
 			RETURN_FALSE;
 		}
 		error = uv_ip6_name(PHP_UV_SOCKADDR_IPV6_P(addr), ip, INET6_ADDRSTRLEN);
@@ -1754,10 +1758,10 @@ static void php_uv_socket_bind(enum php_uv_socket_type ip_type, INTERNAL_FUNCTIO
 		RETURN_FALSE;
 	}
 	
-	if ((ip_type & PHP_UV_TCP_IPV4 || ip_type & PHP_UV_UDP_IPV4) && addr->is_ipv4 != 1) {
+	if ((ip_type & PHP_UV_TCP_IPV4 || ip_type & PHP_UV_UDP_IPV4) && !PHP_UV_SOCKADDR_IS_IPV4(addr)) {
 		php_error_docref(NULL TSRMLS_CC, E_WARNING, "expects uv ipv4 addr resource");
 		RETURN_FALSE;
-	} else if ((ip_type & PHP_UV_TCP_IPV6 || ip_type & PHP_UV_UDP_IPV6) && addr->is_ipv4 == 1) {
+	} else if ((ip_type & PHP_UV_TCP_IPV6 || ip_type & PHP_UV_UDP_IPV6) && !PHP_UV_SOCKADDR_IS_IPV6(addr)) {
 		php_error_docref(NULL TSRMLS_CC, E_WARNING, "expects uv ipv6 addr resource");
 		RETURN_FALSE;
 	}
