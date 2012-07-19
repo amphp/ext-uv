@@ -2825,19 +2825,18 @@ delete specified loop resource.
 */
 PHP_FUNCTION(uv_loop_delete)
 {
-	zval *z_loop = NULL;
+	zval *zloop = NULL;
 	uv_loop_t *loop;
 	
 	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
-		"z",&z_loop) == FAILURE) {
+		"z",&zloop) == FAILURE) {
 		return;
 	}
 
-	if (z_loop != NULL) {
-		ZEND_FETCH_RESOURCE(loop, uv_loop_t *, &z_loop, -1, PHP_UV_LOOP_RESOURCE_NAME, uv_loop_handle);
-		if (loop != _php_uv_default_loop) {
-			uv_loop_delete(loop);
-		}
+	PHP_UV_FETCH_UV_DEFAULT_LOOP(loop, zloop);
+	
+	if (loop != _php_uv_default_loop) {
+		uv_loop_delete(loop);
 	}
 }
 /* }}} */
@@ -2846,19 +2845,18 @@ PHP_FUNCTION(uv_loop_delete)
 */
 PHP_FUNCTION(uv_now)
 {
-	zval *z_loop = NULL;
+	zval *zloop = NULL;
 	uv_loop_t *loop;
 	int64_t now;
+	
 	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
-		"z",&z_loop) == FAILURE) {
+		"z",&zloop) == FAILURE) {
 		return;
 	}
 
-	if (z_loop != NULL) {
-		ZEND_FETCH_RESOURCE(loop, uv_loop_t *, &z_loop, -1, PHP_UV_LOOP_RESOURCE_NAME, uv_loop_handle);
-		now = uv_now(loop);
-		RETURN_LONG((long)now);
-	}
+	PHP_UV_FETCH_UV_DEFAULT_LOOP(loop, zloop);
+	now = uv_now(loop);
+	RETURN_LONG((long)now);
 }
 /* }}} */
 
