@@ -28,7 +28,7 @@
 	uv = (php_uv_t *)emalloc(sizeof(php_uv_t)); \
 	if (!uv) { \
 		php_error_docref(NULL TSRMLS_CC, E_ERROR, "emalloc failed"); \
-		return; \
+		RETURN_FALSE; \
 	} else { \
 		uv->type = uv_type; \
 		PHP_UV_INIT_ZVALS(uv) \
@@ -2627,13 +2627,19 @@ PHP_FUNCTION(uv_err_name)
 	uv_err_t error;
 	
 	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
-		"l",&error_code) == FAILURE) {
+		"l", &error_code) == FAILURE) {
 		return;
 	}
-	error.code = error_code;
 	
+	if (error_code > UV_MAX_ERRORS || error_code < -1) {
+		php_error_docref(NULL TSRMLS_CC, E_NOTICE, "passes unexpected value.");
+		RETURN_FALSE;
+	}
+
+	error.code = error_code;
 	error_msg = uv_err_name(error);
-	RETVAL_STRING(error_msg,1);
+
+	RETVAL_STRING(error_msg, 1);
 }
 /* }}} */
 
@@ -2673,7 +2679,9 @@ PHP_FUNCTION(uv_strerror)
 	}
 	error.code = error_code;
 	
+	/* Note: uv_strerror don't use assert. we don't need check value here */
 	error_msg = uv_strerror(error);
+
 	RETVAL_STRING(error_msg,1);
 }
 /* }}} */
