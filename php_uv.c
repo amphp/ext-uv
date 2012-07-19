@@ -74,6 +74,14 @@
 		uv->in_free = 0;\
 	}
 
+#define PHP_UV_SOCKADDR_INIT(sockaddr, ip_type) \
+	sockaddr = (php_uv_sockaddr_t*)emalloc(sizeof(php_uv_sockaddr_t)); \
+	if (!sockaddr) { \
+		php_error_docref(NULL TSRMLS_CC, E_ERROR, "emalloc failed"); \
+		RETURN_FALSE; \
+	} \
+	sockaddr->is_ipv4 = ip_type; 
+
 #if PHP_UV_DEBUG>=1
 #define PHP_UV_DEBUG_PRINT(format, ...) fprintf(stderr, format, ## __VA_ARGS__)
 #else
@@ -3466,13 +3474,11 @@ PHP_FUNCTION(uv_ip4_addr)
 		return;
 	}
 	
-	sockaddr = (php_uv_sockaddr_t*)emalloc(sizeof(php_uv_sockaddr_t));
-	
-	sockaddr->is_ipv4 = 1;
+	PHP_UV_SOCKADDR_INIT(sockaddr, 1);
 	sockaddr->addr.ipv4 = uv_ip4_addr(address, port);
 	
 	ZEND_REGISTER_RESOURCE(return_value, sockaddr, uv_sockaddr_handle);
-	sockaddr->resource_id = Z_LVAL_P(return_value);
+	sockaddr->resource_id = Z_RESVAL_P(return_value);
 }
 /* }}} */
 
@@ -3512,13 +3518,12 @@ PHP_FUNCTION(uv_ip6_addr)
 		return;
 	}
 	
-	sockaddr = (php_uv_sockaddr_t*)emalloc(sizeof(php_uv_sockaddr_t));
-	
-	sockaddr->is_ipv4 = 0;
+	PHP_UV_SOCKADDR_INIT(sockaddr, 0);
+
 	sockaddr->addr.ipv6 = uv_ip6_addr(address, port);
 	
 	ZEND_REGISTER_RESOURCE(return_value, sockaddr, uv_sockaddr_handle);
-	sockaddr->resource_id = Z_LVAL_P(return_value);
+	sockaddr->resource_id = Z_RESVAL_P(return_value);
 }
 /* }}} */
 
