@@ -38,9 +38,7 @@
 
 #define PHP_UV_FETCH_UV_DEFAULT_LOOP(loop, zloop) \
 	if (zloop != NULL) { \
-		if(!ZEND_FETCH_RESOURCE_NO_RETURN(loop, uv_loop_t*, &zloop, -1, PHP_UV_LOOP_RESOURCE_NAME, uv_loop_handle)){\
-			RETURN_FALSE; \
-		}\
+		ZEND_FETCH_RESOURCE(loop, uv_loop_t*, &zloop, -1, PHP_UV_LOOP_RESOURCE_NAME, uv_loop_handle);\
 	} else { \
 		loop = uv_default_loop(); \
 	}  \
