@@ -82,6 +82,12 @@
 	} \
 	sockaddr->is_ipv4 = ip_type; 
 
+#define PHP_UV_SOCKADDR_IPV4(sockaddr) sockaddr->addr.ipv4
+#define PHP_UV_SOCKADDR_IPV4_P(sockaddr) &sockaddr->addr.ipv4
+
+#define PHP_UV_SOCKADDR_IPV6(sockaddr) sockaddr->addr.ipv6
+#define PHP_UV_SOCKADDR_IPV6_P(sockaddr) &sockaddr->addr.ipv6
+
 #if PHP_UV_DEBUG>=1
 #define PHP_UV_DEBUG_PRINT(format, ...) fprintf(stderr, format, ## __VA_ARGS__)
 #else
@@ -1706,13 +1712,13 @@ static void php_uv_ip_common(int ip_type, INTERNAL_FUNCTION_PARAMETERS)
 		if (addr->is_ipv4 != 1) {
 			RETURN_FALSE;
 		}
-		error = uv_ip4_name(&addr->addr.ipv4, ip, INET6_ADDRSTRLEN);
+		error = uv_ip4_name(PHP_UV_SOCKADDR_IPV4_P(addr), ip, INET6_ADDRSTRLEN);
 		RETVAL_STRING(ip,1);
 	} else if (ip_type == 2) {
 		if (addr->is_ipv4 == 1) {
 			RETURN_FALSE;
 		}
-		error = uv_ip6_name(&addr->addr.ipv6, ip, INET6_ADDRSTRLEN);
+		error = uv_ip6_name(PHP_UV_SOCKADDR_IPV6_P(addr), ip, INET6_ADDRSTRLEN);
 		RETVAL_STRING(ip,1);
 	}
 }
@@ -1758,16 +1764,16 @@ static void php_uv_socket_bind(enum php_uv_socket_type ip_type, INTERNAL_FUNCTIO
 
 	switch (ip_type) {
 		case PHP_UV_TCP_IPV4:
-			r = uv_tcp_bind((uv_tcp_t*)&uv->uv.tcp, addr->addr.ipv4);
+			r = uv_tcp_bind((uv_tcp_t*)&uv->uv.tcp, PHP_UV_SOCKADDR_IPV4(addr));
 			break;
 		case PHP_UV_TCP_IPV6:
-			r = uv_tcp_bind6((uv_tcp_t*)&uv->uv.tcp, addr->addr.ipv6);
+			r = uv_tcp_bind6((uv_tcp_t*)&uv->uv.tcp, PHP_UV_SOCKADDR_IPV6(addr));
 			break;
 		case PHP_UV_UDP_IPV4:
-			r = uv_udp_bind((uv_udp_t*)&uv->uv.udp, addr->addr.ipv4, flags);
+			r = uv_udp_bind((uv_udp_t*)&uv->uv.udp, PHP_UV_SOCKADDR_IPV4(addr), flags);
 			break;
 		case PHP_UV_UDP_IPV6:
-			r = uv_udp_bind6((uv_udp_t*)&uv->uv.udp, addr->addr.ipv6, flags);
+			r = uv_udp_bind6((uv_udp_t*)&uv->uv.udp, PHP_UV_SOCKADDR_IPV6(addr), flags);
 			break;
 	}
 
@@ -1836,9 +1842,9 @@ static void php_uv_udp_send(int type, INTERNAL_FUNCTION_PARAMETERS)
 	php_uv_cb_init(&cb, client, &fci, &fcc, PHP_UV_SEND_CB);
 	
 	if (type == 1) {
-		uv_udp_send(&w->req, &client->uv.udp, &w->buf, 1, addr->addr.ipv4, php_uv_udp_send_cb);
+		uv_udp_send(&w->req, &client->uv.udp, &w->buf, 1, PHP_UV_SOCKADDR_IPV4(addr), php_uv_udp_send_cb);
 	} else if (type == 2) {
-		uv_udp_send6(&w->req, &client->uv.udp, &w->buf, 1, addr->addr.ipv6, php_uv_udp_send_cb);
+		uv_udp_send6(&w->req, &client->uv.udp, &w->buf, 1, PHP_UV_SOCKADDR_IPV6(addr), php_uv_udp_send_cb);
 	}
 }
 
@@ -1867,9 +1873,9 @@ static void php_uv_tcp_connect(int type, INTERNAL_FUNCTION_PARAMETERS)
 	req->data = uv;
 
 	if (type == 1) {
-		uv_tcp_connect(req, &uv->uv.tcp, addr->addr.ipv4, php_uv_tcp_connect_cb);
+		uv_tcp_connect(req, &uv->uv.tcp, PHP_UV_SOCKADDR_IPV4(addr), php_uv_tcp_connect_cb);
 	} else {
-		uv_tcp_connect6(req, &uv->uv.tcp, addr->addr.ipv6, php_uv_tcp_connect_cb);
+		uv_tcp_connect6(req, &uv->uv.tcp, PHP_UV_SOCKADDR_IPV6(addr), php_uv_tcp_connect_cb);
 	}
 }
 
@@ -3473,9 +3479,9 @@ PHP_FUNCTION(uv_ip4_addr)
 		"sl",&address, &address_len, &port) == FAILURE) {
 		return;
 	}
-	
+
 	PHP_UV_SOCKADDR_INIT(sockaddr, 1);
-	sockaddr->addr.ipv4 = uv_ip4_addr(address, port);
+	PHP_UV_SOCKADDR_IPV4(sockaddr) = uv_ip4_addr(address, port);
 	
 	ZEND_REGISTER_RESOURCE(return_value, sockaddr, uv_sockaddr_handle);
 	sockaddr->resource_id = Z_RESVAL_P(return_value);
@@ -3519,8 +3525,7 @@ PHP_FUNCTION(uv_ip6_addr)
 	}
 	
 	PHP_UV_SOCKADDR_INIT(sockaddr, 0);
-
-	sockaddr->addr.ipv6 = uv_ip6_addr(address, port);
+	PHP_UV_SOCKADDR_IPV6(sockaddr) = uv_ip6_addr(address, port);
 	
 	ZEND_REGISTER_RESOURCE(return_value, sockaddr, uv_sockaddr_handle);
 	sockaddr->resource_id = Z_RESVAL_P(return_value);
