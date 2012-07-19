@@ -108,6 +108,15 @@ typedef struct {
 	uv_buf_t buf;
 } send_req_t;
 
+static enum php_uv_socket_type {
+	PHP_UV_TCP_IPV4 = 1,
+	PHP_UV_TCP_IPV6 = 2,
+	PHP_UV_TCP      = 3,
+	PHP_UV_UDP_IPV4 = 16,
+	PHP_UV_UDP_IPV6 = 32,
+	PHP_UV_UDP      = 48,
+};
+
 /* static variables */
 
 static uv_loop_t *_php_uv_default_loop;
@@ -1691,7 +1700,7 @@ static void php_uv_ip_common(int ip_type, INTERNAL_FUNCTION_PARAMETERS)
 	}
 }
 
-static void php_uv_socket_bind(int ip_type, INTERNAL_FUNCTION_PARAMETERS)
+static void php_uv_socket_bind(enum php_uv_socket_type ip_type, INTERNAL_FUNCTION_PARAMETERS)
 {
 	zval *resource, *address;
 	php_uv_sockaddr_t *addr;
@@ -1699,7 +1708,7 @@ static void php_uv_socket_bind(int ip_type, INTERNAL_FUNCTION_PARAMETERS)
 	long flags = 0;
 	int r;
 	
-	if (ip_type > 2) {
+	if (ip_type & PHP_UV_UDP) {
 		if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
 			"zz|l",&resource, &address, &flags) == FAILURE) {
 			return;
@@ -1714,26 +1723,40 @@ static void php_uv_socket_bind(int ip_type, INTERNAL_FUNCTION_PARAMETERS)
 	ZEND_FETCH_RESOURCE(uv, php_uv_t *, &resource, -1, PHP_UV_RESOURCE_NAME, uv_resource_handle);
 	ZEND_FETCH_RESOURCE(addr, php_uv_sockaddr_t *, &address, -1, PHP_UV_SOCKADDR_RESOURCE_NAME, uv_sockaddr_handle);
 
-	if (ip_type == 1) {
-		r = uv_tcp_bind((uv_tcp_t*)&uv->uv.tcp, addr->addr.ipv4);
-		if (r) {
-			php_error_docref(NULL TSRMLS_CC, E_ERROR, "bind failed");
-		}
-	} else if (ip_type == 2) {
-		r = uv_tcp_bind6((uv_tcp_t*)&uv->uv.tcp, addr->addr.ipv6);
-		if (r) {
-			php_error_docref(NULL TSRMLS_CC, E_ERROR, "bind failed");
-		}
-	} else if (ip_type == 3) {
-		r = uv_udp_bind((uv_udp_t*)&uv->uv.udp, addr->addr.ipv4, flags);
-		if (r) {
-			php_error_docref(NULL TSRMLS_CC, E_ERROR, "uv_udp_bind failed");
-		}
-	} else if (ip_type == 4) {
-		r = uv_udp_bind6((uv_udp_t*)&uv->uv.udp, addr->addr.ipv6, flags);
-		if (r) {
-			php_error_docref(NULL TSRMLS_CC, E_ERROR, "uv_udp_bind6 failed");
-		}
+	if (ip_type & PHP_UV_TCP && uv->type != IS_UV_TCP) {
+		php_error_docref(NULL TSRMLS_CC, E_WARNING, "expects uv_tcp resource");
+		RETURN_FALSE;
+	} else if (ip_type & PHP_UV_UDP && uv->type != IS_UV_UDP) {
+		php_error_docref(NULL TSRMLS_CC, E_WARNING, "expects uv_udp resource");
+		RETURN_FALSE;
+	}
+	
+	if ((ip_type & PHP_UV_TCP_IPV4 || ip_type & PHP_UV_UDP_IPV4) && addr->is_ipv4 != 1) {
+		php_error_docref(NULL TSRMLS_CC, E_WARNING, "expects uv ipv4 addr resource");
+		RETURN_FALSE;
+	} else if ((ip_type & PHP_UV_TCP_IPV6 || ip_type & PHP_UV_UDP_IPV6) && addr->is_ipv4 == 1) {
+		php_error_docref(NULL TSRMLS_CC, E_WARNING, "expects uv ipv6 addr resource");
+		RETURN_FALSE;
+	}
+
+	switch (ip_type) {
+		case PHP_UV_TCP_IPV4:
+			r = uv_tcp_bind((uv_tcp_t*)&uv->uv.tcp, addr->addr.ipv4);
+			break;
+		case PHP_UV_TCP_IPV6:
+			r = uv_tcp_bind6((uv_tcp_t*)&uv->uv.tcp, addr->addr.ipv6);
+			break;
+		case PHP_UV_UDP_IPV4:
+			r = uv_udp_bind((uv_udp_t*)&uv->uv.udp, addr->addr.ipv4, flags);
+			break;
+		case PHP_UV_UDP_IPV6:
+			r = uv_udp_bind6((uv_udp_t*)&uv->uv.udp, addr->addr.ipv6, flags);
+			break;
+	}
+
+	if (r) {
+		php_error_docref(NULL TSRMLS_CC, E_WARNING, "bind failed");
+		RETURN_FALSE;
 	}
 }
 
@@ -2907,7 +2930,7 @@ uv_listen($tcp,100, function($server){
 */
 PHP_FUNCTION(uv_tcp_bind)
 {
-	php_uv_socket_bind(1, INTERNAL_FUNCTION_PARAM_PASSTHRU);
+	php_uv_socket_bind(PHP_UV_TCP_IPV4, INTERNAL_FUNCTION_PARAM_PASSTHRU);
 }
 /* }}} */
 
@@ -2950,7 +2973,7 @@ uv_listen($tcp,100, function($server){
 */
 PHP_FUNCTION(uv_tcp_bind6)
 {
-	php_uv_socket_bind(2, INTERNAL_FUNCTION_PARAM_PASSTHRU);
+	php_uv_socket_bind(PHP_UV_TCP_IPV6, INTERNAL_FUNCTION_PARAM_PASSTHRU);
 }
 /* }}} */
 
@@ -4238,7 +4261,7 @@ uv_run();
 */
 PHP_FUNCTION(uv_udp_bind)
 {
-	php_uv_socket_bind(3, INTERNAL_FUNCTION_PARAM_PASSTHRU);
+	php_uv_socket_bind(PHP_UV_UDP_IPV4, INTERNAL_FUNCTION_PARAM_PASSTHRU);
 }
 /* }}} */
 
@@ -4287,7 +4310,7 @@ uv_run();
 */
 PHP_FUNCTION(uv_udp_bind6)
 {
-	php_uv_socket_bind(4, INTERNAL_FUNCTION_PARAM_PASSTHRU);
+	php_uv_socket_bind(PHP_UV_UDP_IPV6, INTERNAL_FUNCTION_PARAM_PASSTHRU);
 }
 /* }}} */
 
