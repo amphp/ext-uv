@@ -220,6 +220,15 @@ static php_socket_t php_uv_zval_to_fd(zval *ptr TSRMLS_DC)
 	return fd;
 }
 
+static const char* php_uv_strerror(long error_code)
+{
+	uv_err_t error;
+	error.code = error_code;
+	
+	/* Note: uv_strerror don't use assert. we don't need check value here */
+	return uv_strerror(error);
+}
+
 /**
  * common uv initializer.
  *
@@ -2694,18 +2703,14 @@ PHP_FUNCTION(uv_strerror)
 {
 	long error_code;
 	const char *error_msg;
-	uv_err_t error;
 	
 	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
 		"l",&error_code) == FAILURE) {
 		return;
 	}
-	error.code = error_code;
-	
-	/* Note: uv_strerror don't use assert. we don't need check value here */
-	error_msg = uv_strerror(error);
 
-	RETVAL_STRING(error_msg,1);
+	error_msg = php_uv_strerror(error_code);
+	RETVAL_STRING(error_msg, 1);
 }
 /* }}} */
 
@@ -3104,6 +3109,12 @@ PHP_FUNCTION(uv_tcp_nodelay)
 	}
 	
 	ZEND_FETCH_RESOURCE(client, php_uv_t *, &z_cli, -1, PHP_UV_RESOURCE_NAME, uv_resource_handle);
+	
+	if (client->type != IS_UV_TCP)  {
+		php_error_docref(NULL TSRMLS_CC, E_WARNING, "expects uv tcp resource");
+		RETURN_FALSE;
+	}
+	
 	uv_tcp_nodelay(&client->uv.tcp, bval);
 }
 /* }}} */
@@ -3116,9 +3127,9 @@ accepts a connection on a socket.
 
 ##### *Parameters*
 
-*resource $uv_tcp*: uv_tcp server resource
+*resource $uv*: uv_tcp or uv_pipe server resource
 
-*resource $uv_tcp*: uv_tcp client resource.
+*resource $uv*: uv_tcp or uv_pipe client resource.
 
 ##### *Return Value*
 
@@ -3160,9 +3171,17 @@ PHP_FUNCTION(uv_accept)
 	ZEND_FETCH_RESOURCE(server, php_uv_t *, &z_svr, -1, PHP_UV_RESOURCE_NAME, uv_resource_handle);
 	ZEND_FETCH_RESOURCE(client, php_uv_t *, &z_cli, -1, PHP_UV_RESOURCE_NAME, uv_resource_handle);
 	
+	if (server->type == IS_UV_TCP && client->type != IS_UV_TCP || 
+		server->type == IS_UV_PIPE && client->type != IS_UV_PIPE
+	) {
+		php_error_docref(NULL TSRMLS_CC, E_WARNING, "both resource type should be same.");
+		RETURN_FALSE;
+	}
+	
 	r = uv_accept((uv_stream_t *)php_uv_get_current_stream(server), (uv_stream_t *)php_uv_get_current_stream(client));
 	if (r) {
-		php_error_docref(NULL TSRMLS_CC, E_NOTICE, "accept");
+		php_error_docref(NULL TSRMLS_CC, E_WARNING, "%s", php_uv_strerror(r));
+		RETURN_FALSE;
 	}
 }
 /* }}} */
@@ -3211,7 +3230,7 @@ PHP_FUNCTION(uv_shutdown)
 	
 	r = uv_shutdown(shutdown, (uv_stream_t*)php_uv_get_current_stream(uv), (uv_shutdown_cb)php_uv_shutdown_cb);
 	if (r) {
-		php_error_docref(NULL TSRMLS_CC, E_ERROR, "%s (ERRNO: %d)", uv_strerror(uv_last_error(uv_default_loop())), r);
+		php_error_docref(NULL TSRMLS_CC, E_WARNING, "%s", php_uv_strerror(r));
 	}
 
 }
@@ -3564,7 +3583,7 @@ PHP_FUNCTION(uv_listen)
 
 	r = uv_listen((uv_stream_t*)php_uv_get_current_stream(uv), backlog, php_uv_listen_cb);
 	if (r) {
-		php_error_docref(NULL TSRMLS_CC, E_ERROR, "%s", uv_strerror(uv_last_error(uv_default_loop())));
+		php_error_docref(NULL TSRMLS_CC, E_WARNING, "%s", php_uv_strerror(r));
 	}
 }
 /* }}} */
@@ -4966,7 +4985,7 @@ PHP_FUNCTION(uv_pipe_bind)
 	ZEND_FETCH_RESOURCE(uv, php_uv_t *, &handle, -1, PHP_UV_RESOURCE_NAME, uv_resource_handle);
 	error = uv_pipe_bind(&uv->uv.pipe, name);
 	if (error) {
-		php_error_docref(NULL TSRMLS_CC, E_WARNING, "%s", uv_strerror(uv_last_error(uv_default_loop())));
+		php_error_docref(NULL TSRMLS_CC, E_WARNING, "%s", php_uv_strerror(error));
 	}
 	RETURN_LONG(error);
 }

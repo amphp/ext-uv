@@ -6,6 +6,7 @@ uv_tcp_bind($tcp, uv_ip4_addr('0.0.0.0',9999));
 uv_listen($tcp,100, function($server){
     $client = uv_tcp_init();
     uv_accept($server, $client);
+    uv_accept($server, $client);
     var_dump(uv_tcp_getsockname($server));
 
     uv_read_start($client, function($socket, $nread, $buffer) use ($server){
