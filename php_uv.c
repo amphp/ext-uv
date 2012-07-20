@@ -3850,6 +3850,10 @@ PHP_FUNCTION(uv_timer_start)
 		RETURN_FALSE;
 	}
 
+	if (uv_is_active((uv_handle_t*)&uv->uv.timer)) {
+		php_error_docref(NULL TSRMLS_CC, E_NOTICE, "passed uv timer resource has been started. you don't have to call this method");
+		RETURN_FALSE;
+	}
 	
 	zend_list_addref(uv->resource_id);
 	php_uv_cb_init(&cb, uv, &fci, &fcc, PHP_UV_TIMER_CB);
@@ -3870,7 +3874,7 @@ stop specified timer.
 
 ##### *Return Value*
 
-*void*:
+*long $retval*:
 
 ##### *Example*
 
@@ -3889,6 +3893,7 @@ PHP_FUNCTION(uv_timer_stop)
 {
 	zval *timer;
 	php_uv_t *uv;
+	int r = 0;
 	
 	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
 		"r",&timer) == FAILURE) {
@@ -3896,8 +3901,20 @@ PHP_FUNCTION(uv_timer_stop)
 	}
 
 	ZEND_FETCH_RESOURCE(uv, php_uv_t *, &timer, -1, PHP_UV_RESOURCE_NAME, uv_resource_handle);
+	
+	if (uv->type != IS_UV_TIMER) {
+		php_error_docref(NULL TSRMLS_CC, E_WARNING, "passed uv resource is not initialize for uv timer");
+		RETURN_FALSE;
+	}
+	
+	if (!uv_is_active((uv_handle_t*)&uv->uv.timer)) {
+		php_error_docref(NULL TSRMLS_CC, E_NOTICE, "passed uv timer resource has been stopped. you don't have to call this method");
+		RETURN_FALSE;
+	}
 
-	uv_timer_stop((uv_timer_t*)&uv->uv.timer);
+	r = uv_timer_stop((uv_timer_t*)&uv->uv.timer);
+
+	RETURN_LONG(r);
 }
 /* }}} */
 
@@ -3929,6 +3946,16 @@ PHP_FUNCTION(uv_timer_again)
 	}
 
 	ZEND_FETCH_RESOURCE(uv, php_uv_t *, &timer, -1, PHP_UV_RESOURCE_NAME, uv_resource_handle);
+
+	if (uv->type != IS_UV_TIMER) {
+		php_error_docref(NULL TSRMLS_CC, E_WARNING, "passed uv resource is not initialize for uv timer");
+		RETURN_FALSE;
+	}
+
+	if (uv_is_active((uv_handle_t*)&uv->uv.timer)) {
+		php_error_docref(NULL TSRMLS_CC, E_NOTICE, "passed uv timer resource has been started. you don't have to call this method");
+		RETURN_FALSE;
+	}
 
 	uv_timer_again((uv_timer_t*)&uv->uv.timer);
 }
@@ -3966,6 +3993,11 @@ PHP_FUNCTION(uv_timer_set_repeat)
 
 	ZEND_FETCH_RESOURCE(uv, php_uv_t *, &timer, -1, PHP_UV_RESOURCE_NAME, uv_resource_handle);
 
+	if (uv->type != IS_UV_TIMER) {
+		php_error_docref(NULL TSRMLS_CC, E_WARNING, "passed uv resource is not initialize for uv timer");
+		RETURN_FALSE;
+	}
+
 	uv_timer_set_repeat((uv_timer_t*)&uv->uv.timer,repeat);
 }
 /* }}} */
@@ -3999,6 +4031,11 @@ PHP_FUNCTION(uv_timer_get_repeat)
 	}
 
 	ZEND_FETCH_RESOURCE(uv, php_uv_t *, &timer, -1, PHP_UV_RESOURCE_NAME, uv_resource_handle);
+
+	if (uv->type != IS_UV_TIMER) {
+		php_error_docref(NULL TSRMLS_CC, E_WARNING, "passed uv resource is not initialize for uv timer");
+		RETURN_FALSE;
+	}
 
 	repeat = uv_timer_get_repeat((uv_timer_t*)&uv->uv.timer);
 	RETURN_LONG(repeat);
