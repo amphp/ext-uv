@@ -36,6 +36,20 @@
 		uv->resource_id = PHP_UV_LIST_INSERT(uv, uv_resource_handle); \
 	}
 
+#define PHP_UV_INIT_CONNECT(req, uv) \
+	req = (uv_connect_t*)emalloc(sizeof(uv_connect_t)); \
+	req->data = uv; 
+
+#define PHP_UV_INIT_WRITE_REQ(w, uv, data, data_len) \
+	w = emalloc(sizeof(write_req_t)); \
+	w->req.data = uv; \
+	w->buf = uv_buf_init(estrndup(data,data_len), data_len); \
+
+#define PHP_UV_INIT_SEND_REQ(w, uv, data, data_len) \
+	w = emalloc(sizeof(send_req_t)); \
+	w->req.data = uv; \
+	w->buf = uv_buf_init(estrndup(data,data_len), data_len); \
+
 #define PHP_UV_FETCH_UV_DEFAULT_LOOP(loop, zloop) \
 	if (zloop != NULL) { \
 		ZEND_FETCH_RESOURCE(loop, uv_loop_t*, &zloop, -1, PHP_UV_LOOP_RESOURCE_NAME, uv_loop_handle);\
@@ -125,7 +139,7 @@ typedef struct {
 	uv_buf_t buf;
 } send_req_t;
 
-static enum php_uv_socket_type {
+enum php_uv_socket_type {
 	PHP_UV_TCP_IPV4 = 1,
 	PHP_UV_TCP_IPV6 = 2,
 	PHP_UV_TCP      = 3,
@@ -771,8 +785,9 @@ static void php_uv_write_cb(uv_write_t* req, int status)
 	zval_ptr_dtor(&client);
 
 	if (wr->buf.base) {
-		//free(wr->buf.base);
+		efree(wr->buf.base);
 	}
+	
 	efree(wr);
 	PHP_UV_DEBUG_RESOURCE_REFCOUNT(uv_write_cb, uv->resource_id);
 }
@@ -1779,6 +1794,9 @@ static void php_uv_socket_bind(enum php_uv_socket_type ip_type, INTERNAL_FUNCTIO
 		case PHP_UV_UDP_IPV6:
 			r = uv_udp_bind6((uv_udp_t*)&uv->uv.udp, PHP_UV_SOCKADDR_IPV6(addr), flags);
 			break;
+		default:
+			php_error_docref(NULL TSRMLS_CC, E_ERROR, "unhandled type");
+			break;
 	}
 
 	if (r) {
@@ -1839,10 +1857,7 @@ static void php_uv_udp_send(int type, INTERNAL_FUNCTION_PARAMETERS)
 
 	zend_list_addref(client->resource_id);
 
-	w = emalloc(sizeof(send_req_t));
-	w->req.data = client;
-	w->buf = uv_buf_init(estrndup(data,data_len), data_len);
-
+	PHP_UV_INIT_SEND_REQ(w, client, data, data_len);
 	php_uv_cb_init(&cb, client, &fci, &fcc, PHP_UV_SEND_CB);
 	
 	if (type == 1) {
@@ -1871,10 +1886,8 @@ static void php_uv_tcp_connect(int type, INTERNAL_FUNCTION_PARAMETERS)
 	ZEND_FETCH_RESOURCE(addr, php_uv_sockaddr_t *, &address, -1, PHP_UV_SOCKADDR_RESOURCE_NAME, uv_sockaddr_handle);
 	zend_list_addref(uv->resource_id);
 	
-	req = (uv_connect_t*)emalloc(sizeof(uv_connect_t));
+	PHP_UV_INIT_CONNECT(req, uv)
 	php_uv_cb_init(&cb, uv, &fci, &fcc, PHP_UV_CONNECT_CB);
-	
-	req->data = uv;
 
 	if (type == 1) {
 		uv_tcp_connect(req, &uv->uv.tcp, PHP_UV_SOCKADDR_IPV4(addr), php_uv_tcp_connect_cb);
@@ -3041,9 +3054,7 @@ PHP_FUNCTION(uv_write)
 	
 	php_uv_cb_init(&cb, uv, &fci, &fcc, PHP_UV_WRITE_CB);
 
-	w = emalloc(sizeof(write_req_t));
-	w->req.data = uv;
-	w->buf = uv_buf_init(data, data_len);
+	PHP_UV_INIT_WRITE_REQ(w, uv, data, data_len)
 
 	r = uv_write(&w->req, (uv_stream_t*)php_uv_get_current_stream(uv), &w->buf, 1, php_uv_write_cb);
 	if (r) {
@@ -3077,10 +3088,7 @@ PHP_FUNCTION(uv_write2)
 	zend_list_addref(uv->resource_id);
 	
 	php_uv_cb_init(&cb, uv, &fci, &fcc, PHP_UV_WRITE_CB);
-
-	w = emalloc(sizeof(write_req_t));
-	w->req.data = uv;
-	w->buf = uv_buf_init(data, data_len);
+	PHP_UV_INIT_WRITE_REQ(w, uv, data, data_len)
 
 	r = uv_write2(&w->req, (uv_stream_t*)php_uv_get_current_stream(uv), &w->buf, 1, (uv_stream_t*)php_uv_get_current_stream(send), php_uv_write_cb);
 	if (r) {
@@ -3189,8 +3197,8 @@ PHP_FUNCTION(uv_accept)
 	ZEND_FETCH_RESOURCE(server, php_uv_t *, &z_svr, -1, PHP_UV_RESOURCE_NAME, uv_resource_handle);
 	ZEND_FETCH_RESOURCE(client, php_uv_t *, &z_cli, -1, PHP_UV_RESOURCE_NAME, uv_resource_handle);
 	
-	if (server->type == IS_UV_TCP && client->type != IS_UV_TCP || 
-		server->type == IS_UV_PIPE && client->type != IS_UV_PIPE
+	if ((server->type == IS_UV_TCP && client->type != IS_UV_TCP) || 
+		(server->type == IS_UV_PIPE && client->type != IS_UV_PIPE)
 	) {
 		php_error_docref(NULL TSRMLS_CC, E_WARNING, "both resource type should be same.");
 		RETURN_FALSE;
