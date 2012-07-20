@@ -3797,16 +3797,22 @@ initialize timer handle.
 
 *resource $loop*: uv_loop resource.
 
+*long $timeout*: periodical event starts when after this timeout. 1000 is 1 sec.
+
+*long $repeat*: repeat interval. 1000 is 1 sec.
+
 ##### *Return Value*
 
-*resource $timer*: initialized timer resource.
+*void: 
 
 ##### *Example*
 
 ````php
 <?php
 $timer = uv_timer_init();
-uv_timer_start($timer, 100, 100, function($timer, $status){
+$after_1_second = 1000;
+$period_is_1_second = 1000;
+uv_timer_start($timer, $after_1_seconds, $period_is_1_second, function($timer, $status){
 	echo "Hello\n";
 });
 
@@ -3828,6 +3834,23 @@ PHP_FUNCTION(uv_timer_start)
 	}
 
 	ZEND_FETCH_RESOURCE(uv, php_uv_t *, &timer, -1, PHP_UV_RESOURCE_NAME, uv_resource_handle);
+	
+	if (uv->type != IS_UV_TIMER) {
+		php_error_docref(NULL TSRMLS_CC, E_WARNING, "passed uv resource is not initialized for uv_timer");
+		RETURN_FALSE;
+	}
+	
+	if (timeout < 0) {
+		php_error_docref(NULL TSRMLS_CC, E_WARNING, "timeout value have to be larger than 0. given %ld", timeout);
+		RETURN_FALSE;
+	}
+
+	if (repeat < 0) {
+		php_error_docref(NULL TSRMLS_CC, E_WARNING, "repeat value have to be larger than 0. given %ld", repeat);
+		RETURN_FALSE;
+	}
+
+	
 	zend_list_addref(uv->resource_id);
 	php_uv_cb_init(&cb, uv, &fci, &fcc, PHP_UV_TIMER_CB);
 
