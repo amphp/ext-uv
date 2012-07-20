@@ -4332,6 +4332,7 @@ $loop = uv_default_loop();
 */
 PHP_FUNCTION(uv_default_loop)
 {
+	/* TODO: implement this correctly */
 	ZEND_REGISTER_RESOURCE(return_value, php_uv_default_loop(), uv_loop_handle);
 }
 /* }}} */
@@ -6636,7 +6637,7 @@ stats check loop callback. (after loop callback)
 
 ##### *Return Value*
 
-*void *:
+*long *:
 
 ##### *Example*
 ````php
@@ -6682,20 +6683,26 @@ PHP_FUNCTION(uv_check_start)
 	}
 
 	ZEND_FETCH_RESOURCE(uv, php_uv_t *, &handle, -1, PHP_UV_RESOURCE_NAME, uv_resource_handle);
+	
+	if (uv->type != IS_UV_CHECK) {
+		php_error_docref(NULL TSRMLS_CC, E_WARNING, "passed uv resource didn't initialize fo uv_check");
+		RETURN_FALSE;
+	}
+	
+	if (uv_is_active((uv_handle_t*)&uv->uv.idle)) {
+		php_error_docref(NULL TSRMLS_CC, E_WARNING, "passed uv check resource has already started");
+		RETURN_FALSE;
+	}
+	
 	zend_list_addref(uv->resource_id);
 
-	if(uv->type == IS_UV_CHECK) {
-		uv->uv.check.data = uv;
-	} else {
-		php_error_docref(NULL TSRMLS_CC, E_NOTICE, "this type does not support yet");
-	}
-
+	uv->uv.check.data = uv;
 	php_uv_cb_init(&cb, uv, &fci, &fcc, PHP_UV_CHECK_CB);
+
 	r = uv_check_start((uv_check_t*)php_uv_get_current_stream(uv), php_uv_check_cb);
-	if (r) {
-		php_error_docref(NULL TSRMLS_CC, E_NOTICE, "read failed");
-	}
 	PHP_UV_DEBUG_RESOURCE_REFCOUNT(uv_check_start, uv->resource_id);
+
+	RETURN_LONG(r);
 }
 /* }}} */
 
@@ -6725,6 +6732,17 @@ PHP_FUNCTION(uv_check_stop)
 	}
 
 	ZEND_FETCH_RESOURCE(uv, php_uv_t *, &handle, -1, PHP_UV_RESOURCE_NAME, uv_resource_handle);
+	
+	if (uv->type != IS_UV_CHECK) {
+		php_error_docref(NULL TSRMLS_CC, E_WARNING, "passed uv resource didn't initialize fo uv_check");
+		RETURN_FALSE;
+	}
+	
+	if (!uv_is_active((uv_handle_t*)&uv->uv.check)) {
+		php_error_docref(NULL TSRMLS_CC, E_NOTICE, "passed uv_check resource hasn't start yet.");
+		RETURN_FALSE;
+	}
+	
 	uv_check_stop((uv_check_t*)php_uv_get_current_stream(uv));
 	PHP_UV_DEBUG_RESOURCE_REFCOUNT(uv_check_stop, uv->resource_id);
 }
