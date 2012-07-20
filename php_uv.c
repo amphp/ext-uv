@@ -287,7 +287,7 @@ static const char* php_uv_strerror(long error_code)
 	uv_err_t error;
 	error.code = error_code;
 	
-	/* Note: uv_strerror don't use assert. we don't need check value here */
+	/* Note: uv_strerror doesn't use assert. we don't need check value here */
 	return uv_strerror(error);
 }
 
@@ -4042,6 +4042,46 @@ PHP_FUNCTION(uv_timer_get_repeat)
 }
 /* }}} */
 
+
+/* {{{ proto resource uv_idle_init([resource $loop])
+
+##### *Description*
+
+initialize uv idle handle.
+
+##### *Parameters*
+
+*resource $loop*: uv_loop resource.
+
+##### *Return Value*
+
+*resource $idle*: initialized idle handle.
+
+##### *Example*
+
+````php
+<?php
+$loop = uv_default_loop();
+$idle = uv_idle_init($loop);
+````
+
+*/
+PHP_FUNCTION(uv_idle_init)
+{
+	zval *zloop = NULL;
+	uv_loop_t *loop;
+	php_uv_t *uv;
+	
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
+		"|z",&zloop) == FAILURE) {
+		return;
+	}
+	
+	PHP_UV_FETCH_UV_DEFAULT_LOOP(loop, zloop);
+	php_uv_common_init(&uv, loop, IS_UV_IDLE, return_value TSRMLS_CC);
+}
+/* }}} */
+
 /* {{{ proto void uv_idle_start(resource $idle, callable $callback)
 
 ##### *Description*
@@ -4055,7 +4095,7 @@ start idle callback.
 
 ##### *Return Value*
 
-*void*:
+*long result*:
 
 ##### *Example*
 
@@ -4086,6 +4126,7 @@ PHP_FUNCTION(uv_idle_start)
 	zend_fcall_info fci       = empty_fcall_info;
 	zend_fcall_info_cache fcc = empty_fcall_info_cache;
 	php_uv_cb_t *cb;
+	int r = 0;
 	
 	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
 		"rf",&idle, &fci, &fcc) == FAILURE) {
@@ -4093,12 +4134,91 @@ PHP_FUNCTION(uv_idle_start)
 	}
 
 	ZEND_FETCH_RESOURCE(uv, php_uv_t *, &idle, -1, PHP_UV_RESOURCE_NAME, uv_resource_handle);
-	zend_list_addref(uv->resource_id);
+	
+	if (uv->type != IS_UV_IDLE) {
+		php_error_docref(NULL TSRMLS_CC, E_WARNING, "passed resource didn't initialize for uv_idle");
+		RETURN_FALSE;
+	}
 
+	if (uv_is_active((uv_handle_t*)&uv->uv.idle)) {
+		php_error_docref(NULL TSRMLS_CC, E_WARNING, "passed uv_idle resource has already started.");
+		RETURN_FALSE;
+	}
+	
+	zend_list_addref(uv->resource_id);
 	php_uv_cb_init(&cb, uv, &fci, &fcc, PHP_UV_IDLE_CB);
-	uv_idle_start((uv_idle_t*)&uv->uv.idle, (uv_idle_cb)php_uv_idle_cb);
+
+	r = uv_idle_start((uv_idle_t*)&uv->uv.idle, (uv_idle_cb)php_uv_idle_cb);
+	
+	RETURN_LONG(r);
 }
 /* }}} */
+
+
+/* {{{ proto void uv_idle_stop(resource $idle)
+
+##### *Description*
+
+stop idle callback.
+
+##### *Parameters*
+
+*resource $idle*: uv_idle resource.
+
+##### *Return Value*
+
+*long result*:
+
+##### *Example*
+
+````php
+<?php
+$loop = uv_default_loop();
+$idle = uv_idle_init();
+
+$i = 0;
+uv_idle_start($idle, function($idle_handle, $stat) use (&$i){
+    echo "count: {$i}" . PHP_EOL;
+    $i++;
+
+    if ($i > 3) {
+        uv_idle_stop($idle);
+    }
+    sleep(1);
+});
+
+uv_run();
+````
+
+*/
+PHP_FUNCTION(uv_idle_stop)
+{
+	zval *idle;
+	php_uv_t *uv;
+	int r = 0;
+	
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
+		"r", &idle) == FAILURE) {
+		return;
+	}
+
+	ZEND_FETCH_RESOURCE(uv, php_uv_t *, &idle, -1, PHP_UV_RESOURCE_NAME, uv_resource_handle);
+
+	if (uv->type != IS_UV_IDLE) {
+		php_error_docref(NULL TSRMLS_CC, E_WARNING, "passed resource didn't initialize for uv_idle");
+		RETURN_FALSE;
+	}
+	
+	if (!uv_is_active((uv_handle_t*)&uv->uv.idle)) {
+		php_error_docref(NULL TSRMLS_CC, E_NOTICE, "passed uv_idle resource does not start yet.");
+		RETURN_FALSE;
+	}
+
+	r = uv_idle_stop((uv_idle_t*)&uv->uv.idle);
+	RETURN_LONG(r);
+}
+/* }}} */
+
 
 /* {{{ proto void uv_getaddrinfo(resource $loop, callable $callback, string $node, string $service, array $hints)
 */
@@ -4151,57 +4271,6 @@ PHP_FUNCTION(uv_getaddrinfo)
 }
 /* }}} */
 
-/* {{{ proto void uv_idle_stop(resource $idle)
-
-##### *Description*
-
-stop idle callback.
-
-##### *Parameters*
-
-*resource $idle*: uv_idle resource.
-
-##### *Return Value*
-
-*void*:
-
-##### *Example*
-
-````php
-<?php
-$loop = uv_default_loop();
-$idle = uv_idle_init();
-
-$i = 0;
-uv_idle_start($idle, function($idle_handle, $stat) use (&$i){
-    echo "count: {$i}" . PHP_EOL;
-    $i++;
-
-    if ($i > 3) {
-        uv_idle_stop($idle);
-    }
-    sleep(1);
-});
-
-uv_run();
-````
-
-*/
-PHP_FUNCTION(uv_idle_stop)
-{
-	zval *idle;
-	php_uv_t *uv;
-	
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
-		"r", &idle) == FAILURE) {
-		return;
-	}
-
-	ZEND_FETCH_RESOURCE(uv, php_uv_t *, &idle, -1, PHP_UV_RESOURCE_NAME, uv_resource_handle);
-	uv_idle_stop((uv_idle_t*)&uv->uv.idle);
-}
-/* }}} */
-
 /* {{{ proto resource uv_tcp_init([resource $loop])
 
 ##### *Description*
@@ -4238,44 +4307,6 @@ PHP_FUNCTION(uv_tcp_init)
 
 	PHP_UV_FETCH_UV_DEFAULT_LOOP(loop, zloop);
 	php_uv_common_init(&uv, loop, IS_UV_TCP, return_value TSRMLS_CC);
-}
-/* }}} */
-	
-/* {{{ proto resource uv_idle_init([resource $loop])
-
-##### *Description*
-
-initialize uv idle handle.
-
-##### *Parameters*
-
-*resource $loop*: uv_loop resource.
-
-##### *Return Value*
-
-*resource $idle*: initialized idle handle.
-
-##### *Example*
-
-````php
-<?php
-$loop = uv_default_loop();
-$idle = uv_idle_init($loop);
-````
-
-*/
-PHP_FUNCTION(uv_idle_init)
-{
-	zval *zloop = NULL;
-	uv_loop_t *loop;
-	php_uv_t *uv;
-	
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
-		"|z",&zloop) == FAILURE) {
-		return;
-	}
-	PHP_UV_FETCH_UV_DEFAULT_LOOP(loop, zloop);
-	php_uv_common_init(&uv, loop, IS_UV_IDLE, return_value TSRMLS_CC);
 }
 /* }}} */
 
