@@ -3495,6 +3495,11 @@ create a ipv4 sockaddr.
 $sockaddr = uv_ip4_addr("127.0.0.1", 8080);
 ````
 
+##### *Todo*
+
+* check passed ip address is valid.
+* check port number is valid
+
 */
 PHP_FUNCTION(uv_ip4_addr)
 {
@@ -3538,6 +3543,11 @@ create a ipv6 sockaddr.
 <?php
 $sockaddr = uv_ip6_addr("::1", 8080);
 ````
+
+##### *Todo*
+
+* check passed ip address is valid.
+* check port number is valid
 
 */
 PHP_FUNCTION(uv_ip6_addr)
