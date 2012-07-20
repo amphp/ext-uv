@@ -5621,12 +5621,12 @@ PHP_FUNCTION(uv_spawn)
 				zend_hash_move_forward_ex(env, &pos)) {
 
 				zval **value;
-				char *hoge;
+				char *tmp_env_entry;
 				zend_hash_get_current_data_ex(env, (void *) &value, &pos);
 				
-				hoge = emalloc(sizeof(char)*key_len+1+Z_STRLEN_PP(value));
-				slprintf(hoge,key_len+1+Z_STRLEN_PP(value),"%s=%s",key, Z_STRVAL_PP(value));
-				zenv[i] = hoge;
+				tmp_env_entry = emalloc(sizeof(char)*key_len+1+Z_STRLEN_PP(value));
+				slprintf(tmp_env_entry, key_len+1+Z_STRLEN_PP(value), "%s=%s", key, Z_STRVAL_PP(value));
+				zenv[i] = tmp_env_entry;
 				i++;
 			}
 			zenv[i] = NULL;
