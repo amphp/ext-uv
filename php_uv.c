@@ -36,6 +36,22 @@
 		uv->resource_id = PHP_UV_LIST_INSERT(uv, uv_resource_handle); \
 	}
 
+#define PHP_UV_INIT_TIMER(uv, uv_type) \
+	uv = (php_uv_t *)emalloc(sizeof(php_uv_t)); \
+	if (!uv) { \
+		php_error_docref(NULL TSRMLS_CC, E_ERROR, "emalloc failed"); \
+		RETURN_FALSE; \
+	} \
+	r = uv_timer_init(loop, &uv->uv.timer); \
+	if (r) { \
+		php_error_docref(NULL TSRMLS_CC, E_WARNING, "uv_timer_init failed");\
+		RETURN_FALSE;\
+	} \
+	uv->type = uv_type; \
+	PHP_UV_INIT_ZVALS(uv) \
+	TSRMLS_SET_CTX(uv->thread_ctx); \
+	uv->resource_id = PHP_UV_LIST_INSERT(uv, uv_resource_handle); \
+
 #define PHP_UV_INIT_CONNECT(req, uv) \
 	req = (uv_connect_t*)emalloc(sizeof(uv_connect_t)); \
 	req->data = uv; 
@@ -3750,34 +3766,24 @@ initialize timer handle.
 $timer = uv_timer_init();
 ````
 */
-
 PHP_FUNCTION(uv_timer_init)
 {
-	int r;
 	zval *zloop = NULL;
 	uv_loop_t *loop;
 	php_uv_t *uv;
+	int r;
 	
 	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
-		"|z",&zloop) == FAILURE) {
+		"|z", &zloop) == FAILURE) {
 		return;
 	}
-	PHP_UV_FETCH_UV_DEFAULT_LOOP(loop, zloop);
-
-	uv = (php_uv_t *)emalloc(sizeof(php_uv_t));
-
-	r = uv_timer_init(loop, &uv->uv.timer);
-	if (r) {
-		php_error_docref(NULL TSRMLS_CC, E_ERROR, "uv_timer_init failed");
-		return;
-	}
-	uv->type = IS_UV_TIMER;
-	uv->uv.timer.data = uv;
-	PHP_UV_INIT_ZVALS(uv)
-	TSRMLS_SET_CTX(uv->thread_ctx);
 	
-	ZEND_REGISTER_RESOURCE(return_value, uv, uv_resource_handle);
-	uv->resource_id = Z_LVAL_P(return_value);
+	PHP_UV_FETCH_UV_DEFAULT_LOOP(loop, zloop);
+	PHP_UV_INIT_TIMER(uv, IS_UV_TIMER)
+
+	uv->uv.timer.data = uv;
+
+	ZVAL_RESOURCE(return_value, uv->resource_id);
 }
 /* }}} */
 
