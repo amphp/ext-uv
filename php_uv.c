@@ -57,6 +57,16 @@
 		loop = uv_default_loop(); \
 	}  \
 
+#define PHP_UV_INIT_LOCK(lock, lock_type) \
+	lock = emalloc(sizeof(php_uv_lock_t)); \
+	if (!lock) { \
+		php_error_docref(NULL TSRMLS_CC, E_ERROR, "emalloc failed"); \
+		RETURN_FALSE; \
+	} \
+	lock->type = lock_type; \
+	lock->locked = 0; \
+
+
 #define PHP_UV_ZVAL_TO_FD(fd, zstream) \
 { \
 	fd = php_uv_zval_to_fd(zstream TSRMLS_CC); \
@@ -104,6 +114,11 @@
 
 #define PHP_UV_SOCKADDR_IPV6(sockaddr) sockaddr->addr.ipv6
 #define PHP_UV_SOCKADDR_IPV6_P(sockaddr) &sockaddr->addr.ipv6
+
+#define PHP_UV_LOCK_RWLOCK_P(resource) &resource->lock.rwlock
+#define PHP_UV_LOCK_MUTEX_P(resource) &resource->lock.mutex
+#define PHP_UV_LOCK_SEM_P(resource) &resource->lock.semaphore
+
 
 #if PHP_UV_DEBUG>=1
 #define PHP_UV_DEBUG_PRINT(format, ...) fprintf(stderr, format, ## __VA_ARGS__)
@@ -477,31 +492,32 @@ static zval *php_uv_make_stat(const uv_statbuf_t *s)
 void static destruct_uv_lock(zend_rsrc_list_entry *rsrc TSRMLS_DC)
 {
 	php_uv_lock_t *lock = (php_uv_lock_t *)rsrc->ptr;
+
 	if (lock->type == IS_UV_RWLOCK) {
 		if (lock->locked == 0x01) {
 			php_error_docref(NULL TSRMLS_CC, E_NOTICE, "uv_rwlock: unlocked resoruce detected. force rdunlock resource.");
-			uv_rwlock_rdunlock(&lock->lock.rwlock);
+			uv_rwlock_rdunlock(PHP_UV_LOCK_RWLOCK_P(lock));
 			lock->locked = 0x00;
 		} else if (lock->locked == 0x02) {
 			php_error_docref(NULL TSRMLS_CC, E_NOTICE, "uv_rwlock: unlocked resoruce detected. force wrunlock resource.");
-			uv_rwlock_wrunlock(&lock->lock.rwlock);
+			uv_rwlock_wrunlock(PHP_UV_LOCK_RWLOCK_P(lock));
 			lock->locked = 0x00;
 		}
-		uv_rwlock_destroy(&lock->lock.rwlock);
+		uv_rwlock_destroy(PHP_UV_LOCK_RWLOCK_P(lock));
 	} else if (lock->type == IS_UV_MUTEX) {
 		if (lock->locked == 0x01) {
 			php_error_docref(NULL TSRMLS_CC, E_NOTICE, "uv_mutex: unlocked resoruce detected. force unlock resource.");
-			uv_mutex_unlock(&lock->lock.mutex);
+			uv_mutex_unlock(PHP_UV_LOCK_MUTEX_P(lock));
 			lock->locked = 0x00;
 		}
-		uv_mutex_destroy(&lock->lock.mutex);
+		uv_mutex_destroy(PHP_UV_LOCK_MUTEX_P(lock));
 	} else if (lock->type == IS_UV_SEMAPHORE) {
 		if (lock->locked == 0x01) {
 			php_error_docref(NULL TSRMLS_CC, E_NOTICE, "uv_sem: unlocked resoruce detected. force unlock resource.");
-			uv_sem_post(&lock->lock.semaphore);
+			uv_sem_post(PHP_UV_LOCK_SEM_P(lock));
 			lock->locked = 0x00;
 		}
-		uv_sem_destroy(&lock->lock.semaphore);
+		uv_sem_destroy(PHP_UV_LOCK_SEM_P(lock));
 	}
 
 	efree(lock);
@@ -5854,12 +5870,12 @@ PHP_FUNCTION(uv_rwlock_init)
 {
 	php_uv_lock_t *lock;
 	int error;
-	
-	lock = emalloc(sizeof(php_uv_lock_t));
-	error = uv_rwlock_init(&lock->lock.rwlock);
+
+	PHP_UV_INIT_LOCK(lock, IS_UV_RWLOCK);
+	error = uv_rwlock_init(PHP_UV_LOCK_RWLOCK_P(lock));
+
 	if (error == 0) {
 		ZEND_REGISTER_RESOURCE(return_value, lock, uv_lock_handle);
-		lock->type = IS_UV_RWLOCK;
 	} else {
 		efree(lock);
 		RETURN_FALSE;
@@ -5896,7 +5912,7 @@ PHP_FUNCTION(uv_rwlock_rdlock)
 
 	ZEND_FETCH_RESOURCE(lock, php_uv_lock_t *, &handle, -1, PHP_UV_LOCK_RESOURCE_NAME, uv_lock_handle);
 	lock->locked = 0x01;
-	uv_rwlock_rdlock(&lock->lock.rwlock);
+	uv_rwlock_rdlock(PHP_UV_LOCK_RWLOCK_P(lock));
 }
 /* }}} */
 
@@ -5919,7 +5935,7 @@ PHP_FUNCTION(uv_rwlock_tryrdlock)
 	}
 
 	ZEND_FETCH_RESOURCE(lock, php_uv_lock_t *, &handle, -1, PHP_UV_LOCK_RESOURCE_NAME, uv_lock_handle);
-	error = uv_rwlock_tryrdlock(&lock->lock.rwlock);
+	error = uv_rwlock_tryrdlock(PHP_UV_LOCK_RWLOCK_P(lock));
 	if (error == 0) {
 		lock->locked = 0x01;
 		RETURN_TRUE;
@@ -5958,7 +5974,7 @@ PHP_FUNCTION(uv_rwlock_rdunlock)
 
 	ZEND_FETCH_RESOURCE(lock, php_uv_lock_t *, &handle, -1, PHP_UV_LOCK_RESOURCE_NAME, uv_lock_handle);
 	if (lock->locked == 0x01) {
-		uv_rwlock_rdunlock(&lock->lock.rwlock);
+		uv_rwlock_rdunlock(PHP_UV_LOCK_RWLOCK_P(lock));
 		lock->locked = 0x00;
 	}
 }
@@ -5993,7 +6009,7 @@ PHP_FUNCTION(uv_rwlock_wrlock)
 
 	ZEND_FETCH_RESOURCE(lock, php_uv_lock_t *, &handle, -1, PHP_UV_LOCK_RESOURCE_NAME, uv_lock_handle);
 	lock->locked = 0x02;
-	uv_rwlock_wrlock(&lock->lock.rwlock);
+	uv_rwlock_wrlock(PHP_UV_LOCK_RWLOCK_P(lock));
 }
 /* }}} */
 
@@ -6016,7 +6032,7 @@ PHP_FUNCTION(uv_rwlock_trywrlock)
 	}
 
 	ZEND_FETCH_RESOURCE(lock, php_uv_lock_t *, &handle, -1, PHP_UV_LOCK_RESOURCE_NAME, uv_lock_handle);
-	error = uv_rwlock_trywrlock(&lock->lock.rwlock);
+	error = uv_rwlock_trywrlock(PHP_UV_LOCK_RWLOCK_P(lock));
 	if (error == 0) {
 		lock->locked = 0x02;
 		RETURN_TRUE;
@@ -6055,7 +6071,7 @@ PHP_FUNCTION(uv_rwlock_wrunlock)
 
 	ZEND_FETCH_RESOURCE(lock, php_uv_lock_t *, &handle, -1, PHP_UV_LOCK_RESOURCE_NAME, uv_lock_handle);
 	if (lock->locked == 0x02) {
-		uv_rwlock_wrunlock(&lock->lock.rwlock);
+		uv_rwlock_wrunlock(PHP_UV_LOCK_RWLOCK_P(lock));
 		lock->locked = 0x00;
 	}
 }
@@ -6081,11 +6097,10 @@ PHP_FUNCTION(uv_mutex_init)
 	php_uv_lock_t *mutex;
 	int error;
 	
-	mutex = emalloc(sizeof(php_uv_lock_t));
-	error = uv_mutex_init(&mutex->lock.mutex);
+	PHP_UV_INIT_LOCK(mutex, IS_UV_MUTEX);
+	error = uv_mutex_init(PHP_UV_LOCK_MUTEX_P(mutex));
 	if (error == 0) {
 		ZEND_REGISTER_RESOURCE(return_value, mutex, uv_lock_handle);
-		mutex->type = IS_UV_MUTEX;
 	} else {
 		efree(mutex);
 		RETURN_FALSE;
@@ -6121,7 +6136,7 @@ PHP_FUNCTION(uv_mutex_lock)
 	}
 
 	ZEND_FETCH_RESOURCE(mutex, php_uv_lock_t*, &handle, -1, PHP_UV_LOCK_RESOURCE_NAME, uv_lock_handle);
-	uv_mutex_lock(&mutex->lock.mutex);
+	uv_mutex_lock(PHP_UV_LOCK_MUTEX_P(mutex));
 	mutex->locked = 0x01;
 }
 /* }}} */
@@ -6145,7 +6160,7 @@ PHP_FUNCTION(uv_mutex_trylock)
 	}
 
 	ZEND_FETCH_RESOURCE(mutex, php_uv_lock_t *, &handle, -1, PHP_UV_LOCK_RESOURCE_NAME, uv_lock_handle);
-	error = uv_mutex_trylock(&mutex->lock.mutex);
+	error = uv_mutex_trylock(PHP_UV_LOCK_MUTEX_P(mutex));
 
 	if (error == 0) {
 		mutex->locked = 0x01;
@@ -6185,7 +6200,7 @@ PHP_FUNCTION(uv_mutex_unlock)
 
 	ZEND_FETCH_RESOURCE(mutex, php_uv_lock_t *, &handle, -1, PHP_UV_LOCK_RESOURCE_NAME, uv_lock_handle);
 	if (mutex->locked == 0x01) {
-		uv_mutex_unlock(&mutex->lock.mutex);
+		uv_mutex_unlock(PHP_UV_LOCK_MUTEX_P(mutex));
 		mutex->locked = 0x00;
 	}
 }
@@ -6217,12 +6232,11 @@ PHP_FUNCTION(uv_sem_init)
 		return;
 	}
 	
-	semaphore = emalloc(sizeof(php_uv_lock_t));
-	error = uv_sem_init(&semaphore->lock.semaphore, val);
+	PHP_UV_INIT_LOCK(semaphore, IS_UV_SEMAPHORE);
+	error = uv_sem_init(PHP_UV_LOCK_SEM_P(semaphore), val);
 
 	if (error == 0) {
 		ZEND_REGISTER_RESOURCE(return_value, semaphore, uv_lock_handle);
-		semaphore->type = IS_UV_SEMAPHORE;
 	} else {
 		efree(semaphore);
 		RETURN_FALSE;
@@ -6258,7 +6272,7 @@ PHP_FUNCTION(uv_sem_post)
 	}
 
 	ZEND_FETCH_RESOURCE(lock, php_uv_lock_t *, &handle, -1, PHP_UV_LOCK_RESOURCE_NAME, uv_lock_handle);
-	uv_sem_post(&lock->lock.semaphore);
+	uv_sem_post(PHP_UV_LOCK_SEM_P(lock));
 }
 /* }}} */
 
@@ -6280,7 +6294,7 @@ PHP_FUNCTION(uv_sem_wait)
 	}
 
 	ZEND_FETCH_RESOURCE(lock, php_uv_lock_t *, &handle, -1, PHP_UV_LOCK_RESOURCE_NAME, uv_lock_handle);
-	uv_sem_wait(&lock->lock.semaphore);
+	uv_sem_wait(PHP_UV_LOCK_SEM_P(lock));
 }
 /* }}} */
 
@@ -6303,7 +6317,7 @@ PHP_FUNCTION(uv_sem_trywait)
 	}
 
 	ZEND_FETCH_RESOURCE(lock, php_uv_lock_t *, &handle, -1, PHP_UV_LOCK_RESOURCE_NAME, uv_lock_handle);
-	error = uv_sem_trywait(&lock->lock.semaphore);
+	error = uv_sem_trywait(PHP_UV_LOCK_SEM_P(lock));
 	RETURN_LONG(error);
 }
 /* }}} */
