@@ -1883,7 +1883,7 @@ static void php_uv_udp_send(int type, INTERNAL_FUNCTION_PARAMETERS)
 	}
 }
 
-static void php_uv_tcp_connect(int type, INTERNAL_FUNCTION_PARAMETERS)
+static void php_uv_tcp_connect(enum php_uv_socket_type type, INTERNAL_FUNCTION_PARAMETERS)
 {
 	zval *resource,*address;
 	php_uv_t *uv;
@@ -1900,16 +1900,39 @@ static void php_uv_tcp_connect(int type, INTERNAL_FUNCTION_PARAMETERS)
 	
 	ZEND_FETCH_RESOURCE(uv, php_uv_t *, &resource, -1, PHP_UV_RESOURCE_NAME, uv_resource_handle);
 	ZEND_FETCH_RESOURCE(addr, php_uv_sockaddr_t *, &address, -1, PHP_UV_SOCKADDR_RESOURCE_NAME, uv_sockaddr_handle);
-	zend_list_addref(uv->resource_id);
 	
+	if (uv->type != IS_UV_TCP) {
+		php_error_docref(NULL TSRMLS_CC, E_WARNING, "passed uv resource is not initialized for tcp");
+		RETURN_FALSE;
+	}
+	
+	zend_list_addref(uv->resource_id);
 	PHP_UV_INIT_CONNECT(req, uv)
 	php_uv_cb_init(&cb, uv, &fci, &fcc, PHP_UV_CONNECT_CB);
 
-	if (type == 1) {
+	if (type == PHP_UV_TCP_IPV4) {
+		if (!PHP_UV_SOCKADDR_IS_IPV4(addr)) {
+			php_error_docref(NULL TSRMLS_CC, E_WARNING, "passed uv sockaddr resource is not initialized for ipv4");
+			goto clean;
+		}
+		
 		uv_tcp_connect(req, &uv->uv.tcp, PHP_UV_SOCKADDR_IPV4(addr), php_uv_tcp_connect_cb);
 	} else {
+		if (!PHP_UV_SOCKADDR_IS_IPV6(addr)) {
+			php_error_docref(NULL TSRMLS_CC, E_WARNING, "passed uv sockaddr resource is not initialized for ipv6");
+			goto clean;
+		}
+
 		uv_tcp_connect6(req, &uv->uv.tcp, PHP_UV_SOCKADDR_IPV6(addr), php_uv_tcp_connect_cb);
 	}
+
+	return;
+
+clean:
+	/* callback zval will be free'd by uv destructor */
+	zend_list_delete(uv->resource_id);
+	efree(req);
+	RETURN_FALSE;
 }
 
 /* zend */
@@ -3666,7 +3689,7 @@ uv_run();
 */
 PHP_FUNCTION(uv_tcp_connect)
 {
-	php_uv_tcp_connect(1, INTERNAL_FUNCTION_PARAM_PASSTHRU);
+	php_uv_tcp_connect(PHP_UV_TCP_IPV4, INTERNAL_FUNCTION_PARAM_PASSTHRU);
 }
 /* }}} */
 
@@ -3701,7 +3724,7 @@ uv_run();
 */
 PHP_FUNCTION(uv_tcp_connect6)
 {
-	php_uv_tcp_connect(2, INTERNAL_FUNCTION_PARAM_PASSTHRU);
+	php_uv_tcp_connect(PHP_UV_TCP_IPV6, INTERNAL_FUNCTION_PARAM_PASSTHRU);
 }
 /* }}} */
 
