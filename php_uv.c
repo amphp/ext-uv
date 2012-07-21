@@ -5033,7 +5033,7 @@ initialize pipe resource
 
 *resource $uv_loop*: uv_loop resource
 
-*long $ipc*: when this pipe use for ipc, please set 1 otherwise 0.
+*bool $ipc*: when this pipe use for ipc, please set true otherwise false.
 
 ##### *Return Value*
 
@@ -5043,7 +5043,7 @@ initialize pipe resource
 
 ````php
 <?php
-$pipe = uv_pipe_init(uv_default_loop(), 0);
+$pipe = uv_pipe_init(uv_default_loop(), true);
 ````
 
 */
@@ -5052,13 +5052,15 @@ PHP_FUNCTION(uv_pipe_init)
 	php_uv_t *uv;
 	uv_loop_t *loop;
 	zval *zloop = NULL;
-	long ipc = 0;
+	zend_bool ipc = false;
 	int r;
 
 	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
-		"|z|l", &zloop, &ipc) == FAILURE) {
+		"|z|b", &zloop, &ipc) == FAILURE) {
 		return;
 	}
+
+	PHP_UV_FETCH_UV_DEFAULT_LOOP(loop, zloop);
 
 	uv = (php_uv_t *)emalloc(sizeof(php_uv_t));
 	if (!uv) {
@@ -5066,10 +5068,8 @@ PHP_FUNCTION(uv_pipe_init)
 		return;
 	}
 	
-	PHP_UV_FETCH_UV_DEFAULT_LOOP(loop, zloop);
-
 	uv->type = IS_UV_PIPE;
-	r = uv_pipe_init(loop, &uv->uv.pipe, ipc);
+	r = uv_pipe_init(loop, &uv->uv.pipe, (int)ipc);
 	
 	if (r) {
 		php_error_docref(NULL TSRMLS_CC, E_ERROR, "uv_pipe_init failed");
@@ -5081,7 +5081,7 @@ PHP_FUNCTION(uv_pipe_init)
 	TSRMLS_SET_CTX(uv->thread_ctx);
 	
 	ZEND_REGISTER_RESOURCE(return_value, uv, uv_resource_handle);
-	uv->resource_id = Z_LVAL_P(return_value);
+	uv->resource_id = Z_RESVAL_P(return_value);
 }
 /* }}} */
 
@@ -5108,14 +5108,23 @@ PHP_FUNCTION(uv_pipe_open)
 {
 	php_uv_t *uv;
 	zval *handle;
-	/* TODO: `pipe` correct? */
-	long pipe = 0;
+	long pipe = -1; // file handle
 
 	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
 		"zl",&handle, &pipe) == FAILURE) {
 		return;
 	}
 	ZEND_FETCH_RESOURCE(uv, php_uv_t *, &handle, -1, PHP_UV_RESOURCE_NAME, uv_resource_handle);
+	
+	if (uv->type != IS_UV_PIPE) {
+		php_error_docref(NULL TSRMLS_CC, E_WARNING, "passed resource didn't intialize for uv_pipe");
+		RETURN_FALSE;
+	}
+	
+	if (pipe < 0) {
+		php_error_docref(NULL TSRMLS_CC, E_WARNING, "pipe parameter have to be unsigned value");
+		RETURN_FALSE;
+	}
 
 	uv_pipe_open(&uv->uv.pipe, pipe);
 }
@@ -5151,11 +5160,19 @@ PHP_FUNCTION(uv_pipe_bind)
 		"zs",&handle, &name, &name_len) == FAILURE) {
 		return;
 	}
+
 	ZEND_FETCH_RESOURCE(uv, php_uv_t *, &handle, -1, PHP_UV_RESOURCE_NAME, uv_resource_handle);
+
+	if (uv->type != IS_UV_PIPE) {
+		php_error_docref(NULL TSRMLS_CC, E_WARNING, "passed resource didn't intialize for uv_pipe");
+		RETURN_FALSE;
+	}
+
 	error = uv_pipe_bind(&uv->uv.pipe, name);
 	if (error) {
 		php_error_docref(NULL TSRMLS_CC, E_WARNING, "%s", php_uv_strerror(error));
 	}
+
 	RETURN_LONG(error);
 }
 /* }}} */
@@ -5210,6 +5227,12 @@ PHP_FUNCTION(uv_pipe_connect)
 	}
 	
 	ZEND_FETCH_RESOURCE(uv, php_uv_t *, &resource, -1, PHP_UV_RESOURCE_NAME, uv_resource_handle);
+
+	if (uv->type != IS_UV_PIPE) {
+		php_error_docref(NULL TSRMLS_CC, E_WARNING, "passed resource didn't intialize for uv_pipe");
+		RETURN_FALSE;
+	}
+
 	zend_list_addref(uv->resource_id);
 	
 	req = (uv_connect_t*)emalloc(sizeof(uv_connect_t));
@@ -5233,6 +5256,12 @@ PHP_FUNCTION(uv_pipe_pending_instances)
 		return;
 	}
 	ZEND_FETCH_RESOURCE(uv, php_uv_t *, &handle, -1, PHP_UV_RESOURCE_NAME, uv_resource_handle);
+
+	if (uv->type != IS_UV_PIPE) {
+		php_error_docref(NULL TSRMLS_CC, E_WARNING, "passed resource didn't intialize for uv_pipe");
+		RETURN_FALSE;
+	}
+
 	uv_pipe_pending_instances(&uv->uv.pipe, count);
 }
 /* }}} */
