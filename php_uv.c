@@ -6505,7 +6505,7 @@ setup prepare loop callback. (pre loop callback)
 
 ##### *Return Value*
 
-*void *:
+*long *:
 
 ##### *Example*
 ````php
@@ -6539,20 +6539,25 @@ PHP_FUNCTION(uv_prepare_start)
 	}
 
 	ZEND_FETCH_RESOURCE(uv, php_uv_t *, &handle, -1, PHP_UV_RESOURCE_NAME, uv_resource_handle);
-	zend_list_addref(uv->resource_id);
 
-	if(uv->type == IS_UV_PREPARE) {
-		uv->uv.prepare.data = uv;
-	} else {
-		php_error_docref(NULL TSRMLS_CC, E_NOTICE, "this type does not support yet");
+	if (uv->type != IS_UV_PREPARE) {
+		php_error_docref(NULL TSRMLS_CC, E_WARNING, "passed uv resource didn't initialize for uv_prepare");
+		RETURN_FALSE;
 	}
+	
+	if (uv_is_active((uv_handle_t*)&uv->uv.prepare)) {
+		php_error_docref(NULL TSRMLS_CC, E_WARNING, "passed uv_prepare resource has been started.");
+		RETURN_FALSE;
+	}
+	
+	zend_list_addref(uv->resource_id);
+	uv->uv.prepare.data = uv;
 
 	php_uv_cb_init(&cb, uv, &fci, &fcc, PHP_UV_PREPARE_CB);
 	r = uv_prepare_start((uv_prepare_t*)php_uv_get_current_stream(uv), php_uv_prepare_cb);
-	if (r) {
-		php_error_docref(NULL TSRMLS_CC, E_NOTICE, "read failed");
-	}
 	PHP_UV_DEBUG_RESOURCE_REFCOUNT(uv_prepare_start, uv->resource_id);
+	
+	RETURN_LONG(r);
 }
 /* }}} */
 
@@ -6568,22 +6573,35 @@ stop prepare callback
 
 ##### *Return Value*
 
-*void *:
+*long*:
 
 */
 PHP_FUNCTION(uv_prepare_stop)
 {
 	zval *handle;
 	php_uv_t *uv;
+	int r = 0;
 	
 	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
 		"r", &handle) == FAILURE) {
 		return;
 	}
+	
+	if (uv->type != IS_UV_PREPARE) {
+		php_error_docref(NULL TSRMLS_CC, E_WARNING, "passed uv resource didn't initialize for uv_prepare");
+		RETURN_FALSE;
+	}
+	
+	if (!uv_is_active((uv_handle_t*)&uv->uv.prepare)) {
+		php_error_docref(NULL TSRMLS_CC, E_NOTICE, "passed uv_prepare resource has been stopped.");
+		RETURN_FALSE;
+	}
 
 	ZEND_FETCH_RESOURCE(uv, php_uv_t *, &handle, -1, PHP_UV_RESOURCE_NAME, uv_resource_handle);
-	uv_prepare_stop((uv_prepare_t*)php_uv_get_current_stream(uv));
+	r = uv_prepare_stop((uv_prepare_t*)php_uv_get_current_stream(uv));
 	PHP_UV_DEBUG_RESOURCE_REFCOUNT(uv_prepare_stop, uv->resource_id);
+	
+	RETURN_LONG(r);
 }
 /* }}} */
 
