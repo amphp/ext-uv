@@ -159,7 +159,6 @@
 
 
 extern void php_uv_init(TSRMLS_D);
-extern zend_class_entry *uv_class_entry;
 
 typedef struct {
 	uv_write_t req;
@@ -227,8 +226,6 @@ static char uv_fs_read_buf[8192];
 
 /* declarations */
 
-void php_uv_init(TSRMLS_D);
-
 static inline uv_stream_t* php_uv_get_current_stream(php_uv_t *uv);
 
 /**
@@ -241,8 +238,6 @@ static inline uv_stream_t* php_uv_get_current_stream(php_uv_t *uv);
  * @return int (maybe..)
  */
 static int php_uv_do_callback(zval **retval_ptr, zval *callback, zval ***params, int param_count TSRMLS_DC);
-
-static void php_uv_close_cb(uv_handle_t *handle);
 
 void static destruct_uv(zend_rsrc_list_entry *rsrc TSRMLS_DC);
 
@@ -407,6 +402,9 @@ static inline int php_uv_common_init(php_uv_t **result, uv_loop_t *loop, enum ph
 			uv->uv.check.data = uv;
 		}
 		break;
+		default:
+			php_error_docref(NULL TSRMLS_CC, E_ERROR, "unexpected type");
+			goto cleanup;
 	}
 
 	PHP_UV_INIT_ZVALS(uv)
@@ -456,6 +454,8 @@ static void php_uv_lock_init(enum php_uv_lock_type lock_type, INTERNAL_FUNCTION_
 
 	switch (lock_type) {
 		case IS_UV_RWLOCK:
+		case IS_UV_RWLOCK_WR:
+		case IS_UV_RWLOCK_RD:
 		{
 			PHP_UV_INIT_LOCK(lock, IS_UV_RWLOCK);
 			error = uv_rwlock_init(PHP_UV_LOCK_RWLOCK_P(lock));
@@ -480,6 +480,9 @@ static void php_uv_lock_init(enum php_uv_lock_type lock_type, INTERNAL_FUNCTION_
 			error = uv_sem_init(PHP_UV_LOCK_SEM_P(lock), val);
 		}
 		break;
+		default:
+			php_error_docref(NULL TSRMLS_CC, E_ERROR, "unexpected type");
+		break;
 	}
 
 	if (error == 0) {
@@ -503,6 +506,7 @@ static void php_uv_lock_lock(enum php_uv_lock_type lock_type, INTERNAL_FUNCTION_
 	ZEND_FETCH_RESOURCE(lock, php_uv_lock_t *, &handle, -1, PHP_UV_LOCK_RESOURCE_NAME, uv_lock_handle);
 
 	switch (lock_type) {
+		case IS_UV_RWLOCK:
 		case IS_UV_RWLOCK_RD:
 		{
 			uv_rwlock_rdlock(PHP_UV_LOCK_RWLOCK_P(lock));
@@ -526,6 +530,9 @@ static void php_uv_lock_lock(enum php_uv_lock_type lock_type, INTERNAL_FUNCTION_
 			uv_sem_post(PHP_UV_LOCK_SEM_P(lock));
 		}
 		break;
+		default:
+			php_error_docref(NULL TSRMLS_CC, E_ERROR, "unexpected type");
+		break;
 	}
 }
 
@@ -542,6 +549,7 @@ static void php_uv_lock_unlock(enum php_uv_lock_type  lock_type, INTERNAL_FUNCTI
 	ZEND_FETCH_RESOURCE(lock, php_uv_lock_t *, &handle, -1, PHP_UV_LOCK_RESOURCE_NAME, uv_lock_handle);
 	
 	switch (lock_type) {
+		case IS_UV_RWLOCK:
 		case IS_UV_RWLOCK_RD:
 		{
 			if (lock->locked == 0x01) {
@@ -571,6 +579,9 @@ static void php_uv_lock_unlock(enum php_uv_lock_type  lock_type, INTERNAL_FUNCTI
 			uv_sem_wait(PHP_UV_LOCK_SEM_P(lock));
 		}
 		break;
+		default:
+			php_error_docref(NULL TSRMLS_CC, E_ERROR, "unexpected type");
+		break;
 	}
 }
 
@@ -588,6 +599,7 @@ static void php_uv_lock_trylock(enum php_uv_lock_type lock_type, INTERNAL_FUNCTI
 	ZEND_FETCH_RESOURCE(lock, php_uv_lock_t *, &handle, -1, PHP_UV_LOCK_RESOURCE_NAME, uv_lock_handle);
 
 	switch(lock_type) {
+		case IS_UV_RWLOCK:
 		case IS_UV_RWLOCK_RD:
 		{
 			error = uv_rwlock_tryrdlock(PHP_UV_LOCK_RWLOCK_P(lock));
@@ -628,6 +640,9 @@ static void php_uv_lock_trylock(enum php_uv_lock_type lock_type, INTERNAL_FUNCTI
 			error = uv_sem_trywait(PHP_UV_LOCK_SEM_P(lock));
 			RETURN_LONG(error);
 		}
+		default:
+			php_error_docref(NULL TSRMLS_CC, E_ERROR, "unexpected type");
+		break;
 	}
 }
 
@@ -1480,6 +1495,8 @@ static void php_uv_fs_cb(uv_fs_t* req)
 			efree(uv->buffer);
 			break;
 		}
+		case UV_FS_UNKNOWN:
+		case UV_FS_CUSTOM:
 		default: {
 			php_error_docref(NULL TSRMLS_CC, E_ERROR, "type; %d does not support yet.", uv->uv.fs.fs_type);
 			break;
@@ -2046,6 +2063,8 @@ static void php_uv_socket_bind(enum php_uv_socket_type ip_type, INTERNAL_FUNCTIO
 		case PHP_UV_UDP_IPV6:
 			r = uv_udp_bind6((uv_udp_t*)&uv->uv.udp, PHP_UV_SOCKADDR_IPV6(addr), flags);
 			break;
+		case PHP_UV_TCP:
+		case PHP_UV_UDP:
 		default:
 			php_error_docref(NULL TSRMLS_CC, E_ERROR, "unhandled type");
 			break;
@@ -2081,6 +2100,9 @@ static void php_uv_socket_getname(int type, INTERNAL_FUNCTION_PARAMETERS)
 		case 3:
 			error  = uv_udp_getsockname(&uv->uv.udp, (struct sockaddr*)&addr, &addr_len);
 			break;
+		default:
+			php_error_docref(NULL TSRMLS_CC, E_ERROR, "unexpected type");
+		break;
 	}
 	
 	result = php_uv_address_to_zval((struct sockaddr*)&addr);
