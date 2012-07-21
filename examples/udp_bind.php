@@ -3,7 +3,6 @@ $udp = uv_udp_init();
 var_dump($udp);
 
 uv_udp_bind($udp, uv_ip4_addr('0.0.0.0',10000));
-
 uv_udp_recv_start($udp,function($stream, $nread, $buffer){
     echo "recv:" .  $buffer;
     

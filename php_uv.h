@@ -79,6 +79,29 @@ enum php_uv_resource_type{
 	IS_UV_MAX      = 19
 };
 
+char *php_uv_resource_map[IS_UV_MAX] = {
+	"uv_tcp",
+	"uv_udp",
+	"uv_pipe",
+	"uv_idle",
+	"uv_timer",
+	"uv_async",
+	"uv_loop",
+	"uv_handle",
+	"uv_stream",
+	"uv_addrinfo",
+	"uv_process",
+	"uv_prepare",
+	"uv_check",
+	"uv_work",
+	"uv_fs",
+	"uv_fs_event",
+	"uv_tty",
+	"uv_fs_poll",
+	"uv_poll",
+};
+
+
 enum php_uv_callback_type{
 	PHP_UV_LISTEN_CB       = 0,
 	PHP_UV_READ_CB         = 1,

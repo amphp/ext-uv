@@ -24,6 +24,7 @@
 #define PHP_UV_DEBUG 0
 #endif
 
+
 #define PHP_UV_INIT_UV(uv, uv_type) \
 	uv = (php_uv_t *)emalloc(sizeof(php_uv_t)); \
 	if (!uv) { \
@@ -244,6 +245,22 @@ static void php_uv_close_cb(uv_handle_t *handle);
 static void php_uv_timer_cb(uv_timer_t *handle, int status);
 
 static void php_uv_idle_cb(uv_timer_t *handle, int status);
+
+
+static char *php_uv_map_resource_name(enum php_uv_resource_type type)
+{
+	if (php_uv_resource_map[type] != NULL) {
+		return php_uv_resource_map[type];
+	}
+
+	return  NULL;
+}
+
+#define PHP_UV_TYPE_CHECK(uv, uv_type) \
+	if (uv->type != uv_type) { \
+		php_error_docref(NULL TSRMLS_CC, E_WARNING, "the passed resource does not initialize for %s resource.", php_uv_map_resource_name(uv_type)); \
+		RETURN_FALSE; \
+	} \
 
 
 static php_socket_t php_uv_zval_to_fd(zval *ptr TSRMLS_DC)
@@ -1887,6 +1904,8 @@ static void php_uv_udp_send(int type, INTERNAL_FUNCTION_PARAMETERS)
 	ZEND_FETCH_RESOURCE(client, php_uv_t *, &z_cli, -1, PHP_UV_RESOURCE_NAME, uv_resource_handle);
 	ZEND_FETCH_RESOURCE(addr, php_uv_sockaddr_t *, &z_addr, -1, PHP_UV_SOCKADDR_RESOURCE_NAME, uv_sockaddr_handle);
 
+	PHP_UV_TYPE_CHECK(client, IS_UV_UDP);
+
 	zend_list_addref(client->resource_id);
 
 	PHP_UV_INIT_SEND_REQ(w, client, data, data_len);
@@ -3191,10 +3210,7 @@ PHP_FUNCTION(uv_tcp_nodelay)
 	
 	ZEND_FETCH_RESOURCE(client, php_uv_t *, &z_cli, -1, PHP_UV_RESOURCE_NAME, uv_resource_handle);
 	
-	if (client->type != IS_UV_TCP)  {
-		php_error_docref(NULL TSRMLS_CC, E_WARNING, "expects uv tcp resource");
-		RETURN_FALSE;
-	}
+	PHP_UV_TYPE_CHECK(client, IS_UV_TCP);
 	
 	uv_tcp_nodelay(&client->uv.tcp, bval);
 }
@@ -3835,10 +3851,7 @@ PHP_FUNCTION(uv_timer_start)
 
 	ZEND_FETCH_RESOURCE(uv, php_uv_t *, &timer, -1, PHP_UV_RESOURCE_NAME, uv_resource_handle);
 	
-	if (uv->type != IS_UV_TIMER) {
-		php_error_docref(NULL TSRMLS_CC, E_WARNING, "passed uv resource is not initialized for uv_timer");
-		RETURN_FALSE;
-	}
+	PHP_UV_TYPE_CHECK(uv, IS_UV_TIMER);
 	
 	if (timeout < 0) {
 		php_error_docref(NULL TSRMLS_CC, E_WARNING, "timeout value have to be larger than 0. given %ld", timeout);
@@ -3902,10 +3915,8 @@ PHP_FUNCTION(uv_timer_stop)
 
 	ZEND_FETCH_RESOURCE(uv, php_uv_t *, &timer, -1, PHP_UV_RESOURCE_NAME, uv_resource_handle);
 	
-	if (uv->type != IS_UV_TIMER) {
-		php_error_docref(NULL TSRMLS_CC, E_WARNING, "passed uv resource is not initialize for uv timer");
-		RETURN_FALSE;
-	}
+
+	PHP_UV_TYPE_CHECK(uv, IS_UV_TIMER);
 	
 	if (!uv_is_active((uv_handle_t*)&uv->uv.timer)) {
 		php_error_docref(NULL TSRMLS_CC, E_NOTICE, "passed uv timer resource has been stopped. you don't have to call this method");
@@ -3947,10 +3958,7 @@ PHP_FUNCTION(uv_timer_again)
 
 	ZEND_FETCH_RESOURCE(uv, php_uv_t *, &timer, -1, PHP_UV_RESOURCE_NAME, uv_resource_handle);
 
-	if (uv->type != IS_UV_TIMER) {
-		php_error_docref(NULL TSRMLS_CC, E_WARNING, "passed uv resource is not initialize for uv timer");
-		RETURN_FALSE;
-	}
+	PHP_UV_TYPE_CHECK(uv, IS_UV_TIMER);
 
 	if (uv_is_active((uv_handle_t*)&uv->uv.timer)) {
 		php_error_docref(NULL TSRMLS_CC, E_NOTICE, "passed uv timer resource has been started. you don't have to call this method");
@@ -3993,10 +4001,7 @@ PHP_FUNCTION(uv_timer_set_repeat)
 
 	ZEND_FETCH_RESOURCE(uv, php_uv_t *, &timer, -1, PHP_UV_RESOURCE_NAME, uv_resource_handle);
 
-	if (uv->type != IS_UV_TIMER) {
-		php_error_docref(NULL TSRMLS_CC, E_WARNING, "passed uv resource is not initialize for uv timer");
-		RETURN_FALSE;
-	}
+	PHP_UV_TYPE_CHECK(uv, IS_UV_TIMER);
 
 	uv_timer_set_repeat((uv_timer_t*)&uv->uv.timer,repeat);
 }
@@ -4032,10 +4037,7 @@ PHP_FUNCTION(uv_timer_get_repeat)
 
 	ZEND_FETCH_RESOURCE(uv, php_uv_t *, &timer, -1, PHP_UV_RESOURCE_NAME, uv_resource_handle);
 
-	if (uv->type != IS_UV_TIMER) {
-		php_error_docref(NULL TSRMLS_CC, E_WARNING, "passed uv resource is not initialize for uv timer");
-		RETURN_FALSE;
-	}
+	PHP_UV_TYPE_CHECK(uv, IS_UV_TIMER);
 
 	repeat = uv_timer_get_repeat((uv_timer_t*)&uv->uv.timer);
 	RETURN_LONG(repeat);
@@ -4135,10 +4137,7 @@ PHP_FUNCTION(uv_idle_start)
 
 	ZEND_FETCH_RESOURCE(uv, php_uv_t *, &idle, -1, PHP_UV_RESOURCE_NAME, uv_resource_handle);
 	
-	if (uv->type != IS_UV_IDLE) {
-		php_error_docref(NULL TSRMLS_CC, E_WARNING, "passed resource didn't initialize for uv_idle");
-		RETURN_FALSE;
-	}
+	PHP_UV_TYPE_CHECK(uv, IS_UV_IDLE);
 
 	if (uv_is_active((uv_handle_t*)&uv->uv.idle)) {
 		php_error_docref(NULL TSRMLS_CC, E_WARNING, "passed uv_idle resource has already started.");
@@ -4204,10 +4203,7 @@ PHP_FUNCTION(uv_idle_stop)
 
 	ZEND_FETCH_RESOURCE(uv, php_uv_t *, &idle, -1, PHP_UV_RESOURCE_NAME, uv_resource_handle);
 
-	if (uv->type != IS_UV_IDLE) {
-		php_error_docref(NULL TSRMLS_CC, E_WARNING, "passed resource didn't initialize for uv_idle");
-		RETURN_FALSE;
-	}
+	PHP_UV_TYPE_CHECK(uv, IS_UV_IDLE);
 	
 	if (!uv_is_active((uv_handle_t*)&uv->uv.idle)) {
 		php_error_docref(NULL TSRMLS_CC, E_NOTICE, "passed uv_idle resource does not start yet.");
@@ -4558,6 +4554,13 @@ PHP_FUNCTION(uv_udp_recv_start)
 	}
 
 	ZEND_FETCH_RESOURCE(uv, php_uv_t *, &client, -1, PHP_UV_RESOURCE_NAME, uv_resource_handle);
+	PHP_UV_TYPE_CHECK(uv, IS_UV_UDP);
+	
+	if (uv_is_active((uv_handle_t*)&uv->uv.udp)) {
+		php_error_docref(NULL TSRMLS_CC, E_WARNING, "passed uv_resource has already activated.");
+		RETURN_FALSE;
+	}
+
 	zend_list_addref(uv->resource_id);
 
 	uv->uv.udp.data = uv;
@@ -4595,6 +4598,12 @@ PHP_FUNCTION(uv_udp_recv_stop)
 		return;
 	}
 	ZEND_FETCH_RESOURCE(uv, php_uv_t *, &client, -1, PHP_UV_RESOURCE_NAME, uv_resource_handle);
+	PHP_UV_TYPE_CHECK(uv, IS_UV_UDP);
+
+	if (!uv_is_active((uv_handle_t*)&uv->uv.udp)) {
+		php_error_docref(NULL TSRMLS_CC, E_NOTICE, "passed uv_resource has already stopped.");
+		RETURN_FALSE;
+	}
 	
 	uv_udp_recv_stop((uv_udp_t*)&uv->uv.udp);
 }
@@ -4636,6 +4645,7 @@ PHP_FUNCTION(uv_udp_set_membership)
 		return;
 	}
 	ZEND_FETCH_RESOURCE(uv, php_uv_t *, &client, -1, PHP_UV_RESOURCE_NAME, uv_resource_handle);
+	PHP_UV_TYPE_CHECK(uv, IS_UV_UDP);
 	
 	error = uv_udp_set_membership((uv_udp_t*)&uv->uv.udp, (const char*)multicast_addr, (const char*)interface_addr, (int)membership);
 
@@ -4676,6 +4686,7 @@ PHP_FUNCTION(uv_udp_set_multicast_loop)
 	}
 
 	ZEND_FETCH_RESOURCE(uv, php_uv_t *, &client, -1, PHP_UV_RESOURCE_NAME, uv_resource_handle);
+	PHP_UV_TYPE_CHECK(uv, IS_UV_UDP);
 
 	r = uv_udp_set_multicast_loop((uv_udp_t*)&uv->uv.udp, enabled);
 	if (r) {
@@ -4715,12 +4726,16 @@ PHP_FUNCTION(uv_udp_set_multicast_ttl)
 		return;
 	}
 	
-	if (ttl > 255) {
-		php_error_docref(NULL TSRMLS_CC, E_NOTICE, "uv_udp_set_muticast_ttl: ttl parameter expected less than 255.");
-		ttl = 255;
-	}
-
 	ZEND_FETCH_RESOURCE(uv, php_uv_t *, &client, -1, PHP_UV_RESOURCE_NAME, uv_resource_handle);
+	PHP_UV_TYPE_CHECK(uv, IS_UV_UDP);
+
+	if (ttl > 255) {
+		php_error_docref(NULL TSRMLS_CC, E_NOTICE, "uv_udp_set_muticast_ttl: ttl parameter expected smaller than 255.");
+		ttl = 255;
+	} else if (ttl < 1) {
+		php_error_docref(NULL TSRMLS_CC, E_NOTICE, "uv_udp_set_muticast_ttl: ttl parameter expected larger than 0.");
+		ttl = 1;
+	}
 
 	r = uv_udp_set_multicast_ttl((uv_udp_t*)&uv->uv.udp, ttl);
 	if (r) {
@@ -4761,6 +4776,7 @@ PHP_FUNCTION(uv_udp_set_broadcast)
 	}
 
 	ZEND_FETCH_RESOURCE(uv, php_uv_t *, &client, -1, PHP_UV_RESOURCE_NAME, uv_resource_handle);
+	PHP_UV_TYPE_CHECK(uv, IS_UV_UDP);
 
 	r = uv_udp_set_broadcast((uv_udp_t*)&uv->uv.udp, enabled);
 	if (r) {
@@ -5116,10 +5132,7 @@ PHP_FUNCTION(uv_pipe_open)
 	}
 	ZEND_FETCH_RESOURCE(uv, php_uv_t *, &handle, -1, PHP_UV_RESOURCE_NAME, uv_resource_handle);
 	
-	if (uv->type != IS_UV_PIPE) {
-		php_error_docref(NULL TSRMLS_CC, E_WARNING, "passed resource didn't intialize for uv_pipe");
-		RETURN_FALSE;
-	}
+	PHP_UV_TYPE_CHECK(uv, IS_UV_PIPE);
 	
 	if (pipe < 0) {
 		php_error_docref(NULL TSRMLS_CC, E_WARNING, "pipe parameter have to be unsigned value");
@@ -5163,10 +5176,7 @@ PHP_FUNCTION(uv_pipe_bind)
 
 	ZEND_FETCH_RESOURCE(uv, php_uv_t *, &handle, -1, PHP_UV_RESOURCE_NAME, uv_resource_handle);
 
-	if (uv->type != IS_UV_PIPE) {
-		php_error_docref(NULL TSRMLS_CC, E_WARNING, "passed resource didn't intialize for uv_pipe");
-		RETURN_FALSE;
-	}
+	PHP_UV_TYPE_CHECK(uv, IS_UV_PIPE);
 
 	error = uv_pipe_bind(&uv->uv.pipe, name);
 	if (error) {
@@ -5228,10 +5238,7 @@ PHP_FUNCTION(uv_pipe_connect)
 	
 	ZEND_FETCH_RESOURCE(uv, php_uv_t *, &resource, -1, PHP_UV_RESOURCE_NAME, uv_resource_handle);
 
-	if (uv->type != IS_UV_PIPE) {
-		php_error_docref(NULL TSRMLS_CC, E_WARNING, "passed resource didn't intialize for uv_pipe");
-		RETURN_FALSE;
-	}
+	PHP_UV_TYPE_CHECK(uv, IS_UV_PIPE);
 
 	zend_list_addref(uv->resource_id);
 	
@@ -5257,10 +5264,7 @@ PHP_FUNCTION(uv_pipe_pending_instances)
 	}
 	ZEND_FETCH_RESOURCE(uv, php_uv_t *, &handle, -1, PHP_UV_RESOURCE_NAME, uv_resource_handle);
 
-	if (uv->type != IS_UV_PIPE) {
-		php_error_docref(NULL TSRMLS_CC, E_WARNING, "passed resource didn't intialize for uv_pipe");
-		RETURN_FALSE;
-	}
+	PHP_UV_TYPE_CHECK(uv, IS_UV_PIPE);
 
 	uv_pipe_pending_instances(&uv->uv.pipe, count);
 }
@@ -6569,10 +6573,7 @@ PHP_FUNCTION(uv_prepare_start)
 
 	ZEND_FETCH_RESOURCE(uv, php_uv_t *, &handle, -1, PHP_UV_RESOURCE_NAME, uv_resource_handle);
 
-	if (uv->type != IS_UV_PREPARE) {
-		php_error_docref(NULL TSRMLS_CC, E_WARNING, "passed uv resource didn't initialize for uv_prepare");
-		RETURN_FALSE;
-	}
+	PHP_UV_TYPE_CHECK(uv, IS_UV_PREPARE);
 	
 	if (uv_is_active((uv_handle_t*)&uv->uv.prepare)) {
 		php_error_docref(NULL TSRMLS_CC, E_WARNING, "passed uv_prepare resource has been started.");
@@ -6616,10 +6617,7 @@ PHP_FUNCTION(uv_prepare_stop)
 		return;
 	}
 	
-	if (uv->type != IS_UV_PREPARE) {
-		php_error_docref(NULL TSRMLS_CC, E_WARNING, "passed uv resource didn't initialize for uv_prepare");
-		RETURN_FALSE;
-	}
+	PHP_UV_TYPE_CHECK(uv, IS_UV_PREPARE);
 	
 	if (!uv_is_active((uv_handle_t*)&uv->uv.prepare)) {
 		php_error_docref(NULL TSRMLS_CC, E_NOTICE, "passed uv_prepare resource has been stopped.");
@@ -6731,10 +6729,7 @@ PHP_FUNCTION(uv_check_start)
 
 	ZEND_FETCH_RESOURCE(uv, php_uv_t *, &handle, -1, PHP_UV_RESOURCE_NAME, uv_resource_handle);
 	
-	if (uv->type != IS_UV_CHECK) {
-		php_error_docref(NULL TSRMLS_CC, E_WARNING, "passed uv resource didn't initialize fo uv_check");
-		RETURN_FALSE;
-	}
+	PHP_UV_TYPE_CHECK(uv, IS_UV_CHECK);
 	
 	if (uv_is_active((uv_handle_t*)&uv->uv.idle)) {
 		php_error_docref(NULL TSRMLS_CC, E_WARNING, "passed uv check resource has already started");
@@ -6780,10 +6775,7 @@ PHP_FUNCTION(uv_check_stop)
 
 	ZEND_FETCH_RESOURCE(uv, php_uv_t *, &handle, -1, PHP_UV_RESOURCE_NAME, uv_resource_handle);
 	
-	if (uv->type != IS_UV_CHECK) {
-		php_error_docref(NULL TSRMLS_CC, E_WARNING, "passed uv resource didn't initialize fo uv_check");
-		RETURN_FALSE;
-	}
+	PHP_UV_TYPE_CHECK(uv, IS_UV_CHECK);
 	
 	if (!uv_is_active((uv_handle_t*)&uv->uv.check)) {
 		php_error_docref(NULL TSRMLS_CC, E_NOTICE, "passed uv_check resource hasn't start yet.");
