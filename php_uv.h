@@ -52,8 +52,10 @@ extern zend_class_entry *uv_class_entry;
 
 enum php_uv_lock_type{
 	IS_UV_RWLOCK = 1,
-	IS_UV_MUTEX = 2,
-	IS_UV_SEMAPHORE = 3,
+	IS_UV_RWLOCK_RD = 2,
+	IS_UV_RWLOCK_WR = 3,
+	IS_UV_MUTEX = 4,
+	IS_UV_SEMAPHORE = 5,
 };
 
 enum php_uv_resource_type{
