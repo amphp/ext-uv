@@ -6867,6 +6867,8 @@ PHP_FUNCTION(uv_async_send)
 	}
 
 	ZEND_FETCH_RESOURCE(uv, php_uv_t *, &handle, -1, PHP_UV_RESOURCE_NAME, uv_resource_handle);
+	PHP_UV_TYPE_CHECK(uv, IS_UV_ASYNC)
+	
 	uv_async_send((uv_async_t*)php_uv_get_current_stream(uv));
 	PHP_UV_DEBUG_RESOURCE_REFCOUNT(uv_async_send, uv->resource_id);
 }
