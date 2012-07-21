@@ -5250,7 +5250,7 @@ PHP_FUNCTION(uv_pipe_init)
 	php_uv_t *uv;
 	uv_loop_t *loop;
 	zval *zloop = NULL;
-	zend_bool ipc = false;
+	zend_bool ipc = 0;
 	int r;
 
 	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
