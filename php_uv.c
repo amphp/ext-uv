@@ -100,7 +100,7 @@
 #define PHP_UV_FS_ASYNC(loop, func,  ...) \
 	error = uv_fs_##func(loop, (uv_fs_t*)&uv->uv.fs, __VA_ARGS__, php_uv_fs_cb); \
 	if (error) { \
-		php_error_docref(NULL TSRMLS_CC, E_ERROR, "uv_##func failed"); \
+		php_error_docref(NULL TSRMLS_CC, E_WARNING, "uv_##func failed"); \
 		return; \
 	}
 
