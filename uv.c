@@ -103,6 +103,21 @@ static int php_uv_class_init(TSRMLS_D)
 #undef XX
 	zend_declare_class_constant_long(uv_class_entry,  "HANDLE_TYPE_MAX", sizeof("HANDLE_TYPE_MAX")-1, UV_HANDLE_TYPE_MAX TSRMLS_CC);
 
+
+	/* stdio flags */
+	zend_declare_class_constant_long(uv_class_entry,  "IGNORE", sizeof("IGNORE")-1, UV_IGNORE TSRMLS_CC);
+	zend_declare_class_constant_long(uv_class_entry,  "CREATE_PIPE", sizeof("CREATE_PIPE")-1, UV_CREATE_PIPE TSRMLS_CC);
+	zend_declare_class_constant_long(uv_class_entry,  "INHERIT_FD", sizeof("INHERIT_FD")-1, UV_INHERIT_FD TSRMLS_CC);
+	zend_declare_class_constant_long(uv_class_entry,  "INHERIT_STREAM", sizeof("INHERIT_STREAM")-1, UV_INHERIT_STREAM TSRMLS_CC);
+	zend_declare_class_constant_long(uv_class_entry,  "READABLE_PIPE", sizeof("READABLE_PIPE")-1, UV_READABLE_PIPE TSRMLS_CC);
+	zend_declare_class_constant_long(uv_class_entry,  "WRITABLE_PIPE", sizeof("WRITABLE_PIPE")-1, UV_WRITABLE_PIPE TSRMLS_CC);
+
+	/* process */
+	zend_declare_class_constant_long(uv_class_entry,  "PROCESS_SETUID", sizeof("PROCESS_SETUID")-1, UV_PROCESS_SETUID TSRMLS_CC);
+	zend_declare_class_constant_long(uv_class_entry,  "PROCESS_SETGID", sizeof("PROCESS_SETGID")-1, UV_PROCESS_SETGID TSRMLS_CC);
+	zend_declare_class_constant_long(uv_class_entry,  "PROCESS_WINDOWS_VERBATIM_ARGUMENTS", sizeof("PROCESS_WINDOWS_VERBATIM_ARGUMENTS")-1, UV_PROCESS_WINDOWS_VERBATIM_ARGUMENTS TSRMLS_CC);
+	zend_declare_class_constant_long(uv_class_entry,  "PROCESS_DETACHED", sizeof("PROCESS_DETACHED")-1, UV_PROCESS_DETACHED TSRMLS_CC);
+
 	return 0;
 }
 

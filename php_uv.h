@@ -176,6 +176,13 @@ typedef struct {
 	} lock;
 } php_uv_lock_t;
 
+typedef struct {
+	int resource_id;
+	int fd;
+	zval *stream;
+	int flags;
+} php_uv_stdio_t;
+
 
 typedef struct {
 	struct http_parser parser;
@@ -197,6 +204,7 @@ typedef struct {
 #define PHP_UV_ARES_RESOURCE_NAME "uv_ares"
 #define PHP_UV_LOCK_RESOURCE_NAME "uv_lock"
 #define PHP_UV_MUTEX_RESOURCE_NAME "uv_mutex"
+#define PHP_UV_STDIO_RESOURCE_NAME "uv_stdio"
 
 
 #if PHP_VERSION_ID>=50399

@@ -1681,12 +1681,7 @@ var_dump(uv_cpu_info());
 ### array uv_interface_addresses(void)
 
 
-### resource uv_spawn(resource $loop, string $command, array $args, array $context, callable $callback)
-
-##### *Todo*
-
-* fix context keys and values.
-
+### resource uv_spawn(resource $loop, string $command, array $args, array $stdio, string $cwd, array $env = array(), callable $callback [,long $flags,  array $options])
 
 
 ### void uv_process_kill(resource $handle, long $signal)

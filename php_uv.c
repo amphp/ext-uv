@@ -197,7 +197,10 @@ static int uv_lock_handle;
 
 static int uv_httpparser_handle;
 
+static int uv_stdio_handle;
+
 static int uv_ares_initialized;
+
 
 char *php_uv_resource_map[IS_UV_MAX] = {
 	"uv_tcp",
@@ -2210,6 +2213,18 @@ void static destruct_httpparser(zend_rsrc_list_entry *rsrc TSRMLS_DC)
 	efree(obj);
 }
 
+void static destruct_uv_stdio(zend_rsrc_list_entry *rsrc TSRMLS_DC)
+{
+	php_uv_stdio_t *obj = (http_parser *)rsrc->ptr;
+
+	if (obj->stream != NULL) {
+		Z_DELREF_P(obj->stream);
+		obj->stream = NULL;
+	}
+	
+	efree(obj);
+}
+
 /*  http parser callbacks */
 static int on_message_begin(http_parser *p)
 {
@@ -2515,6 +2530,7 @@ PHP_MINIT_FUNCTION(uv)
 	uv_sockaddr_handle   = zend_register_list_destructors_ex(destruct_uv_sockaddr, NULL, PHP_UV_SOCKADDR_RESOURCE_NAME, module_number);
 	uv_lock_handle       = zend_register_list_destructors_ex(destruct_uv_lock, NULL, PHP_UV_LOCK_RESOURCE_NAME, module_number);
 	uv_httpparser_handle = zend_register_list_destructors_ex(destruct_httpparser, NULL, PHP_UV_HTTPPARSER_RESOURCE_NAME, module_number);
+	uv_stdio_handle      = zend_register_list_destructors_ex(destruct_uv_stdio, NULL, PHP_UV_STDIO_RESOURCE_NAME, module_number);
 
 	return SUCCESS;
 }
@@ -2803,6 +2819,7 @@ ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_pipe_pending_instances, 0, 0, 2)
 	ZEND_ARG_INFO(0, count)
 ZEND_END_ARG_INFO()
 
+/*
 ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_spawn, 0, 0, 5)
 	ZEND_ARG_INFO(0, loop)
 	ZEND_ARG_INFO(0, command)
@@ -2810,6 +2827,7 @@ ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_spawn, 0, 0, 5)
 	ZEND_ARG_INFO(0, options)
 	ZEND_ARG_INFO(0, callback)
 ZEND_END_ARG_INFO()
+*/
 
 ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_kill, 0, 0, 2)
 	ZEND_ARG_INFO(0, pid)
@@ -4580,6 +4598,58 @@ PHP_FUNCTION(uv_pipe_pending_instances)
 /* }}} */
 
 
+/* {{{ proto void uv_stdio_new(zval $fd, long $flags)
+*/
+PHP_FUNCTION(uv_stdio_new)
+{
+	php_uv_stdio_t *stdio;
+	zval *handle;
+	long flags = 0;
+	php_uv_t *uv;
+	php_socket *socket;
+	php_socket_t fd = -1;
+	php_stream *stream;
+
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
+		"z|l",&handle, &flags) == FAILURE) {
+		return;
+	}
+
+	stdio = (php_uv_stdio_t*)emalloc(sizeof(php_uv_stdio_t));
+	stdio->flags = flags;
+	stdio->stream = NULL;
+
+	if (Z_TYPE_P(handle) == IS_LONG) {
+		fd = Z_LVAL_P(handle);
+	} else if (Z_TYPE_P(handle) == IS_RESOURCE) {
+		if (ZEND_FETCH_RESOURCE_NO_RETURN(stream, php_stream*, &handle, -1, NULL, php_file_le_stream())) {
+			if (php_stream_cast(stream, PHP_STREAM_AS_FD | PHP_STREAM_CAST_INTERNAL, (void*)&fd, 1) != SUCCESS || fd < 0) {
+				fd = -1;
+			}
+		} else if (ZEND_FETCH_RESOURCE_NO_RETURN(socket, php_socket *, &handle, -1, NULL, php_sockets_le_socket())) {
+			fd = socket->bsd_socket;
+		} else if (ZEND_FETCH_RESOURCE_NO_RETURN(uv, php_uv_t*, &handle, -1, NULL, uv_resource_handle)) {
+			fd = -1;
+		} else {
+			php_error_docref(NULL TSRMLS_CC, E_WARNING, "passed unexpected resource");
+			RETURN_FALSE;
+		}
+	}
+	
+	
+	stdio->fd = fd;
+	
+	if (Z_TYPE_P(handle) == IS_RESOURCE) {
+		stdio->stream = handle;
+		Z_ADDREF_P(handle);
+	}
+
+	ZEND_REGISTER_RESOURCE(return_value, stdio, uv_stdio_handle);
+	stdio->resource_id =  Z_RESVAL_P(return_value);
+}
+/* }}} */
+
+
 static void php_ares_gethostbyname_cb( void *arg, int status, int timeouts, struct hostent *hostent)
 {
 	TSRMLS_FETCH();
@@ -4881,107 +4951,76 @@ PHP_FUNCTION(uv_interface_addresses)
 }
 /* }}} */
 
-/* {{{ proto resource uv_spawn(resource $loop, string $command, array $args, array $context, callable $callback)
+/* {{{ proto resource uv_spawn(resource $loop, string $command, array $args, array $stdio, string $cwd, array $env = array(), callable $callback [,long $flags,  array $options])
 */
 PHP_FUNCTION(uv_spawn)
 {
-	zval *zloop = NULL;
 	uv_loop_t *loop;
 	uv_process_options_t options = {0};
-	uv_stdio_container_t stdio[3];
+	uv_stdio_container_t *stdio = NULL;
 	php_uv_t *proc;
-	zval *args, *context;
-	char **zenv;
-	char *command;
-	char **command_args;
-	int command_len = 0;
+	zval *zloop, *args, *env, *zoptions, *zstdio = NULL;
+	char **command_args, **zenv, *command, *cwd = NULL;
+	int r, cwd_length, command_len, stdio_count = 0;
+	long flags = 0;
 	zend_fcall_info fci       = empty_fcall_info;
 	zend_fcall_info_cache fcc = empty_fcall_info_cache;
 	php_uv_cb_t *cb;
 
-	options.stdio = stdio;
-
 	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
-		"zsaaf", &zloop, &command, &command_len, &args, &context, &fci, &fcc) == FAILURE) {
+		"rsaasafl|a", &zloop, &command, &command_len, &args, &zstdio, &cwd, &cwd_length, &env, &fci, &fcc, &flags, &zoptions) == FAILURE) {
 		return;
 	}
+
+    memset(&options, 0, sizeof(uv_process_options_t));
 	
 	PHP_UV_FETCH_UV_DEFAULT_LOOP(loop, zloop);
-
-	{
-		HashTable *h;
-		zval **data;
-		h = Z_ARRVAL_P(context);
-
-		if (zend_hash_find(h, "cwd", sizeof("cwd"), (void **)&data) == SUCCESS) {
-			options.cwd = Z_STRVAL_PP(data);
-		}
+	
+	{/* process stdio */
+		HashTable *stdio_container;
+		HashPosition pos;
+		char *key;
+		int key_type;
+		uint key_len;
+		ulong key_index;
+		int hash_len = 0;
+		int x = 0;
 		
-		if (zend_hash_find(h, "env", sizeof("env"), (void **)&data) == SUCCESS) {
-			HashTable *env;
-			HashPosition pos;
-			char *key;
-			int key_type;
-			uint key_len;
-			ulong key_index;
-			int i = 0;
-			
-			env = Z_ARRVAL_P(*data);
-
-			zenv = emalloc(sizeof(char*) * (zend_hash_num_elements(env)+1));
-			for (zend_hash_internal_pointer_reset_ex(env, &pos);
-				(key_type = zend_hash_get_current_key_ex(env, &key, &key_len, &key_index, 0, &pos)) != HASH_KEY_NON_EXISTANT;
-				zend_hash_move_forward_ex(env, &pos)) {
-
-				zval **value;
-				char *tmp_env_entry;
-				zend_hash_get_current_data_ex(env, (void *) &value, &pos);
-				
-				tmp_env_entry = emalloc(sizeof(char)*key_len+1+Z_STRLEN_PP(value));
-				slprintf(tmp_env_entry, key_len+1+Z_STRLEN_PP(value), "%s=%s", key, Z_STRVAL_PP(value));
-				zenv[i] = tmp_env_entry;
-				i++;
-			}
-			zenv[i] = NULL;
-			options.env = zenv;
-		}
+		stdio_container = Z_ARRVAL_P(zstdio);
+		stdio_count = zend_hash_num_elements(stdio_container);
 		
-		if (zend_hash_find(h, "pipes", sizeof("pipes"), (void **)&data) == SUCCESS) {
-			HashTable *pipes;
-			HashPosition pos;
-			char *key;
-			int key_type;
-			uint key_len;
-			ulong key_index;
+		stdio = emalloc(sizeof(uv_stdio_container_t) * stdio_count);
+
+		x = 0;
+		for (zend_hash_internal_pointer_reset_ex(stdio_container, &pos);
+			(key_type = zend_hash_get_current_key_ex(stdio_container, &key, &key_len, &key_index, 0, &pos)) != HASH_KEY_NON_EXISTANT;
+			zend_hash_move_forward_ex(stdio_container, &pos)) {
+
+			php_uv_stdio_t *stdio_tmp;
+			zval **value;
 			
-			pipes = Z_ARRVAL_P(*data);
-			options.stdio_count = zend_hash_num_elements(pipes);
-			for (zend_hash_internal_pointer_reset_ex(pipes, &pos);
-				(key_type = zend_hash_get_current_key_ex(pipes, &key, &key_len, &key_index, 0, &pos)) != HASH_KEY_NON_EXISTANT;
-				zend_hash_move_forward_ex(pipes, &pos)) {
-
-				zval **value;
-				php_uv_t *pipe;
-				
-				zend_hash_get_current_data_ex(pipes, (void *) &value, &pos);
-				if (Z_TYPE_PP(value) != IS_RESOURCE) {
-					php_error_docref(NULL TSRMLS_CC, E_ERROR, "must be uv_pipe resource");
-				}
-				
-				ZEND_FETCH_RESOURCE(pipe, php_uv_t *, value, -1, PHP_UV_RESOURCE_NAME, uv_resource_handle);
-
-				if (pos->h == 0) {
-					options.stdio[0].flags = UV_CREATE_PIPE | UV_READABLE_PIPE;
-					options.stdio[0].data.stream = (uv_stream_t *)&pipe->uv.pipe;
-				} else if (pos->h == 1) {
-					options.stdio[1].flags = UV_CREATE_PIPE | UV_WRITABLE_PIPE;
-					options.stdio[1].data.stream = (uv_stream_t *)&pipe->uv.pipe;
-				} else if (pos->h == 2) {
-					options.stdio[2].flags = UV_CREATE_PIPE | UV_WRITABLE_PIPE;
-					options.stdio[2].data.stream = (uv_stream_t *)&pipe->uv.pipe;
-				}
+			zend_hash_get_current_data_ex(stdio_container, (void *) &value, &pos);
+			if (Z_TYPE_PP(value) != IS_RESOURCE) {
+				php_error_docref(NULL TSRMLS_CC, E_ERROR, "must be uv_stdio resource");
 			}
 			
+			ZEND_FETCH_RESOURCE(stdio_tmp, php_uv_stdio_t*, value, -1, PHP_UV_STDIO_RESOURCE_NAME, uv_stdio_handle);
+
+			stdio[x].flags = stdio_tmp->flags;
+			
+			if (stdio_tmp->flags & UV_INHERIT_FD) {
+				stdio[x].data.fd = stdio_tmp->fd;
+			} else if (stdio_tmp->flags & (UV_CREATE_PIPE | UV_INHERIT_STREAM)) {
+				php_uv_t* uv_pipe;
+				
+				ZEND_FETCH_RESOURCE(uv_pipe, php_uv_t*, &stdio_tmp->stream, -1, PHP_UV_RESOURCE_NAME, uv_resource_handle);
+				stdio[x].data.stream = (uv_stream_t*)&uv_pipe->uv.pipe;
+			} else {
+				php_error_docref(NULL TSRMLS_CC, E_WARNING, "passes unexpected stdio flags");
+				RETURN_FALSE;
+			}
+
+			x++;
 		}
 	}
 
@@ -4992,12 +5031,17 @@ PHP_FUNCTION(uv_spawn)
 		int key_type;
 		uint key_len;
 		ulong key_index;
+		int n = 0;
 		int hash_len = 0;
 
 		h = Z_ARRVAL_P(args);
-		hash_len = zend_hash_num_elements(h)+1;
-		command_args = ecalloc(hash_len+1, sizeof(char**));
-		command_args[0] = options.cwd;
+
+		hash_len = zend_hash_num_elements(h);
+
+		command_args = ecalloc(hash_len+2, sizeof(char**));
+		command_args[n] = command;
+
+		n++;
 		for (zend_hash_internal_pointer_reset_ex(h, &pos);
 			(key_type = zend_hash_get_current_key_ex(h, &key, &key_len, &key_index, 0, &pos)) != HASH_KEY_NON_EXISTANT;
 			zend_hash_move_forward_ex(h, &pos)) {
@@ -5005,33 +5049,68 @@ PHP_FUNCTION(uv_spawn)
 			zval **value;
 			
 			zend_hash_get_current_data_ex(h, (void *) &value, &pos);
-			command_args[pos->h+1] = Z_STRVAL_PP(value);
+			command_args[n] = Z_STRVAL_PP(value);
+			n++;
 		}
-		command_args[hash_len] = NULL;
+		
+		command_args[n] = NULL;
 	}
+
+	{
+		HashTable *tmp_env;
+		HashPosition pos;
+		char *key;
+		int key_type;
+		uint key_len;
+		ulong key_index;
+		int i = 0;
+		
+		tmp_env = Z_ARRVAL_P(env);
+
+		zenv = emalloc(sizeof(char*) * (zend_hash_num_elements(tmp_env)+1));
+		for (zend_hash_internal_pointer_reset_ex(tmp_env, &pos);
+			(key_type = zend_hash_get_current_key_ex(tmp_env, &key, &key_len, &key_index, 0, &pos)) != HASH_KEY_NON_EXISTANT;
+			zend_hash_move_forward_ex(tmp_env, &pos)) {
+
+			zval **value;
+			char *tmp_env_entry;
+			zend_hash_get_current_data_ex(tmp_env, (void *) &value, &pos);
+			
+			tmp_env_entry = emalloc(sizeof(char)*key_len+1+Z_STRLEN_PP(value));
+			slprintf(tmp_env_entry, key_len+1+Z_STRLEN_PP(value), "%s=%s", key, Z_STRVAL_PP(value));
+			zenv[i] = tmp_env_entry;
+			i++;
+		}
+		zenv[i] = NULL;
+	}
+
+	options.file    = command;
+	options.stdio   = stdio;
+	options.exit_cb = php_uv_process_close_cb;
+	options.env     = zenv;
+	options.args    = command_args;
+	options.cwd     = cwd;
+	options.stdio   = stdio;
+	options.stdio_count = stdio_count;
+	options.flags = flags;
+	options.uid = 0;
+	options.gid = 0;
 
 	proc  = (php_uv_t *)emalloc(sizeof(php_uv_t));
 	PHP_UV_INIT_ZVALS(proc);
 	php_uv_cb_init(&cb, proc, &fci, &fcc, PHP_UV_PROC_CLOSE_CB);
-
 	TSRMLS_SET_CTX(proc->thread_ctx);
-	
-	options.file          = command;
-	if (command_args) {
-		options.args = command_args;
-	}
-	options.exit_cb       = php_uv_process_close_cb;
 
 	proc->type = IS_UV_PROCESS;
 	proc->uv.process.data = proc;
 
 	ZEND_REGISTER_RESOURCE(return_value, proc, uv_resource_handle);
-	proc->resource_id = Z_LVAL_P(return_value);
+	proc->resource_id = Z_RESVAL_P(return_value);
 	zval_copy_ctor(return_value);
-	
-	uv_spawn(loop, &proc->uv.process, options);
-	
-	if (zenv!=NULL) {
+
+	r = uv_spawn(loop, &proc->uv.process, options);
+
+	if (zenv != NULL) {
 		char **p = zenv;
 		while(*p != NULL) {
 			efree(*p);
@@ -5039,8 +5118,12 @@ PHP_FUNCTION(uv_spawn)
 		}
 		efree(zenv);
 	}
-	if (command_args) {
+	if (command_args != NULL) {
 		efree(command_args);
+	}
+	
+	if (stdio != NULL) {
+		efree(stdio);
 	}
 }
 /* }}} */
@@ -6250,8 +6333,9 @@ static zend_function_entry uv_functions[] = {
 	PHP_FE(uv_pipe_open,                arginfo_uv_pipe_open)
 	PHP_FE(uv_pipe_connect,             arginfo_uv_pipe_connect)
 	PHP_FE(uv_pipe_pending_instances,   arginfo_uv_pipe_pending_instances)
+	PHP_FE(uv_stdio_new,                NULL)
 	/* spawn */
-	PHP_FE(uv_spawn,                    arginfo_uv_spawn)
+	PHP_FE(uv_spawn,                    NULL)
 	PHP_FE(uv_process_kill,             arginfo_uv_process_kill)
 	PHP_FE(uv_kill,                     arginfo_uv_kill)
 	/* c-ares */
