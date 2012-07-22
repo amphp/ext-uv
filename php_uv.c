@@ -5067,7 +5067,7 @@ PHP_FUNCTION(uv_spawn)
 		
 		tmp_env = Z_ARRVAL_P(env);
 
-		zenv = emalloc(sizeof(char*) * (zend_hash_num_elements(tmp_env)+1));
+		zenv = ecalloc(zend_hash_num_elements(tmp_env)+1, sizeof(char*));
 		for (zend_hash_internal_pointer_reset_ex(tmp_env, &pos);
 			(key_type = zend_hash_get_current_key_ex(tmp_env, &key, &key_len, &key_index, 0, &pos)) != HASH_KEY_NON_EXISTANT;
 			zend_hash_move_forward_ex(tmp_env, &pos)) {

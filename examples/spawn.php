@@ -10,7 +10,7 @@ $stdio[] = uv_stdio_new($in, UV::CREATE_PIPE | UV::READABLE_PIPE);
 $stdio[] = uv_stdio_new($out, UV::CREATE_PIPE | UV::WRITABLE_PIPE);
 
 $flags = 0;
-uv_spawn(uv_default_loop(), "php", array('-r','echo "WORLD";'), $stdio, "/usr/bin/", 
+uv_spawn(uv_default_loop(), "php", array('-r','var_dump($_ENV);'), $stdio, "/usr/bin/", 
     array("key"=>"hello"), 
     function($process, $stat, $signal){
 	    uv_close($process,function(){});
