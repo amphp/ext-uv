@@ -5173,6 +5173,10 @@ PHP_FUNCTION(uv_process_kill)
 	}
 
 	ZEND_FETCH_RESOURCE(uv, php_uv_t *, &handle, -1, PHP_UV_RESOURCE_NAME, uv_resource_handle);
+	if (uv->type != IS_UV_PROCESS) {
+		php_error_docref(NULL TSRMLS_CC, E_WARNING, "passed resource didn't initialize for uv_process");
+	}
+	
 	uv_process_kill(&uv->uv.process, signal);
 }
 /* }}} */
