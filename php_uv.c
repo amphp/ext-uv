@@ -5879,7 +5879,16 @@ PHP_FUNCTION(uv_tty_get_winsize)
 	}
 
 	ZEND_FETCH_RESOURCE(uv, php_uv_t*, &handle, -1, PHP_UV_RESOURCE_NAME, uv_resource_handle);
+	
+	if (uv->type != IS_UV_TTY) {
+		php_error_docref(NULL TSRMLS_CC, E_WARNING, "passed resource doesn't initialize for uv_tty");
+		RETURN_FALSE;
+	}
+
 	error = uv_tty_get_winsize(&uv->uv.tty, &width, &height);
+	
+	zval_dtor(w);
+	zval_dtor(h);
 	
 	ZVAL_LONG(w, width);
 	ZVAL_LONG(h, height);
@@ -5903,6 +5912,12 @@ PHP_FUNCTION(uv_tty_set_mode)
 	}
 
 	ZEND_FETCH_RESOURCE(uv, php_uv_t*, &handle, -1, PHP_UV_RESOURCE_NAME, uv_resource_handle);
+
+	if (uv->type != IS_UV_TTY) {
+		php_error_docref(NULL TSRMLS_CC, E_WARNING, "passed resource doesn't initialize for uv_tty");
+		RETURN_FALSE;
+	}
+
 	error = uv_tty_set_mode(&uv->uv.tty, mode);
 	RETURN_LONG(error);
 }
