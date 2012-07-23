@@ -2413,14 +2413,28 @@ static void php_uv_socket_getname(int type, INTERNAL_FUNCTION_PARAMETERS)
 	}
 
 	ZEND_FETCH_RESOURCE(uv, php_uv_t*, &handle, -1, PHP_UV_RESOURCE_NAME, uv_resource_handle);
+
+
 	switch (type) {
 		case 1:
+			if (uv->type != IS_UV_TCP) {
+				php_error_docref(NULL TSRMLS_CC, E_WARNING, "passed resource doesn't initialize for uv_tcp");
+				RETURN_FALSE;
+			}
 			error  = uv_tcp_getsockname(&uv->uv.tcp, (struct sockaddr*)&addr, &addr_len);
 			break;
 		case 2:
+			if (uv->type != IS_UV_TCP) {
+				php_error_docref(NULL TSRMLS_CC, E_WARNING, "passed resource doesn't initialize for uv_tcp");
+				RETURN_FALSE;
+			}
 			error  = uv_tcp_getpeername(&uv->uv.tcp, (struct sockaddr*)&addr, &addr_len);
 			break;
 		case 3:
+			if (uv->type != IS_UV_UDP) {
+				php_error_docref(NULL TSRMLS_CC, E_WARNING, "passed resource doesn't initialize for uv_tcp");
+				RETURN_FALSE;
+			}
 			error  = uv_udp_getsockname(&uv->uv.udp, (struct sockaddr*)&addr, &addr_len);
 			break;
 		default:
@@ -5945,6 +5959,11 @@ PHP_FUNCTION(uv_tcp_simultaneous_accepts)
 	}
 
 	ZEND_FETCH_RESOURCE(uv, php_uv_t*, &handle, -1, PHP_UV_RESOURCE_NAME, uv_resource_handle);
+	if (uv->type != IS_UV_TCP) {
+		php_error_docref(NULL TSRMLS_CC, E_WARNING, "passed resource doesn't initialize for uv_tcp");
+		RETURN_FALSE;
+	}
+
 	error = uv_tcp_simultaneous_accepts(&uv->uv.tcp, enable);
 	RETURN_LONG(error);
 }
