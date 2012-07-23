@@ -2208,7 +2208,14 @@ static inline uv_stream_t* php_uv_get_current_stream(php_uv_t *uv)
 
 void static destruct_httpparser(zend_rsrc_list_entry *rsrc TSRMLS_DC)
 {
-	http_parser *obj = (http_parser *)rsrc->ptr;
+	php_http_parser_context *obj = (php_http_parser_context *)rsrc->ptr;
+	
+	if (obj->headers) {
+		zval_ptr_dtor(&obj->headers);
+	}
+	if (obj->data) {
+		zval_ptr_dtor(&obj->data);
+	}
 
 	efree(obj);
 }
@@ -6244,6 +6251,7 @@ ZEND_END_ARG_INFO()
 PHP_FUNCTION(uv_http_parser_init)
 {
 	long target = HTTP_REQUEST;
+	zval *header, *result;
 	php_http_parser_context *ctx;
 
 	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
@@ -6253,6 +6261,15 @@ PHP_FUNCTION(uv_http_parser_init)
 
 	ctx = emalloc(sizeof(php_http_parser_context));
 	http_parser_init(&ctx->parser, target);
+
+	MAKE_STD_ZVAL(header);
+	array_init(header);
+	
+	MAKE_STD_ZVAL(result);
+	array_init(result);
+
+	ctx->data = result;
+	ctx->headers = header;
 
 	if (target == HTTP_RESPONSE) {
 		ctx->is_response = 1;
@@ -6279,7 +6296,7 @@ PHP_FUNCTION(uv_http_parser_init)
 */
 PHP_FUNCTION(uv_http_parser_execute)
 {
-	zval *z_parser,*result, *headers;
+	zval *z_parser,*result;
 	php_http_parser_context *context;
 	char *body;
 	int body_len;
@@ -6291,23 +6308,27 @@ PHP_FUNCTION(uv_http_parser_execute)
 	
 	ZEND_FETCH_RESOURCE(context, php_http_parser_context*, &z_parser, -1, PHP_UV_HTTPPARSER_RESOURCE_NAME, uv_httpparser_handle);
 
-	MAKE_STD_ZVAL(headers);
-	array_init(headers);
-	add_assoc_zval(result, "headers", headers);
-
-	context->headers = headers;
-	context->data = result;
-	context->parser.data = context;
-
-	http_parser_execute(&context->parser, &context->settings, body, body_len);
-
-	if (context->is_response == 0) {
-		add_assoc_string(result, "REQUEST_METHOD", (char*)http_method_str(context->parser.method), 1);
-	} else {
-		add_assoc_long(result, "status_code", (long)context->parser.status_code);
+	if (context->finished == 1) {
+		php_error_docref(NULL TSRMLS_CC, E_NOTICE, "passed uv_parser resource has already finished.");
+		RETURN_FALSE;
 	}
 
+	context->parser.data = context;
+	http_parser_execute(&context->parser, &context->settings, body, body_len);
+
 	if (context->finished == 1) {
+		if (result) {
+			zval_dtor(result);
+		}
+		
+		ZVAL_ZVAL(result, context->data, 1, 0);
+		if (context->is_response == 0) {
+			add_assoc_string(result, "REQUEST_METHOD", (char*)http_method_str(context->parser.method), 1);
+		} else {
+			add_assoc_long(result, "status_code", (long)context->parser.status_code);
+		}
+
+		add_assoc_zval(result, "headers", context->headers);
 		RETURN_TRUE;
 	} else {
 		RETURN_FALSE;
