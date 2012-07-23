@@ -5854,12 +5854,11 @@ PHP_FUNCTION(uv_tty_init)
 
 	uv->uv.tty.data = uv;
 	
-	error = uv_tty_init(loop, (uv_tty_t*)&uv->uv.tty, fd, readable); \
+	error = uv_tty_init(loop, (uv_tty_t*)&uv->uv.tty, fd, readable);
 	if (error) {
-		php_error_docref(NULL TSRMLS_CC, E_ERROR, "uv_fs_event_init failed"); \
+		php_error_docref(NULL TSRMLS_CC, E_WARNING, "uv_tty_init failed");
 		return;
 	}
-	
 
 	ZVAL_RESOURCE(return_value, uv->resource_id);
 }
