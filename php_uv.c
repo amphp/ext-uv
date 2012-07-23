@@ -4961,7 +4961,7 @@ PHP_FUNCTION(uv_spawn)
 	php_uv_t *proc;
 	zval *zloop, *args, *env, *zoptions, *zstdio = NULL;
 	char **command_args, **zenv, *command, *cwd = NULL;
-	int r, cwd_length, command_len, stdio_count = 0;
+	int r = 0, cwd_length = 0, command_len =0, uid = 0, gid = 0, stdio_count = 0;
 	long flags = 0;
 	zend_fcall_info fci       = empty_fcall_info;
 	zend_fcall_info_cache fcc = empty_fcall_info_cache;
@@ -5056,7 +5056,7 @@ PHP_FUNCTION(uv_spawn)
 		command_args[n] = NULL;
 	}
 
-	{
+	{ /* env */
 		HashTable *tmp_env;
 		HashPosition pos;
 		char *key;
@@ -5083,6 +5083,22 @@ PHP_FUNCTION(uv_spawn)
 		}
 		zenv[i] = NULL;
 	}
+	
+	
+	if (Z_TYPE_P(zoptions) != IS_NULL){
+		HashTable *opts;
+		zval **data;
+
+		opts = Z_ARRVAL_P(zoptions);
+		
+		if (zend_hash_find(opts, "uid", sizeof("uid"), (void **)&data) == SUCCESS) {
+			uid = Z_LVAL_PP(data);
+		}
+		
+		if (zend_hash_find(opts, "gid", sizeof("gid"), (void **)&data) == SUCCESS) {
+			gid = Z_LVAL_PP(data);
+		}
+	}
 
 	options.file    = command;
 	options.stdio   = stdio;
@@ -5093,8 +5109,8 @@ PHP_FUNCTION(uv_spawn)
 	options.stdio   = stdio;
 	options.stdio_count = stdio_count;
 	options.flags = flags;
-	options.uid = 0;
-	options.gid = 0;
+	options.uid = uid;
+	options.gid = gid;
 
 	proc  = (php_uv_t *)emalloc(sizeof(php_uv_t));
 	PHP_UV_INIT_ZVALS(proc);
