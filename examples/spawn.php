@@ -11,7 +11,7 @@ $stdio[] = uv_stdio_new($out, UV::CREATE_PIPE | UV::WRITABLE_PIPE);
 
 $flags = 0;
 uv_spawn(uv_default_loop(), "php", array('-r','var_dump($_ENV);'), $stdio, "/usr/bin/", 
-    array("key"=>"hello"), 
+    array("KEY"=>"hello"), 
     function($process, $stat, $signal){
 	    uv_close($process,function(){});
 

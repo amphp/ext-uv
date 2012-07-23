@@ -4981,7 +4981,7 @@ PHP_FUNCTION(uv_spawn)
 	uv_process_options_t options = {0};
 	uv_stdio_container_t *stdio = NULL;
 	php_uv_t *proc;
-	zval *zloop, *args, *env, *zoptions, *zstdio = NULL;
+	zval *zloop, *args, *env, *zoptions = NULL, *zstdio = NULL;
 	char **command_args, **zenv, *command, *cwd = NULL;
 	int r = 0, cwd_length = 0, command_len =0, uid = 0, gid = 0, stdio_count = 0;
 	long flags = 0;
@@ -5107,7 +5107,7 @@ PHP_FUNCTION(uv_spawn)
 	}
 	
 	
-	if (Z_TYPE_P(zoptions) != IS_NULL){
+	if (zoptions != NULL && Z_TYPE_P(zoptions) != IS_NULL){
 		HashTable *opts;
 		zval **data;
 
