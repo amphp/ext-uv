@@ -6317,25 +6317,19 @@ PHP_FUNCTION(uv_http_parser_execute)
 	http_parser_execute(&context->parser, &context->settings, body, body_len);
 
 	if (context->finished == 1) {
-		zval *res,*head;
-
 		if (result) {
 			zval_dtor(result);
-			array_init(result);
 		}
 		
-		MAKE_STD_ZVAL(res);
-		ZVAL_ZVAL(res,  context->data, 1, 0);
-		ZVAL_ZVAL(result, res, 0, 0);
+		ZVAL_ZVAL(result, context->data, 1, 0);
+		
 		if (context->is_response == 0) {
 			add_assoc_string(result, "REQUEST_METHOD", (char*)http_method_str(context->parser.method), 1);
 		} else {
 			add_assoc_long(result, "status_code", (long)context->parser.status_code);
 		}
-		MAKE_STD_ZVAL(head);
-		ZVAL_ZVAL(head, context->headers, 1, 0);
 
-		add_assoc_zval(result, "headers", head);
+		add_assoc_zval(result, "headers", context->headers);
 		RETURN_TRUE;
 	} else {
 		RETURN_FALSE;
