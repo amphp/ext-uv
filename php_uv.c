@@ -2222,10 +2222,9 @@ void static destruct_httpparser(zend_rsrc_list_entry *rsrc TSRMLS_DC)
 
 void static destruct_uv_stdio(zend_rsrc_list_entry *rsrc TSRMLS_DC)
 {
-	php_uv_stdio_t *obj = (http_parser *)rsrc->ptr;
+	php_uv_stdio_t *obj = (php_uv_stdio_t *)rsrc->ptr;
 
 	if (obj->stream != NULL) {
-		//Z_DELREF_P(obj->stream);
 		zval_ptr_dtor(&obj->stream);
 		obj->stream = NULL;
 	}
