@@ -5005,7 +5005,6 @@ PHP_FUNCTION(uv_spawn)
 		int key_type;
 		uint key_len;
 		ulong key_index;
-		int hash_len = 0;
 		int x = 0;
 		
 		stdio_container = Z_ARRVAL_P(zstdio);
