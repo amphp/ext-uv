@@ -89,7 +89,7 @@
 	fd = php_uv_zval_to_fd(zstream TSRMLS_CC); \
 	if (fd < 0) { \
 		php_error_docref(NULL TSRMLS_CC, E_WARNING, "invalid variable passed. can't convert to fd."); \
-		return; \
+		RETURN_FALSE; \
 	} \
 	if (uv->fs_fd == NULL) { \
 		uv->fs_fd = zstream;\
