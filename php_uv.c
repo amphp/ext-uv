@@ -2253,9 +2253,9 @@ static int on_message_complete(http_parser *p)
 
 #define PHP_HTTP_PARSER_PARSE_URL(flag, name) \
 	if (result->handle.field_set & (1 << flag)) { \
-		const char *name = at+result->handle.field_data[flag].off; \
+		const char *tmp_name = at+result->handle.field_data[flag].off; \
 		int length = result->handle.field_data[flag].len; \
-		add_assoc_stringl(data, #name, (char*)name, length, 1); \
+		add_assoc_stringl(data, #name, (char*)tmp_name, length, 1); \
 	} 
 
 static int on_url_cb(http_parser *p, const char *at, size_t len)
@@ -2267,21 +2267,38 @@ static int on_url_cb(http_parser *p, const char *at, size_t len)
 
 	add_assoc_stringl(data, "QUERY_STRING", (char*)at, len, 1);
 
-	PHP_HTTP_PARSER_PARSE_URL(UF_SCHEMA, scheme);
-	PHP_HTTP_PARSER_PARSE_URL(UF_HOST, host);
-	PHP_HTTP_PARSER_PARSE_URL(UF_PORT, port);
-	PHP_HTTP_PARSER_PARSE_URL(UF_PATH, path);
-	PHP_HTTP_PARSER_PARSE_URL(UF_QUERY, query);
-	PHP_HTTP_PARSER_PARSE_URL(UF_FRAGMENT, fragment);
+	PHP_HTTP_PARSER_PARSE_URL(UF_SCHEMA, SCHEME);
+	PHP_HTTP_PARSER_PARSE_URL(UF_HOST, HOST);
+	PHP_HTTP_PARSER_PARSE_URL(UF_PORT, PORT);
+	PHP_HTTP_PARSER_PARSE_URL(UF_PATH, PATH);
+	PHP_HTTP_PARSER_PARSE_URL(UF_QUERY, QUERY);
+	PHP_HTTP_PARSER_PARSE_URL(UF_FRAGMENT, FRAGMENT);
 
 	return 0;
 }
+
+char *php_uv_strtoupper(char *s, size_t len)
+{
+	unsigned char *c, *e;
+
+	c = (unsigned char *)s;
+	e = (unsigned char *)c+len;
+
+	while (c < e) {
+		*c = toupper(*c);
+		if (*c == '-') *c = '_';
+		c++;
+	}
+	return s;
+}
+
 
 static int header_field_cb(http_parser *p, const char *at, size_t len)
 {
 	php_http_parser_context *result = p->data;
 	/* TODO: */
 	result->tmp = estrndup(at, len);
+	php_uv_strtoupper(result->tmp, len);
 
 	return 0;
 }
@@ -2303,7 +2320,7 @@ static int on_body_cb(http_parser *p, const char *at, size_t len)
 	php_http_parser_context *result = p->data;
 	zval *data = result->headers;
 
-	add_assoc_stringl(data, "body", (char*)at, len,  1);
+	add_assoc_stringl(data, "BODy", (char*)at, len,  1);
 
 	return 0;
 }
@@ -6324,13 +6341,13 @@ PHP_FUNCTION(uv_http_parser_execute)
 		if (context->is_response == 0) {
 			add_assoc_string(result, "REQUEST_METHOD", (char*)http_method_str(context->parser.method), 1);
 		} else {
-			add_assoc_long(result, "status_code", (long)context->parser.status_code);
+			add_assoc_long(result, "STATUS_CODE", (long)context->parser.status_code);
 		}
 
 		MAKE_STD_ZVAL(headers);
 		ZVAL_ZVAL(headers, context->headers, 1, 0);
 
-		add_assoc_zval(result, "headers", headers);
+		add_assoc_zval(result, "HEADERS", headers);
 		RETURN_TRUE;
 	} else {
 		RETURN_FALSE;
