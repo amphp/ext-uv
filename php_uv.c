@@ -3792,6 +3792,17 @@ PHP_FUNCTION(uv_listen)
 	}
 	
 	ZEND_FETCH_RESOURCE(uv, php_uv_t *, &resource, -1, PHP_UV_RESOURCE_NAME, uv_resource_handle);
+	
+	switch (uv->type) {
+		case IS_UV_TCP:
+		case IS_UV_PIPE:
+		break;
+		default:
+			php_error_docref(NULL TSRMLS_CC, E_WARNING, "expects uv_tcp or uv_pipe resource.");
+			RETURN_FALSE;
+		break;
+	}
+	
 	php_uv_cb_init(&cb, uv, &fci, &fcc, PHP_UV_LISTEN_CB);
 
 	r = uv_listen((uv_stream_t*)php_uv_get_current_stream(uv), backlog, php_uv_listen_cb);
