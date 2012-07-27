@@ -6142,7 +6142,7 @@ PHP_FUNCTION(uv_poll_start)
 	ZEND_FETCH_RESOURCE(uv, php_uv_t *, &handle, -1, PHP_UV_RESOURCE_NAME, uv_resource_handle);
 	
 	if (uv->type != IS_UV_POLL) {
-		php_error_docref(NULL TSRMLS_CC, "passed resource didn't initialize for uv_poll");
+		php_error_docref(NULL TSRMLS_CC, E_WARNING, "passed resource didn't initialize for uv_poll");
 		RETURN_FALSE;
 	}
 
@@ -6174,7 +6174,7 @@ PHP_FUNCTION(uv_poll_stop)
 	ZEND_FETCH_RESOURCE(uv, php_uv_t *, &poll, -1, PHP_UV_RESOURCE_NAME, uv_resource_handle);
 
 	if (uv->type != IS_UV_POLL) {
-		php_error_docref(NULL TSRMLS_CC, "passed resource didn't initialize for uv_poll");
+		php_error_docref(NULL TSRMLS_CC, E_WARNING, "passed resource didn't initialize for uv_poll");
 		RETURN_FALSE;
 	}
 
