@@ -3593,6 +3593,13 @@ PHP_FUNCTION(uv_shutdown)
 	}
 
 	ZEND_FETCH_RESOURCE(uv, php_uv_t *, &client, -1, PHP_UV_RESOURCE_NAME, uv_resource_handle);
+#ifndef PHP_WIN32
+	/*  uv_shutdown (unix) only supports uv_handle_t right now */
+	if (uv->type != IS_UV_TCP && uv->type != IS_UV_PIPE) {
+		php_error_docref(NULL TSRMLS_CC, E_WARNING, "passed resource didn't initialize for uv_tcp or uv_pipe");
+		RETURN_FALSE;
+	}
+#endif
 
 	php_uv_cb_init(&cb, uv, &fci, &fcc, PHP_UV_SHUTDOWN_CB);
 
