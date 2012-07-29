@@ -3632,6 +3632,28 @@ PHP_FUNCTION(uv_close)
 	}
 
 	ZEND_FETCH_RESOURCE(uv, php_uv_t *, &client, -1, PHP_UV_RESOURCE_NAME, uv_resource_handle);
+
+	switch (uv->type) {
+		/* TODO: use libuv enum */
+		case IS_UV_PIPE:
+		case IS_UV_TTY:
+		case IS_UV_TCP:
+		case IS_UV_UDP:
+		case IS_UV_PREPARE:
+		case IS_UV_CHECK:
+		case IS_UV_IDLE:
+		case IS_UV_ASYNC:
+		case IS_UV_TIMER:
+		case IS_UV_PROCESS:
+		case IS_UV_FS_EVENT:
+		case IS_UV_POLL:
+		case IS_UV_FS_POLL:
+		break;
+		default:
+			php_error_docref(NULL TSRMLS_CC, E_WARNING, "passed resource didn't initialize for uv_close (%d)", uv->type);
+			RETURN_FALSE;
+		break;
+	}
 	
 	php_uv_cb_init(&cb, uv, &fci, &fcc, PHP_UV_CLOSE_CB);
 	
