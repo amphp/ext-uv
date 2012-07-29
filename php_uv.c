@@ -3659,13 +3659,21 @@ PHP_FUNCTION(uv_read_start)
 	}
 
 	ZEND_FETCH_RESOURCE(uv, php_uv_t *, &client, -1, PHP_UV_RESOURCE_NAME, uv_resource_handle);
+
+	if (uv->type != IS_UV_TCP && uv->type != IS_UV_PIPE && uv->type != IS_UV_TTY) {
+		php_error_docref(NULL TSRMLS_CC, E_WARNING, "passed resource didn't intialize for uv_tcp, uv_pipe or uv_tty.");
+		RETURN_FALSE;
+	}
+	
 	
 	zend_list_addref(uv->resource_id);
 
-	if(uv->type == IS_UV_TCP) {
+	if (uv->type == IS_UV_TCP) {
 		uv->uv.tcp.data = uv;
 	} else if(uv->type == IS_UV_PIPE) {
 		uv->uv.pipe.data = uv;
+	} else if (uv->type == IS_UV_TTY) {
+		uv->uv.tty.data = uv;
 	} else {
 		php_error_docref(NULL TSRMLS_CC, E_NOTICE, "this type does not support yet");
 	}
@@ -3699,12 +3707,20 @@ PHP_FUNCTION(uv_read2_start)
 	}
 
 	ZEND_FETCH_RESOURCE(uv, php_uv_t *, &client, -1, PHP_UV_RESOURCE_NAME, uv_resource_handle);
+
+	if (uv->type != IS_UV_TCP && uv->type != IS_UV_PIPE && uv->type != IS_UV_TTY) {
+		php_error_docref(NULL TSRMLS_CC, E_WARNING, "passed resource didn't intialize for uv_tcp, uv_pipe or uv_tty.");
+		RETURN_FALSE;
+	}
+
 	zend_list_addref(uv->resource_id);
 
 	if(uv->type == IS_UV_TCP) {
 		uv->uv.tcp.data = uv;
 	} else if(uv->type == IS_UV_PIPE) {
 		uv->uv.pipe.data = uv;
+	} else if (uv->type == IS_UV_TTY) {
+		uv->uv.tty.data = uv;
 	} else {
 		php_error_docref(NULL TSRMLS_CC, E_NOTICE, "this type does not support yet");
 	}
