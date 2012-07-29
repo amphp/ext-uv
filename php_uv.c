@@ -3747,6 +3747,12 @@ PHP_FUNCTION(uv_read_stop)
 	}
 
 	ZEND_FETCH_RESOURCE(uv, php_uv_t *, &server, -1, PHP_UV_RESOURCE_NAME, uv_resource_handle);
+
+	if (uv->type != IS_UV_TCP && uv->type != IS_UV_PIPE && uv->type != IS_UV_TTY) {
+		php_error_docref(NULL TSRMLS_CC, E_WARNING, "passed resource didn't intialize for uv_tcp, uv_pipe or uv_tty.");
+		RETURN_FALSE;
+	}
+
 	uv_read_stop((uv_stream_t*)php_uv_get_current_stream(uv));
 	PHP_UV_DEBUG_RESOURCE_REFCOUNT(uv_read_stop, uv->resource_id);
 }
