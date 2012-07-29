@@ -3473,6 +3473,12 @@ PHP_FUNCTION(uv_write)
 	}
 	
 	ZEND_FETCH_RESOURCE(uv, php_uv_t *, &z_cli, -1, PHP_UV_RESOURCE_NAME, uv_resource_handle);
+
+	if (uv->type != IS_UV_TCP && uv->type != IS_UV_PIPE && uv->type != IS_UV_TTY) {
+		php_error_docref(NULL TSRMLS_CC, E_WARNING, "passed resource does not support yet");
+		RETURN_FALSE;
+	}
+	
 	zend_list_addref(uv->resource_id);
 	
 	php_uv_cb_init(&cb, uv, &fci, &fcc, PHP_UV_WRITE_CB);
@@ -3507,6 +3513,12 @@ PHP_FUNCTION(uv_write2)
 	}
 	
 	ZEND_FETCH_RESOURCE(uv, php_uv_t *, &z_cli, -1, PHP_UV_RESOURCE_NAME, uv_resource_handle);
+
+	if (uv->type != IS_UV_TCP && uv->type != IS_UV_PIPE && uv->type != IS_UV_TTY) {
+		php_error_docref(NULL TSRMLS_CC, E_WARNING, "passed resource does not support yet");
+		RETURN_FALSE;
+	}
+
 	ZEND_FETCH_RESOURCE(send, php_uv_t *, &z_send, -1, PHP_UV_RESOURCE_NAME, uv_resource_handle);
 	zend_list_addref(uv->resource_id);
 	
