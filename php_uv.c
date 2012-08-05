@@ -431,13 +431,20 @@ static inline void php_uv_cb_init(php_uv_cb_t **result, php_uv_t *uv, zend_fcall
 {
 	php_uv_cb_t *cb;
 
-	cb = emalloc(sizeof(php_uv_cb_t));
+	if (uv->callback[type] == NULL) {
+		cb = emalloc(sizeof(php_uv_cb_t));
+	} else {
+		cb = uv->callback[type];
+		zval_ptr_dtor(&cb->fci.function_name);
+#if PHP_VERSION_ID >= 50300
+		if (fci->object_ptr) {
+			zval_ptr_dtor(&cb->fci.object_ptr);
+		}
+#endif
+	}
+
 	memcpy(&cb->fci, fci, sizeof(zend_fcall_info));
 	memcpy(&cb->fcc, fcc, sizeof(zend_fcall_info_cache));
-	
-	if (uv->callback[type] != NULL) {
-		efree(uv->callback[type]);
-	}
 
 	if (ZEND_FCI_INITIALIZED(*fci)) {
 		Z_ADDREF_P(cb->fci.function_name);
@@ -1339,9 +1346,9 @@ static void php_uv_walk_cb(uv_handle_t* handle, void* arg)
 static void php_uv_write_cb(uv_write_t* req, int status)
 {
 	write_req_t* wr = (write_req_t*) req;
-	zval *retval_ptr, *stat, *client= NULL;
+	zval *stat, *retval_ptr = NULL, *client= NULL;
 	zval **params[2];
-	php_uv_t *uv = (php_uv_t*)req->data;
+	php_uv_t *uv = (php_uv_t*)req->handle->data;
 	TSRMLS_FETCH_FROM_CTX(uv->thread_ctx);
 
 	PHP_UV_DEBUG_PRINT("uv_write_cb: status: %d\n", status);
@@ -1357,9 +1364,12 @@ static void php_uv_write_cb(uv_write_t* req, int status)
 	
 	php_uv_do_callback2(&retval_ptr, uv, params, 2, PHP_UV_WRITE_CB TSRMLS_CC);
 
-	zval_ptr_dtor(&retval_ptr);
-	zval_ptr_dtor(&stat);
+	if (retval_ptr != NULL) {
+		zval_ptr_dtor(&retval_ptr);
+	}
+	
 	zval_ptr_dtor(&client);
+	zval_ptr_dtor(&stat);
 
 	if (wr->buf.base) {
 		efree(wr->buf.base);
@@ -3468,7 +3478,7 @@ PHP_FUNCTION(uv_write)
 	php_uv_cb_t *cb;
 	
 	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
-		"zsf",&z_cli, &data, &data_len, &fci, &fcc) == FAILURE) {
+		"zs|f!",&z_cli, &data, &data_len, &fci, &fcc) == FAILURE) {
 		return;
 	}
 	
@@ -3487,7 +3497,7 @@ PHP_FUNCTION(uv_write)
 
 	r = uv_write(&w->req, (uv_stream_t*)php_uv_get_current_stream(uv), &w->buf, 1, php_uv_write_cb);
 	if (r) {
-		php_error_docref(NULL TSRMLS_CC, E_ERROR, "write failed");
+		php_error_docref(NULL TSRMLS_CC, E_WARNING, "write failed");
 	}
 
 	PHP_UV_DEBUG_RESOURCE_REFCOUNT(uv_write, uv->resource_id);
