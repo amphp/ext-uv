@@ -435,12 +435,14 @@ static inline void php_uv_cb_init(php_uv_cb_t **result, php_uv_t *uv, zend_fcall
 		cb = emalloc(sizeof(php_uv_cb_t));
 	} else {
 		cb = uv->callback[type];
-		zval_ptr_dtor(&cb->fci.function_name);
+		if (cb->fci.function_name != NULL) {
+			zval_ptr_dtor(&cb->fci.function_name);
 #if PHP_VERSION_ID >= 50300
-		if (fci->object_ptr) {
-			zval_ptr_dtor(&cb->fci.object_ptr);
-		}
+			if (fci->object_ptr) {
+				zval_ptr_dtor(&cb->fci.object_ptr);
+			}
 #endif
+		}
 	}
 
 	memcpy(&cb->fci, fci, sizeof(zend_fcall_info));
