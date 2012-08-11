@@ -1,4 +1,6 @@
 <?php
+require "debug_timer.php";
+
 $address = "::1";
 $port = 8888;
 
@@ -32,12 +34,13 @@ uv_listen($server, 511, function($server_stream) use (&$parsers, &$clients){
 
     uv_read_start($client, function($client, $nread, $buffer) use (&$parsers, &$clients){
         if ($nread < 0) {
-            uv_shutdown($client, function($client){
+            uv_shutdown($client, function($client) use (&$parsers, &$clients){
                 uv_close($client, function($client) use (&$parsers, &$clients){
                         unset($parsers[(int)$client]);
                         unset($clients[(int)$client]);
                 });
             });
+            return;
         } else if ($nread == 0) {
             if (uv_last_error() == UV::EOF) {
                 uv_shutdown($client, function($client) use (&$parsers, &$clients){
@@ -46,6 +49,7 @@ uv_listen($server, 511, function($server_stream) use (&$parsers, &$clients){
                         unset($clients[(int)$client]);
                     });
                 });
+                return;
             }
         } else {
             $result = array();
@@ -62,7 +66,5 @@ uv_listen($server, 511, function($server_stream) use (&$parsers, &$clients){
         }
     });
 });
-
-//require "debug_timer.php";
 
 uv_run(uv_default_loop());
