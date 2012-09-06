@@ -68,7 +68,7 @@ if test $PHP_UV != "no"; then
             CFLAGS="$CFLAGS -framework CoreServices -framework Carbon"
         ;;
         *linux*)
-            CFLAGS="#CFLAGS -lrt"
+            CFLAGS="$CFLAGS -lrt"
     esac
 
     PHP_SUBST(UV_SHARED_LIBADD)
