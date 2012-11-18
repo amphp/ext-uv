@@ -1,3 +1,6 @@
+
+// vim:ft=javascript
+
 ARG_ENABLE("uv", "for uv support", "no");
 ARG_ENABLE("uv-httpparser", "for httpparser support in the uv extension", "yes");
 
@@ -25,5 +28,9 @@ if (PHP_UV != "no") {
     CHECK_LIB("psapi.lib","uv", PHP_UV);
     CHECK_LIB("Ws2_32.lib","uv", PHP_UV);
 
-    ADD_EXTENSION_DEP('uv', 'sockets', false);
+    if (PHP_SOCKETS != "no") {
+        ADD_EXTENSION_DEP('uv', 'sockets', false);
+    } else {
+        ERROR('uv depends on the sockets extension');
+    }
 }
