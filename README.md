@@ -26,7 +26,7 @@ make install
 
 see examples and tests directory.
 
-````
+````php
 <?php
 $tcp = uv_tcp_init();
 
