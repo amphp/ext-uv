@@ -39,6 +39,12 @@ if (!defined("UV::S_IRWXU")) {
 if (!defined("UV::S_IRUSR")) {
   echo "FAILED UV::S_IRUSR" . PHP_EOL;
 }
+if (!defined("UV::S_IWUSR")) {
+  echo "FAILED UV::S_IWUSR" . PHP_EOL;
+}
+if (!defined("UV::S_IXUSR")) {
+  echo "FAILED UV::S_IXUSR" . PHP_EOL;
+}
 if (!defined("UV::S_IRWXG")) {
   echo "FAILED UV::S_IRWXG" . PHP_EOL;
 }

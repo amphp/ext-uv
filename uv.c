@@ -52,6 +52,8 @@ static int php_uv_class_init(TSRMLS_D)
 
 	zend_declare_class_constant_long(uv_class_entry, "S_IRWXU",  sizeof("S_IRWXU")-1, S_IRWXU TSRMLS_CC);
 	zend_declare_class_constant_long(uv_class_entry, "S_IRUSR",  sizeof("S_IRUSR")-1, S_IRUSR TSRMLS_CC);
+	zend_declare_class_constant_long(uv_class_entry, "S_IWUSR",  sizeof("S_IWUSR")-1, S_IWUSR TSRMLS_CC);
+	zend_declare_class_constant_long(uv_class_entry, "S_IXUSR",  sizeof("S_IXUSR")-1, S_IXUSR TSRMLS_CC);
 	zend_declare_class_constant_long(uv_class_entry, "S_IRWXG",  sizeof("S_IRWXG")-1, S_IRWXG TSRMLS_CC);
 	zend_declare_class_constant_long(uv_class_entry, "S_IRGRP",  sizeof("S_IRGRP")-1, S_IRWXG TSRMLS_CC);
 	zend_declare_class_constant_long(uv_class_entry, "S_IWGRP",  sizeof("S_IWGRP")-1, S_IWGRP TSRMLS_CC);
