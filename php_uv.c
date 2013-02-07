@@ -915,7 +915,7 @@ static void php_uv_fs_common(uv_fs_type fs_type, INTERNAL_FUNCTION_PARAMETERS)
 		{
 			zval *zstream = NULL;
 			unsigned long fd;
-            unsigned long length;
+			unsigned long length;
 			
 			PHP_UV_FS_PARSE_PARAMETERS("zzlf", &zloop, &zstream, &length, &fci, &fcc);
 			memset(uv_fs_read_buf, 0, length);
