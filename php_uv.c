@@ -915,12 +915,13 @@ static void php_uv_fs_common(uv_fs_type fs_type, INTERNAL_FUNCTION_PARAMETERS)
 		{
 			zval *zstream = NULL;
 			unsigned long fd;
+			unsigned long length;
 			
-			PHP_UV_FS_PARSE_PARAMETERS("zzf", &zloop, &zstream, &fci, &fcc);
-			memset(uv_fs_read_buf, 0, sizeof(uv_fs_read_buf));
+			PHP_UV_FS_PARSE_PARAMETERS("zzlf", &zloop, &zstream, &length, &fci, &fcc);
+			memset(uv_fs_read_buf, 0, length);
 			PHP_UV_FS_SETUP()
 			PHP_UV_ZVAL_TO_FD(fd, zstream);
-			PHP_UV_FS_ASYNC(loop, read, fd, uv_fs_read_buf, sizeof(uv_fs_read_buf), -1);
+			PHP_UV_FS_ASYNC(loop, read, fd, uv_fs_read_buf, length, -1);
 			break;
 		}
 		case UV_FS_SENDFILE:
