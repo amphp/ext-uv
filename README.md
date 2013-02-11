@@ -2010,7 +2010,7 @@ stop prepare callback
 
 
 
-### resoruce uv_check_init([resource $loop])
+### resource uv_check_init([resource $loop])
 
 ##### *Description*
 
@@ -2176,7 +2176,7 @@ uv_run();
 
 
 
-### void uv_fs_read(resoruce $loop, zval $fd, callable $callback)
+### void uv_fs_read(resource $loop, zval $fd, long $length, callable $callback)
 
 ##### *Description*
 
