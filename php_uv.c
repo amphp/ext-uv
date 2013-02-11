@@ -4777,11 +4777,11 @@ PHP_FUNCTION(uv_stdio_new)
 
 static void php_ares_gethostbyname_cb( void *arg, int status, int timeouts, struct hostent *hostent)
 {
-	TSRMLS_FETCH();
 	zval *retval_ptr, *hostname, *addresses = NULL;
 	zval **params[2];
 	php_uv_ares_t *uv = (php_uv_ares_t*)arg;
 	struct in_addr **ptr;
+	TSRMLS_FETCH();
 
 	MAKE_STD_ZVAL(hostname);
 	ZVAL_STRING(hostname, hostent->h_name, 1);
@@ -6639,8 +6639,8 @@ PHP_MINFO_FUNCTION(uv)
 	php_info_print_table_start();
 	php_info_print_table_header(2,"libuv Support",  "enabled");
 	php_info_print_table_row(2,"Version", PHP_UV_EXTVER);
-	php_info_print_table_row(2,"bundled libuv Version", uv_version);
-	php_info_print_table_row(2,"bundled http-parser Version", http_parser_version);
+	php_info_print_table_row(2,"libuv Version", uv_version);
+	php_info_print_table_row(2,"http-parser Version", http_parser_version);
 	php_info_print_table_end();
 }
 

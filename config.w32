@@ -1,5 +1,8 @@
+
+// vim:ft=javascript
+
 ARG_ENABLE("uv", "for uv support", "no");
-ARG_ENABLE("httpparser", "for httpparser support", "yes");
+ARG_ENABLE("uv-httpparser", "for httpparser support in the uv extension", "yes");
 
 if (PHP_UV != "no") {
     var libuv_target_dir = ".\\libuv\\Release";
@@ -7,11 +10,11 @@ if (PHP_UV != "no") {
       libuv_target_dir = ".\\libuv\\Debug"
     }
 
-    if (CHECK_HEADER_ADD_INCLUDE("uv.h", "CFLAGS_UV", ".\\libuv\\include") && 
-        CHECK_LIB("uv.lib", "uv", libuv_target_dir)
+    if (CHECK_HEADER_ADD_INCLUDE("uv.h", "CFLAGS_UV", PHP_EXTRA_INCLUDES + ';' + configure_module_dirname + "\\libuv\\include") &&
+        CHECK_LIB("uv.lib;libuv.lib", "uv", PHP_EXTRA_LIBS + ';' + libuv_target_dir)
     ) {
-        if (PHP_HTTPPARSER == "yes") {
-            CHECK_HEADER_ADD_INCLUDE("http_parser.h", "CFLAGS_UV", ".\\http-parser")
+        if (PHP_UV_HTTPPARSER == "yes") {
+            CHECK_HEADER_ADD_INCLUDE("http_parser.h", "CFLAGS_UV", configure_module_dirname + "\\http-parser")
             ADD_SOURCES(configure_module_dirname + ".\\http-parser", "http_parser.c", "uv")
             EXTENSION('uv', 'php_uv.c uv.c');
         } else {
@@ -24,4 +27,10 @@ if (PHP_UV != "no") {
     CHECK_LIB("Iphlpapi.lib","uv", PHP_UV);
     CHECK_LIB("psapi.lib","uv", PHP_UV);
     CHECK_LIB("Ws2_32.lib","uv", PHP_UV);
+
+    if (PHP_SOCKETS != "no") {
+        ADD_EXTENSION_DEP('uv', 'sockets', false);
+    } else {
+        ERROR('uv depends on the sockets extension');
+    }
 }
