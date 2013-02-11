@@ -147,14 +147,6 @@ typedef struct {
 } php_uv_t;
 
 typedef struct {
-	ares_channel channel;
-	struct ares_options options;
-	zval *gethostbyname_cb;
-	zval *gethostbyaddr_cb;
-	int resource_id;
-} php_uv_ares_t;
-
-typedef struct {
 	int is_ipv4;
 	int resource_id;
 	union {
