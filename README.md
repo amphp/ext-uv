@@ -2236,7 +2236,7 @@ write buffer to specified file descriptor.
 
 *string $buffer*: buffer.
 
-*callable $calback*: this callback parameter expects (resource $stream)
+*callable $calback*: this callback parameter expects (resource $stream, long $result)
 
 ##### *Return Value*
 
@@ -2630,7 +2630,7 @@ async stat
 
 *string $path*: 
 
-*callable $callback*: 
+*callable $callback*: this callback parameter expects (resource $stream, array $stat)
 
 ##### *Return Value*
 
