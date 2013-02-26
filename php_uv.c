@@ -1717,6 +1717,9 @@ static void php_uv_fs_cb(uv_fs_t* req)
 			zval *buffer;
 			if (req && req->ptr) {
 				buffer = php_uv_make_stat((const uv_statbuf_t*)req->ptr);
+			} else {
+				MAKE_STD_ZVAL(buffer);
+				ZVAL_NULL(buffer);
 			}
 			params[1] = &buffer;
 			break;
