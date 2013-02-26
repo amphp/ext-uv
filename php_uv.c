@@ -3354,7 +3354,7 @@ PHP_FUNCTION(uv_run)
 }
 /* }}} */
 
-/* {{{ proto void uv_run_once([resource $uv_loop])
+/* {{{ proto long uv_run_once([resource $uv_loop])
 */
 PHP_FUNCTION(uv_run_once)
 {
@@ -3367,7 +3367,7 @@ PHP_FUNCTION(uv_run_once)
 	}
 	PHP_UV_FETCH_UV_DEFAULT_LOOP(loop, zloop);
 	
-	uv_run_once(loop);
+	RETURN_LONG(uv_run(loop, UV_RUN_ONCE));
 }
 /* }}} */
 
