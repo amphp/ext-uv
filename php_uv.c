@@ -1715,7 +1715,7 @@ static void php_uv_fs_cb(uv_fs_t* req)
 		case UV_FS_STAT:
 		{
 			zval *buffer;
-			if (req && req->ptr) {
+			if (Z_LVAL_P(result) >= 0) {
 				buffer = php_uv_make_stat((const uv_statbuf_t*)req->ptr);
 			} else {
 				MAKE_STD_ZVAL(buffer);
@@ -3350,7 +3350,7 @@ PHP_FUNCTION(uv_run)
 	}
 	PHP_UV_FETCH_UV_DEFAULT_LOOP(loop, zloop);
 	//TODO: implement this
-	uv_run(loop, UV_RUN_DEFAULT);
+	uv_run(loop);
 }
 /* }}} */
 
@@ -3367,7 +3367,7 @@ PHP_FUNCTION(uv_run_once)
 	}
 	PHP_UV_FETCH_UV_DEFAULT_LOOP(loop, zloop);
 	
-	RETURN_LONG(uv_run(loop, UV_RUN_ONCE));
+	RETURN_LONG(uv_run_once(loop));
 }
 /* }}} */
 
