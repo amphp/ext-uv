@@ -1958,6 +1958,7 @@ static void php_uv_udp_recv_cb(uv_udp_t* handle, ssize_t nread, uv_buf_t buf, st
 
 	MAKE_STD_ZVAL(rsc);
 	ZVAL_RESOURCE(rsc, uv->resource_id);
+	zend_list_addref(uv->resource_id);
 	
 	MAKE_STD_ZVAL(read);
 	ZVAL_LONG(read, nread);
