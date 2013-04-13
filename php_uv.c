@@ -6235,7 +6235,7 @@ PHP_FUNCTION(uv_http_parser_init)
 */
 PHP_FUNCTION(uv_http_parser_execute)
 {
-	zval *z_parser,*result;
+	zval *z_parser,*result, *headers = NULL;
 	php_http_parser_context *context;
 	char *body;
 	int body_len;
@@ -6255,23 +6255,21 @@ PHP_FUNCTION(uv_http_parser_execute)
 	context->parser.data = context;
 	http_parser_execute(&context->parser, &context->settings, body, body_len);
 
+	if (result) {
+		zval_dtor(result);
+	}
+	ZVAL_ZVAL(result, context->data, 1, 0);
+	if (context->is_response == 0) {
+		add_assoc_string(result, "REQUEST_METHOD", (char*)http_method_str(context->parser.method), 1);
+	} else {
+		add_assoc_long(result, "STATUS_CODE", (long)context->parser.status_code);
+	}
+
+	MAKE_STD_ZVAL(headers);
+	ZVAL_ZVAL(headers, context->headers, 1, 0);
+	add_assoc_zval(result, "HEADERS", headers);
+
 	if (context->finished == 1) {
-		zval *headers = NULL;
-		if (result) {
-			zval_dtor(result);
-		}
-		
-		ZVAL_ZVAL(result, context->data, 1, 0);
-		if (context->is_response == 0) {
-			add_assoc_string(result, "REQUEST_METHOD", (char*)http_method_str(context->parser.method), 1);
-		} else {
-			add_assoc_long(result, "STATUS_CODE", (long)context->parser.status_code);
-		}
-
-		MAKE_STD_ZVAL(headers);
-		ZVAL_ZVAL(headers, context->headers, 1, 0);
-
-		add_assoc_zval(result, "HEADERS", headers);
 		RETURN_TRUE;
 	} else {
 		RETURN_FALSE;
