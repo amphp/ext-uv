@@ -2295,7 +2295,7 @@ static int on_body_cb(http_parser *p, const char *at, size_t len)
 	php_http_parser_context *result = p->data;
 	zval *data = result->headers;
 
-	add_assoc_stringl(data, "BODy", (char*)at, len,  1);
+	add_assoc_stringl(data, "BODY", (char*)at, len,  1);
 
 	return 0;
 }
