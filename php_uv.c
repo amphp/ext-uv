@@ -24,6 +24,17 @@
 #define PHP_UV_DEBUG 0
 #endif
 
+#if (PHP_MAJOR_VERSION == 5) && (PHP_MINOR_VERSION < 3)
+#define ZEND_FCI_INITIALIZED(fci) ((fci).size != 0)
+zend_fcall_info empty_fcall_info = { 0, NULL, NULL, NULL, NULL, 0, NULL, NULL, 0};
+
+# ifndef Z_ADDREF_P
+#  define Z_ADDREF_P(pz)				(pz)->refcount++
+#  define Z_ADDREF_PP(ppz)				Z_ADDREF_P(*(ppz))
+#  define Z_ADDREF(z)					Z_ADDREF_P(&(z))
+# endif
+
+#endif
 
 #define PHP_UV_INIT_UV(uv, uv_type) \
 	uv = (php_uv_t *)emalloc(sizeof(php_uv_t)); \
@@ -284,6 +295,7 @@ static char *php_uv_map_resource_name(enum php_uv_resource_type type)
 	} \
 
 
+#if (PHP_MAJOR_VERSION == 5) && (PHP_MINOR_VERSION >= 3)
 static php_socket_t php_uv_zval_to_fd(zval *ptr TSRMLS_DC)
 {
 	php_socket_t fd = -1;
@@ -319,6 +331,7 @@ static php_socket_t php_uv_zval_to_fd(zval *ptr TSRMLS_DC)
 	
 	return fd;
 }
+#endif
 
 static const char* php_uv_strerror(long error_code)
 {
@@ -1126,10 +1139,16 @@ void static destruct_uv(zend_rsrc_list_entry *rsrc TSRMLS_DC)
 			if (cb->fci.function_name != NULL) {
 				zval_ptr_dtor(&cb->fci.function_name);
 			}
-			
+		
+#if (PHP_MAJOR_VERSION == 5) && (PHP_MINOR_VERSION > 2)	
 			if (cb->fci.object_ptr != NULL) {
 				zval_ptr_dtor(&cb->fci.object_ptr);
+#else
+			if (cb->fci.object_pp != NULL) {
+				zval_ptr_dtor(&cb->fci.object_pp);
+#endif
 			}
+
 			efree(cb);
 			cb = NULL;
 		}
@@ -1164,8 +1183,12 @@ static int php_uv_do_callback(zval **retval_ptr, zval *callback, zval ***params,
 	zend_fcall_info_cache fcc;
 	char *is_callable_error = NULL;
 	int error;
-	
+
+#if (PHP_MAJOR_VERSION == 5) && (PHP_MINOR_VERSION >= 3)	
 	if(zend_fcall_info_init(callback, 0, &fci, &fcc, NULL, &is_callable_error TSRMLS_CC) == SUCCESS) {
+#else
+	if(zend_fcall_info_init(callback, &fci, &fcc TSRMLS_CC) == SUCCESS) {
+#endif
 		if (is_callable_error) {
 			php_error_docref(NULL TSRMLS_CC, E_ERROR, "to be a valid callback");
 		}
@@ -4498,6 +4521,7 @@ PHP_FUNCTION(uv_walk)
 }
 /* }}} */
 
+#if (PHP_MAJOR_VERSION == 5) && (PHP_MINOR_VERSION >= 3)
 /* {{{ proto long uv_guess_handle(resource $uv)
 */
 PHP_FUNCTION(uv_guess_handle)
@@ -4521,6 +4545,7 @@ PHP_FUNCTION(uv_guess_handle)
 	RETURN_LONG(type);
 }
 /* }}} */
+#endif
 
 /* {{{ proto long uv_handle_type(resource $uv)
 */
@@ -4685,6 +4710,7 @@ PHP_FUNCTION(uv_pipe_pending_instances)
 /* }}} */
 
 
+#if (PHP_MAJOR_VERSION == 5) && (PHP_MINOR_VERSION >= 3)
 /* {{{ proto void uv_stdio_new(zval $fd, long $flags)
 */
 PHP_FUNCTION(uv_stdio_new)
@@ -4735,6 +4761,7 @@ PHP_FUNCTION(uv_stdio_new)
 	stdio->resource_id =  Z_RESVAL_P(return_value);
 }
 /* }}} */
+#endif
 
 
 /* {{{ proto array uv_loadavg(void)
@@ -6306,7 +6333,9 @@ static zend_function_entry uv_functions[] = {
 	PHP_FE(uv_is_readable,              arginfo_uv_is_readable)
 	PHP_FE(uv_is_writable,              arginfo_uv_is_writable)
 	PHP_FE(uv_walk,                     arginfo_uv_walk)
+#if (PHP_MAJOR_VERSION == 5) && (PHP_MINOR_VERSION >= 3)
 	PHP_FE(uv_guess_handle,             arginfo_uv_guess_handle)
+#endif
 	PHP_FE(uv_handle_type,              arginfo_uv_handle_type)
 	/* idle */
 	PHP_FE(uv_idle_init,                arginfo_uv_idle_init)
@@ -6360,7 +6389,9 @@ static zend_function_entry uv_functions[] = {
 	PHP_FE(uv_pipe_open,                arginfo_uv_pipe_open)
 	PHP_FE(uv_pipe_connect,             arginfo_uv_pipe_connect)
 	PHP_FE(uv_pipe_pending_instances,   arginfo_uv_pipe_pending_instances)
+#if (PHP_MAJOR_VERSION == 5) && (PHP_MINOR_VERSION >= 3)
 	PHP_FE(uv_stdio_new,                NULL)
+#endif
 	/* spawn */
 	PHP_FE(uv_spawn,                    NULL)
 	PHP_FE(uv_process_kill,             arginfo_uv_process_kill)

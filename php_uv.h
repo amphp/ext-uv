@@ -36,7 +36,9 @@
 #include "php_network.h"
 #include "php_streams.h"
 
+#if (PHP_MAJOR_VERSION == 5) && (PHP_MINOR_VERSION >= 3)
 #include "ext/sockets/php_sockets.h"
+#endif
 
 #include "zend_interfaces.h"
 
