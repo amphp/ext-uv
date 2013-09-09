@@ -6218,7 +6218,7 @@ PHP_FUNCTION(uv_http_parser_init)
 {
 	long target = HTTP_REQUEST;
 	zval *header, *result;
-	php_http_parser_context *ctx;
+	php_http_parser_context *ctx = NULL;
 
 	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
 		"|l",&target) == FAILURE) {
@@ -6236,6 +6236,7 @@ PHP_FUNCTION(uv_http_parser_init)
 
 	ctx->data = result;
 	ctx->headers = header;
+	ctx->finished = 0;
 
 	if (target == HTTP_RESPONSE) {
 		ctx->is_response = 1;
