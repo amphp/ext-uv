@@ -55,8 +55,8 @@ if test $PHP_UV != "no"; then
         PHP_ADD_INCLUDE([$ext_srcdir/http-parser])
     fi
     PHP_ADD_INCLUDE([$ext_srcdir/libuv/include])
- 
-    CFLAGS=" $CFLAGS -Wunused-variable -Wpointer-sign -Wimplicit-function-declaration -Winline -Wunused-macros -Wredundant-decls -Wstrict-aliasing=2 -Wswitch-enum -Wdeclaration-after-statement -Wl,libuv/uv.a"
+
+    CFLAGS=" $CFLAGS -Wunused-variable -Wpointer-sign -Wimplicit-function-declaration -Winline -Wunused-macros -Wredundant-decls -Wstrict-aliasing=2 -Wswitch-enum -Wdeclaration-after-statement -Wl,libuv/libuv.a"
 
     case $host in
         *darwin*)
