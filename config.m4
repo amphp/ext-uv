@@ -22,7 +22,6 @@ fi
 if test "$PHP_UV_DEBUG" != "no"; then
     CFLAGS="$CFLAGS -Wall -g -ggdb -O0 -DPHP_UV_DEBUG=1"
     AC_DEFINE(PHP_UV_DEBUG, 1, [Enable uv debug support])
-    echo "damepo"
 fi
 
 if test "$PHP_DTRACE" != "no"; then

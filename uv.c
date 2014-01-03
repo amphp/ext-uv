@@ -34,6 +34,10 @@ static int php_uv_class_init(TSRMLS_D)
 	uv_class_entry = zend_register_internal_class(&ce TSRMLS_CC);
 	//uv_class_entry->create_object = php_uv_new;
 
+	zend_declare_class_constant_long(uv_class_entry, "RUN_DEFAULT",  sizeof("RUN_DEFAULT")-1, UV_RUN_DEFAULT TSRMLS_CC);
+	zend_declare_class_constant_long(uv_class_entry, "RUN_ONCE",  sizeof("RUN_ONCE")-1, UV_RUN_ONCE TSRMLS_CC);
+	zend_declare_class_constant_long(uv_class_entry, "RUN_NOWAIT",  sizeof("RUN_NOWAIT")-1, UV_RUN_NOWAIT TSRMLS_CC);
+
 	zend_declare_class_constant_long(uv_class_entry, "CHANGE",  sizeof("CHANGE")-1, UV_CHANGE TSRMLS_CC);
 	zend_declare_class_constant_long(uv_class_entry, "RENAME",  sizeof("RENAME")-1, UV_RENAME TSRMLS_CC);
 	zend_declare_class_constant_long(uv_class_entry, "READABLE",sizeof("READABLE")-1, UV_READABLE TSRMLS_CC);

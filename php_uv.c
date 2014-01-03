@@ -198,8 +198,6 @@ static uv_loop_t *_php_uv_default_loop;
 
 static int uv_resource_handle;
 
-static int uv_ares_handle;
-
 static int uv_loop_handle;
 
 static int uv_sockaddr_handle;
@@ -209,8 +207,6 @@ static int uv_lock_handle;
 static int uv_httpparser_handle;
 
 static int uv_stdio_handle;
-
-static int uv_ares_initialized;
 
 
 char *php_uv_resource_map[IS_UV_MAX] = {
@@ -1662,7 +1658,7 @@ static void php_uv_work_cb(uv_work_t* req)
 	PHP_UV_DEBUG_RESOURCE_REFCOUNT(uv_work_cb, uv->resource_id);
 }
 
-static void php_uv_after_work_cb(uv_work_t* req)
+static void php_uv_after_work_cb(uv_work_t* req, int status)
 {
 	zval *retval_ptr = NULL;
 	php_uv_t *uv = (php_uv_t*)req->data;
@@ -3361,20 +3357,20 @@ PHP_FUNCTION(uv_ref)
 }
 /* }}} */
 
-/* {{{ proto void uv_run([resource $uv_loop])
+/* {{{ proto void uv_run([resource $uv_loop, long $run_mode])
 */
 PHP_FUNCTION(uv_run)
 {
 	zval *zloop = NULL;
 	uv_loop_t *loop;
+	long run_mode = UV_RUN_DEFAULT;
 	
 	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
-		"|z",&zloop) == FAILURE) {
+		"|zl",&zloop, &run_mode) == FAILURE) {
 		return;
 	}
 	PHP_UV_FETCH_UV_DEFAULT_LOOP(loop, zloop);
-	//TODO: implement this
-	uv_run(loop, UV_RUN_DEFAULT);
+	uv_run(loop, run_mode);
 }
 /* }}} */
 
@@ -3386,12 +3382,13 @@ PHP_FUNCTION(uv_run_once)
 	uv_loop_t *loop;
 	
 	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
-		"|z",&zloop) == FAILURE) {
+		"|z", &zloop) == FAILURE) {
 		return;
 	}
+	php_error_docref(NULL TSRMLS_CC, E_DEPRECATED, "uv_run_once is deprecated; use uv_run(uv_default_loop(), UV::RUN_ONCE) instead");
+
 	PHP_UV_FETCH_UV_DEFAULT_LOOP(loop, zloop);
-	
-	RETURN_LONG(uv_run_once(loop));
+	RETURN_LONG(uv_run(loop, UV_RUN_ONCE));
 }
 /* }}} */
 

@@ -14,8 +14,7 @@ or move to extension all together so do not rely to much on them you have been w
 ````
 git clone https://github.com/chobie/php-uv.git --recursive
 cd php-uv
-(cd libuv && make)
-# Note: please use `make libuv.a CFLAGS=-fPIC` instead of `make` on 64bit box.
+make -C libuv
 phpize
 ./configure
 make
