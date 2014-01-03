@@ -6,7 +6,7 @@ interface to libuv for php (experimental). also supports http-parser.
 
 # Experimental
 
-This extension is experimental, its functions may change their names 
+This extension is experimental, its functions may change their names
 or move to extension all together so do not rely to much on them you have been warned!
 
 # Install
@@ -15,7 +15,7 @@ or move to extension all together so do not rely to much on them you have been w
 git clone https://github.com/chobie/php-uv.git --recursive
 cd php-uv
 (cd libuv && make)
-# Note: please use `make uv.a CFLAGS=-fPIC` instead of `make` on 64bit box.
+# Note: please use `make libuv.a CFLAGS=-fPIC` instead of `make` on 64bit box.
 phpize
 ./configure
 make
@@ -104,7 +104,7 @@ get last error code.
 
 ##### *Parameters*
 
-*resource $uv_loop*: uv loop handle 
+*resource $uv_loop*: uv loop handle
 
 ##### *Return Value*
 
@@ -181,7 +181,7 @@ increment reference count
 
 ##### *Return Value*
 
-*void*: 
+*void*:
 
 ##### *Example*
 
@@ -209,7 +209,7 @@ run event loop
 
 ##### *Return Value*
 
-*void*: 
+*void*:
 
 ##### *Example*
 
@@ -243,7 +243,7 @@ delete specified loop resource.
 
 ##### *Return Value*
 
-*void*: 
+*void*:
 
 ##### *Example*
 
@@ -266,7 +266,7 @@ binds a name to a socket.
 
 ##### *Return Value*
 
-*void*: 
+*void*:
 
 ##### *Example*
 
@@ -305,7 +305,7 @@ binds a name to a socket.
 
 ##### *Return Value*
 
-*void*: 
+*void*:
 
 ##### *Example*
 
@@ -343,7 +343,7 @@ send buffer to speicified uv resource.
 
 ##### *Return Value*
 
-*void*: 
+*void*:
 
 ##### *Example*
 
@@ -366,7 +366,7 @@ set Nagel's flags for specified tcp resource.
 
 ##### *Return Value*
 
-*void*: 
+*void*:
 
 ##### *Example*
 
@@ -391,7 +391,7 @@ accepts a connection on a socket.
 
 ##### *Return Value*
 
-*void*: 
+*void*:
 
 ##### *Example*
 
@@ -429,7 +429,7 @@ shutdown uv handle.
 
 ##### *Return Value*
 
-*void*: 
+*void*:
 
 ##### *Example*
 
@@ -448,7 +448,7 @@ close uv handle.
 
 ##### *Return Value*
 
-*void*: 
+*void*:
 
 ##### *Example*
 
@@ -468,7 +468,7 @@ starts read callback for uv resources.
 
 ##### *Return Value*
 
-*void*: 
+*void*:
 
 ##### *Example*
 
@@ -494,7 +494,7 @@ stop read callback
 
 ##### *Return Value*
 
-*void*: 
+*void*:
 
 ##### *Example*
 
@@ -635,7 +635,7 @@ connect to specified ip address and port.
 
 ##### *Return Value*
 
-*void*: 
+*void*:
 
 ##### *Example*
 
@@ -664,7 +664,7 @@ connect to specified ip address and port.
 
 ##### *Return Value*
 
-*void*: 
+*void*:
 
 ##### *Example*
 
@@ -717,7 +717,7 @@ initialize timer handle.
 
 ##### *Return Value*
 
-*void: 
+*void:
 
 ##### *Example*
 
@@ -794,7 +794,7 @@ set repeat count.
 
 ##### *Return Value*
 
-*void*: 
+*void*:
 
 ##### *Example*
 
@@ -812,7 +812,7 @@ returns repeat interval.
 
 ##### *Return Value*
 
-*long $repeat_time*: 
+*long $repeat_time*:
 
 ##### *Example*
 
@@ -1037,7 +1037,7 @@ uv_udp_bind($udp, uv_ip4_addr('0.0.0.0',10000));
 
 uv_udp_recv_start($udp,function($stream, $nread, $buffer){
     echo "recv:" .  $buffer;
-    
+
     uv_close($stream);
 });
 
@@ -1081,7 +1081,7 @@ uv_udp_bind6($udp, uv_ip6_addr('::1',10000));
 
 uv_udp_recv_start($udp,function($stream, $nread, $buffer){
     echo "recv:" .  $buffer;
-    
+
     uv_close($stream);
 });
 
@@ -1123,7 +1123,7 @@ uv_udp_bind6($udp, uv_ip6_addr('::1',10000));
 
 uv_udp_recv_start($udp,function($stream, $nread, $buffer){
     echo "recv:" .  $buffer;
-    
+
     uv_close($stream);
 });
 
@@ -1188,11 +1188,11 @@ set multicast loop
 
 *resource $handle*: uv resource handle (udp)
 
-*long $enabled*: 
+*long $enabled*:
 
 ##### *Return Value*
 
-*void*: 
+*void*:
 
 ##### *Example*
 
@@ -1212,7 +1212,7 @@ set multicast ttl
 
 ##### *Return Value*
 
-*void*: 
+*void*:
 
 ##### *Example*
 
@@ -1228,11 +1228,11 @@ set udp broadcast
 
 *resource $handle*: uv resource handle (udp)
 
-*long $enabled*: 
+*long $enabled*:
 
 ##### *Return Value*
 
-*void*: 
+*void*:
 
 ##### *Example*
 
@@ -1269,7 +1269,7 @@ uv_udp_bind($udp, uv_ip4_addr('::1',10000));
 
 uv_udp_recv_start($udp,function($stream, $nread, $buffer){
     echo "recv:" .  $buffer;
-    
+
     uv_close($stream);
 });
 
@@ -1314,7 +1314,7 @@ uv_udp_bind6($udp, uv_ip6_addr('::1',10000));
 
 uv_udp_recv_start($udp,function($stream, $nread, $buffer){
     echo "recv:" .  $buffer;
-    
+
     uv_close($stream);
 });
 
@@ -1390,7 +1390,7 @@ initialize pipe resource
 
 ##### *Return Value*
 
-*resource $uv_pipe*: 
+*resource $uv_pipe*:
 
 ##### *Example*
 
@@ -1415,7 +1415,7 @@ open a pipe resource.
 
 ##### *Return Value*
 
-*void*: 
+*void*:
 
 ##### *Example*
 
@@ -1435,7 +1435,7 @@ create a named pipe.
 
 ##### *Return Value*
 
-*void*: 
+*void*:
 
 ##### *Example*
 
@@ -1457,7 +1457,7 @@ connect to named pipe.
 
 ##### *Return Value*
 
-*void*: 
+*void*:
 
 ##### *Example*
 
@@ -1494,7 +1494,7 @@ retunrs current loadaverage.
 
 ##### *Return Value*
 
-*array $loadaverage*: 
+*array $loadaverage*:
 
 ##### *Example*
 
@@ -1527,7 +1527,7 @@ returns current uptime.
 
 ##### *Return Value*
 
-*long $uptime*: 
+*long $uptime*:
 
 ##### *Example*
 
@@ -1549,7 +1549,7 @@ returns current free memory size.
 
 ##### *Return Value*
 
-*long $free*: 
+*long $free*:
 
 ##### *Example*
 
@@ -1571,7 +1571,7 @@ returns total memory size.
 
 ##### *Return Value*
 
-*long $free*: 
+*long $free*:
 
 ##### *Example*
 
@@ -1601,7 +1601,7 @@ returns current exepath. basically this will returns current php path.
 
 ##### *Return Value*
 
-*string $exepath*: 
+*string $exepath*:
 
 ##### *Example*
 
@@ -1623,7 +1623,7 @@ returns current working directory.
 
 ##### *Return Value*
 
-*string $cwd*: 
+*string $cwd*:
 
 ##### *Example*
 
@@ -1647,7 +1647,7 @@ returns current cpu informations
 
 ##### *Return Value*
 
-*array $cpu_info*: 
+*array $cpu_info*:
 
 ##### *Example*
 
@@ -1696,11 +1696,11 @@ send signal to specified uv process resource.
 
 *resource $handle*: uv resource handle (process)
 
-*long $signal*: 
+*long $signal*:
 
 ##### *Return Value*
 
-*void*: 
+*void*:
 
 ##### *Example*
 
@@ -1720,7 +1720,7 @@ send signal to specified pid.
 
 ##### *Return Value*
 
-*void*: 
+*void*:
 
 ##### *Example*
 
@@ -1738,7 +1738,7 @@ change working directory.
 
 ##### *Return Value*
 
-*bool *: 
+*bool *:
 
 ##### *Example*
 
@@ -1772,7 +1772,7 @@ set read lock
 
 ##### *Return Value*
 
-*void *: 
+*void *:
 
 ##### *Example*
 
@@ -1798,7 +1798,7 @@ unlock read lock
 
 ##### *Return Value*
 
-*void*: 
+*void*:
 
 ##### *Example*
 
@@ -1816,7 +1816,7 @@ set write lock
 
 ##### *Return Value*
 
-*void *: 
+*void *:
 
 ##### *Example*
 
@@ -1842,7 +1842,7 @@ unlock write lock
 
 ##### *Return Value*
 
-*void*: 
+*void*:
 
 ##### *Example*
 
@@ -1876,7 +1876,7 @@ lock mutex
 
 ##### *Return Value*
 
-*void*: 
+*void*:
 
 ##### *Example*
 
@@ -1900,7 +1900,7 @@ initialize semaphore resource
 
 ##### *Return Value*
 
-*resource $uv_sem*: 
+*resource $uv_sem*:
 
 ##### *Example*
 
@@ -1918,7 +1918,7 @@ post semaphore
 
 ##### *Return Value*
 
-*void*: 
+*void*:
 
 ##### *Example*
 
@@ -2060,7 +2060,7 @@ $i = 0;
 uv_idle_start($idle, function($stat) use (&$i, $idle, $loop){
     echo "count: {$i}" . PHP_EOL;
     $i++;
-    
+
     if ($i > 3) {
         uv_idle_stop($idle);
     }
@@ -2102,7 +2102,7 @@ setup async callback
 
 *resource $loop*: uv loop resource
 
-*callback $callback*: 
+*callback $callback*:
 
 ##### *Return Value*
 
@@ -2124,7 +2124,7 @@ send async callback immidiately
 
 ##### *Return Value*
 
-*void*: 
+*void*:
 
 ##### *Example*
 
@@ -2154,13 +2154,13 @@ open specified file
 
 ##### *Return Value*
 
-*void*: 
+*void*:
 
 ##### *Example*
 
 ````php
 <?php
-uv_fs_open(uv_default_loop(),"/tmp/hello", 
+uv_fs_open(uv_default_loop(),"/tmp/hello",
     UV::O_WRONLY | UV::O_CREAT | UV::O_APPEND,
     UV::S_IRWXU | UV::S_IRUSR,
     function($r){
@@ -2213,7 +2213,7 @@ close specified file descriptor.
 
 ##### *Return Value*
 
-*void*: 
+*void*:
 
 ##### *Example*
 
@@ -2241,7 +2241,7 @@ write buffer to specified file descriptor.
 
 ##### *Return Value*
 
-*void*: 
+*void*:
 
 ##### *Example*
 
@@ -2257,14 +2257,14 @@ async fsync
 
 *resource $handle*: uv loop handle
 
-*zval $fd*: 
+*zval $fd*:
 
 
-*callable $callback*: 
+*callable $callback*:
 
 ##### *Return Value*
 
-*void*: 
+*void*:
 
 ##### *Example*
 
@@ -2280,13 +2280,13 @@ async fdatasync
 
 *resource $handle*: uv loop handle
 
-*zval $fd*: 
+*zval $fd*:
 
-*callable $callback*: 
+*callable $callback*:
 
 ##### *Return Value*
 
-*void*: 
+*void*:
 
 ##### *Example*
 
@@ -2301,15 +2301,15 @@ async ftruncate
 
 *resource $handle*: uv loop handle
 
-*zval $fd*: 
+*zval $fd*:
 
 *long $offset*:
 
-*callable $callback*: 
+*callable $callback*:
 
 ##### *Return Value*
 
-*void*: 
+*void*:
 
 ##### *Example*
 
@@ -2324,15 +2324,15 @@ async mkdir
 
 *resource $handle*: uv loop handle
 
-*string $path*: 
+*string $path*:
 
 *long $mode*:
 
-*callable $callback*: 
+*callable $callback*:
 
 ##### *Return Value*
 
-*void*: 
+*void*:
 
 ##### *Example*
 
@@ -2347,13 +2347,13 @@ async rmdir
 
 *resource $handle*: uv loop handle
 
-*string $path*: 
+*string $path*:
 
-*callable $callback*: 
+*callable $callback*:
 
 ##### *Return Value*
 
-*void*: 
+*void*:
 
 ##### *Example*
 
@@ -2368,13 +2368,13 @@ async unlink
 
 *resource $handle*: uv loop handle
 
-*string $path*: 
+*string $path*:
 
-*callable $callback*: 
+*callable $callback*:
 
 ##### *Return Value*
 
-*void*: 
+*void*:
 
 ##### *Example*
 
@@ -2389,15 +2389,15 @@ async rename
 
 *resource $handle*: uv loop handle
 
-*string $from*: 
+*string $from*:
 
 *string $to*:
 
-*callable $callback*: 
+*callable $callback*:
 
 ##### *Return Value*
 
-*void*: 
+*void*:
 
 ##### *Example*
 
@@ -2413,17 +2413,17 @@ async utime
 
 *resource $handle*: uv loop handle
 
-*string $path*: 
+*string $path*:
 
 *long $utime*:
 
 *long $atime*:
 
-*callable $callback*: 
+*callable $callback*:
 
 ##### *Return Value*
 
-*void*: 
+*void*:
 
 ##### *Example*
 
@@ -2439,17 +2439,17 @@ async futime
 
 *resource $handle*: uv loop handle
 
-*zval $fd*: 
+*zval $fd*:
 
 *long $utime*:
 
 *long $atime*:
 
-*callable $callback*: 
+*callable $callback*:
 
 ##### *Return Value*
 
-*void*: 
+*void*:
 
 ##### *Example*
 
@@ -2464,15 +2464,15 @@ async chmod
 
 *resource $handle*: uv loop handle
 
-*string $path*: 
+*string $path*:
 
 *long $mode*:
 
-*callable $callback*: 
+*callable $callback*:
 
 ##### *Return Value*
 
-*void*: 
+*void*:
 
 ##### *Example*
 
@@ -2487,15 +2487,15 @@ async fchmod
 
 *resource $handle*: uv loop handle
 
-*zval $fd*: 
+*zval $fd*:
 
 *long $mode*:
 
-*callable $callback*: 
+*callable $callback*:
 
 ##### *Return Value*
 
-*void*: 
+*void*:
 
 ##### *Example*
 
@@ -2510,17 +2510,17 @@ async chown
 
 *resource $handle*: uv loop handle
 
-*string $paht*: 
+*string $paht*:
 
 *long $uid*:
 
 *long $gid*:
 
-*callable $callback*: 
+*callable $callback*:
 
 ##### *Return Value*
 
-*void*: 
+*void*:
 
 ##### *Example*
 
@@ -2535,17 +2535,17 @@ async fchown
 
 *resource $handle*: uv loop handle
 
-*zval $fd*: 
+*zval $fd*:
 
 *long $uid*:
 
 *long $gid*:
 
-*callable $callback*: 
+*callable $callback*:
 
 ##### *Return Value*
 
-*void*: 
+*void*:
 
 ##### *Example*
 
@@ -2560,15 +2560,15 @@ async link
 
 *resource $handle*: uv loop handle
 
-*string $from*: 
+*string $from*:
 
 *string $to*:
 
-*callable $callback*: 
+*callable $callback*:
 
 ##### *Return Value*
 
-*void*: 
+*void*:
 
 ##### *Example*
 
@@ -2583,17 +2583,17 @@ async symlink
 
 *resource $handle*: uv loop handle
 
-*string $from*: 
+*string $from*:
 
 *string $to*:
 
 *long $flags*:
 
-*callable $callback*: 
+*callable $callback*:
 
 ##### *Return Value*
 
-*void*: 
+*void*:
 
 ##### *Example*
 
@@ -2608,13 +2608,13 @@ async readlink
 
 *resource $handle*: uv loop handle
 
-*string $path*: 
+*string $path*:
 
-*callable $callback*: 
+*callable $callback*:
 
 ##### *Return Value*
 
-*void*: 
+*void*:
 
 ##### *Example*
 
@@ -2629,13 +2629,13 @@ async stat
 
 *resource $handle*: uv loop handle
 
-*string $path*: 
+*string $path*:
 
 *callable $callback*: this callback parameter expects (resource $stream, array $stat)
 
 ##### *Return Value*
 
-*void*: 
+*void*:
 
 ##### *Example*
 
@@ -2651,13 +2651,13 @@ async lstat
 
 *resource $handle*: uv loop handle
 
-*string $path*: 
+*string $path*:
 
-*callable $callback*: 
+*callable $callback*:
 
 ##### *Return Value*
 
-*void*: 
+*void*:
 
 ##### *Example*
 
@@ -2673,13 +2673,13 @@ async fstat
 
 *resource $handle*: uv loop handle
 
-*zval $fd*: 
+*zval $fd*:
 
-*callable $callback*: 
+*callable $callback*:
 
 ##### *Return Value*
 
-*void*: 
+*void*:
 
 ##### *Example*
 
@@ -2695,15 +2695,15 @@ async readdir
 
 *resource $handle*: uv loop handle
 
-*string $path*: 
+*string $path*:
 
 *long $flags*:
 
-*callable $callback*: 
+*callable $callback*:
 
 ##### *Return Value*
 
-*void*: 
+*void*:
 
 ##### *Example*
 
@@ -2718,7 +2718,7 @@ async sendfile
 
 *resource $handle*: uv loop handle
 
-*zval $in_fd*: 
+*zval $in_fd*:
 
 *zval $out_fd*:
 
@@ -2726,11 +2726,11 @@ async sendfile
 
 *long $length*:
 
-*callable $callback*: 
+*callable $callback*:
 
 ##### *Return Value*
 
-*void*: 
+*void*:
 
 ##### *Example*
 
@@ -2745,13 +2745,13 @@ initialize fs event.
 
 *resource $handle*: uv loop handle
 
-*string $path*: 
+*string $path*:
 
-*callable $callback*: 
+*callable $callback*:
 
 ##### *Return Value*
 
-*void*: 
+*void*:
 
 ##### *Example*
 
@@ -2767,13 +2767,13 @@ initialize tty resource. you have to open tty your hand.
 
 *resource $handle*: uv loop handle
 
-*zval $fd*: 
+*zval $fd*:
 
-*long $readable*: 
+*long $readable*:
 
 ##### *Return Value*
 
-*resource $uv_tty*: 
+*resource $uv_tty*:
 
 ##### *Example*
 
@@ -2857,7 +2857,7 @@ start polling
 
 ##### *Return Value*
 
-*void*: 
+*void*:
 
 ##### *Example*
 
@@ -2897,7 +2897,7 @@ uv_run();
 
 ##### *Description*
 
-initialize http parser. 
+initialize http parser.
 
 ##### *Parameters*
 
@@ -2905,7 +2905,7 @@ initialize http parser.
 
 ##### *Return Value*
 
-*resource uv_http*: 
+*resource uv_http*:
 
 ##### *Example*
 
@@ -2986,7 +2986,3 @@ Cache-Control: max-age=0
 }
 
 ````
-
-
-
-
