@@ -169,6 +169,16 @@ zend_fcall_info empty_fcall_info = { 0, NULL, NULL, NULL, NULL, 0, NULL, NULL, 0
 #define PHP_UV_DEBUG_RESOURCE_REFCOUNT(name, resource_id)
 #endif
 
+#ifdef ZTS
+#define UV_FETCH_ALL(ls, id, type) ((type) (*((void ***) ls))[TSRM_UNSHUFFLE_RSRC_ID(id)])
+#define UV_FETCH_CTX(ls, id, type, element) (((type) (*((void ***) ls))[TSRM_UNSHUFFLE_RSRC_ID(id)])->element)
+#define UV_CG(ls, v)  UV_FETCH_CTX(ls, compiler_globals_id, zend_compiler_globals*, v)
+#define UV_CG_ALL(ls) UV_FETCH_ALL(ls, compiler_globals_id, zend_compiler_globals*)
+#define UV_EG(ls, v)  UV_FETCH_CTX(ls, executor_globals_id, zend_executor_globals*, v)
+#define UV_SG(ls, v)  UV_FETCH_CTX(ls, sapi_globals_id, sapi_globals_struct*, v)
+#define UV_EG_ALL(ls) UV_FETCH_ALL(ls, executor_globals_id, zend_executor_globals*)
+#endif
+
 
 extern void php_uv_init(TSRMLS_D);
 
@@ -1198,15 +1208,6 @@ static int php_uv_do_callback(zval **retval_ptr, zval *callback, zval ***params,
 	return error;
 }
 
-
-#define UV_FETCH_ALL(ls, id, type) ((type) (*((void ***) ls))[TSRM_UNSHUFFLE_RSRC_ID(id)])
-#define UV_FETCH_CTX(ls, id, type, element) (((type) (*((void ***) ls))[TSRM_UNSHUFFLE_RSRC_ID(id)])->element)
-#define UV_CG(ls, v)  UV_FETCH_CTX(ls, compiler_globals_id, zend_compiler_globals*, v)
-#define UV_CG_ALL(ls) UV_FETCH_ALL(ls, compiler_globals_id, zend_compiler_globals*)
-#define UV_EG(ls, v)  UV_FETCH_CTX(ls, executor_globals_id, zend_executor_globals*, v)
-#define UV_SG(ls, v)  UV_FETCH_CTX(ls, sapi_globals_id, sapi_globals_struct*, v)
-#define UV_EG_ALL(ls) UV_FETCH_ALL(ls, executor_globals_id, zend_executor_globals*)
-
 static int php_uv_do_callback2(zval **retval_ptr, php_uv_t *uv, zval ***params, int param_count, enum php_uv_callback_type type TSRMLS_DC)
 {
 	int error = 0;
@@ -1229,6 +1230,7 @@ static int php_uv_do_callback2(zval **retval_ptr, php_uv_t *uv, zval ***params, 
 	return error;
 }
 
+#ifdef ZTS
 static int php_uv_do_callback3(zval **retval_ptr, php_uv_t *uv, zval ***params, int param_count, enum php_uv_callback_type type)
 {
 	int error = 0;
@@ -1288,6 +1290,11 @@ static int php_uv_do_callback3(zval **retval_ptr, php_uv_t *uv, zval ***params, 
 
 	return error;
 }
+#else
+static int php_uv_do_callback3(zval **retval_ptr, php_uv_t *uv, zval ***params, int param_count, enum php_uv_callback_type type)
+{
+}
+#endif
 
 static void php_uv_tcp_connect_cb(uv_connect_t *req, int status)
 {
@@ -5604,6 +5611,7 @@ PHP_FUNCTION(uv_async_send)
 */
 PHP_FUNCTION(uv_queue_work)
 {
+#ifdef ZTS
 	int r;
 	zval *zloop = NULL;
 	uv_loop_t *loop;
@@ -5631,6 +5639,9 @@ PHP_FUNCTION(uv_queue_work)
 		php_error_docref(NULL TSRMLS_CC, E_ERROR, "uv_queue_work failed");
 		return;
 	}
+#else
+	php_error_docref(NULL TSRMLS_CC, E_ERROR, "uv_queue_work doesn't support this PHP. please rebuild with --enable-maintainer-zts");
+#endif
 }
 /* }}} */
 

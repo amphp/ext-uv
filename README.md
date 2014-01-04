@@ -2129,8 +2129,11 @@ send async callback immidiately
 ##### *Example*
 
 
-
 ### void uv_queue_work(resource $loop, callable $callback, callable $after_callback)
+
+##### *Description*
+
+execute callbacks in another thread (requires Thread Safe enabled PHP)
 
 
 ### resource uv_fs_open(resource $loop, string $path, long $flag, long $mode, callable $callback)
@@ -2835,8 +2838,7 @@ $poll = uv_poll_init(uv_default_loop(), $fd);
 ##### *Note*
 
 * if you want to use a socket. please use uv_poll_init_socket instead of this. Windows can't handle socket with this function.
-
-
+* some platform doesn't support file descriptor on these method.
 
 ### uv uv_poll_init_socket([resource $uv_loop], zval fd)
 
