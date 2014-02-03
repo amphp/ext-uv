@@ -2987,6 +2987,3 @@ Cache-Control: max-age=0
 
 ````
 
-
-[![Bitdeli Badge](https://d2weczhvl823v0.cloudfront.net/chobie/php-uv/trend.png)](https://bitdeli.com/free "Bitdeli Badge")
-
