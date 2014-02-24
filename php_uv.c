@@ -20,6 +20,7 @@
 #include "php_uv.h"
 #include "ext/standard/info.h"
 
+
 #ifndef PHP_UV_DEBUG
 #define PHP_UV_DEBUG 0
 #endif
@@ -166,6 +167,16 @@ zend_fcall_info empty_fcall_info = { 0, NULL, NULL, NULL, NULL, 0, NULL, NULL, 0
 	} 
 #else
 #define PHP_UV_DEBUG_RESOURCE_REFCOUNT(name, resource_id)
+#endif
+
+#ifdef ZTS
+#define UV_FETCH_ALL(ls, id, type) ((type) (*((void ***) ls))[TSRM_UNSHUFFLE_RSRC_ID(id)])
+#define UV_FETCH_CTX(ls, id, type, element) (((type) (*((void ***) ls))[TSRM_UNSHUFFLE_RSRC_ID(id)])->element)
+#define UV_CG(ls, v)  UV_FETCH_CTX(ls, compiler_globals_id, zend_compiler_globals*, v)
+#define UV_CG_ALL(ls) UV_FETCH_ALL(ls, compiler_globals_id, zend_compiler_globals*)
+#define UV_EG(ls, v)  UV_FETCH_CTX(ls, executor_globals_id, zend_executor_globals*, v)
+#define UV_SG(ls, v)  UV_FETCH_CTX(ls, sapi_globals_id, sapi_globals_struct*, v)
+#define UV_EG_ALL(ls) UV_FETCH_ALL(ls, executor_globals_id, zend_executor_globals*)
 #endif
 
 
@@ -1197,11 +1208,10 @@ static int php_uv_do_callback(zval **retval_ptr, zval *callback, zval ***params,
 	return error;
 }
 
-
 static int php_uv_do_callback2(zval **retval_ptr, php_uv_t *uv, zval ***params, int param_count, enum php_uv_callback_type type TSRMLS_DC)
 {
 	int error = 0;
-	
+
 	if (ZEND_FCI_INITIALIZED(uv->callback[type]->fci)) {
 		uv->callback[type]->fci.params         = params;
 		uv->callback[type]->fci.retval_ptr_ptr = retval_ptr;
@@ -1214,11 +1224,77 @@ static int php_uv_do_callback2(zval **retval_ptr, php_uv_t *uv, zval ***params, 
 	} else {
 		error = -2;
 	}
+
+	//zend_fcall_info_args_clear(&uv->callback[type]->fci, 0);
+
+	return error;
+}
+
+#ifdef ZTS
+static int php_uv_do_callback3(zval **retval_ptr, php_uv_t *uv, zval ***params, int param_count, enum php_uv_callback_type type)
+{
+	int error = 0;
+	zend_executor_globals *ZEG = NULL;
+	void ***tsrm_ls, ***old;
+
+	if (ZEND_FCI_INITIALIZED(uv->callback[type]->fci)) {
+		tsrm_ls = tsrm_new_interpreter_context();
+		old = tsrm_set_interpreter_context(tsrm_ls);
+
+		PG(expose_php) = 0;
+		PG(auto_globals_jit) = 0;
+
+		php_request_startup(TSRMLS_C);
+		ZEG = UV_EG_ALL(TSRMLS_C);
+		ZEG->in_execution = 1;
+		ZEG->current_execute_data=NULL;
+		ZEG->current_module=phpext_uv_ptr;
+		ZEG->This = NULL;
+
+		uv->callback[type]->fci.params         = params;
+		uv->callback[type]->fci.retval_ptr_ptr = retval_ptr;
+		uv->callback[type]->fci.param_count    = param_count;
+		uv->callback[type]->fci.no_separation  = 1;
+		uv->callback[type]->fci.object_ptr = ZEG->This;
+		uv->callback[type]->fcc.initialized = 1;
+
+		uv->callback[type]->fcc.calling_scope = NULL;
+		uv->callback[type]->fcc.called_scope = NULL;
+		uv->callback[type]->fcc.object_ptr = ZEG->This;
+
+		if (zend_call_function(&uv->callback[type]->fci, &uv->callback[type]->fcc TSRMLS_CC) != SUCCESS) {
+			error = -1;
+		}
+
+		{
+			zend_op_array *ops = &uv->callback[type]->fcc.function_handler->op_array;
+			if (ops) {
+					if (ops->run_time_cache) {
+							efree(ops->run_time_cache);
+							ops->run_time_cache = NULL;
+					}
+			}
+		}
+		if (retval_ptr != NULL) {
+			zval_ptr_dtor(retval_ptr);
+		}
+
+		php_request_shutdown(TSRMLS_C);
+		tsrm_set_interpreter_context(old);
+		tsrm_free_interpreter_context(tsrm_ls);
+	} else {
+		error = -2;
+	}
 	
 	//zend_fcall_info_args_clear(&uv->callback[type]->fci, 0);
 
 	return error;
 }
+#else
+static int php_uv_do_callback3(zval **retval_ptr, php_uv_t *uv, zval ***params, int param_count, enum php_uv_callback_type type)
+{
+}
+#endif
 
 static void php_uv_tcp_connect_cb(uv_connect_t *req, int status)
 {
@@ -1628,7 +1704,7 @@ static void php_uv_async_cb(uv_async_t* handle, int status)
 
 	params[0] = &resource;
 	params[1] = &zstat;
-	
+
 	php_uv_do_callback2(&retval_ptr, uv, params, 2, PHP_UV_ASYNC_CB TSRMLS_CC);
 
 	zval_ptr_dtor(&resource);
@@ -1650,11 +1726,8 @@ static void php_uv_work_cb(uv_work_t* req)
 
 	PHP_UV_DEBUG_PRINT("work_cb\n");
 
-	php_uv_do_callback2(&retval_ptr, uv, NULL, 0, PHP_UV_WORK_CB TSRMLS_CC);
+	php_uv_do_callback3(&retval_ptr, uv, NULL, 0, PHP_UV_WORK_CB);
 
-	if (retval_ptr != NULL) {
-		zval_ptr_dtor(&retval_ptr);
-	}
 	PHP_UV_DEBUG_RESOURCE_REFCOUNT(uv_work_cb, uv->resource_id);
 }
 
@@ -1664,12 +1737,13 @@ static void php_uv_after_work_cb(uv_work_t* req, int status)
 	php_uv_t *uv = (php_uv_t*)req->data;
 	TSRMLS_FETCH_FROM_CTX(uv != NULL ? uv->thread_ctx : NULL);
 
+	uv = (php_uv_t*)req->data;
+
 	PHP_UV_DEBUG_PRINT("after_work_cb\n");
 
-	php_uv_do_callback2(&retval_ptr, uv, NULL, 0, PHP_UV_AFTER_WORK_CB TSRMLS_CC);
+	php_uv_do_callback3(&retval_ptr, uv, NULL, 0, PHP_UV_AFTER_WORK_CB);
 
-	zval_ptr_dtor(&retval_ptr);
-	PHP_UV_DEBUG_RESOURCE_REFCOUNT(uv_after_work_cb, uv->resource_id);
+	PHP_UV_DEBUG_RESOURCE_REFCOUNT(uv_work_cb, uv->resource_id);
 }
 
 static void php_uv_fs_cb(uv_fs_t* req)
@@ -5537,6 +5611,7 @@ PHP_FUNCTION(uv_async_send)
 */
 PHP_FUNCTION(uv_queue_work)
 {
+#ifdef ZTS
 	int r;
 	zval *zloop = NULL;
 	uv_loop_t *loop;
@@ -5564,6 +5639,9 @@ PHP_FUNCTION(uv_queue_work)
 		php_error_docref(NULL TSRMLS_CC, E_ERROR, "uv_queue_work failed");
 		return;
 	}
+#else
+	php_error_docref(NULL TSRMLS_CC, E_ERROR, "uv_queue_work doesn't support this PHP. please rebuild with --enable-maintainer-zts");
+#endif
 }
 /* }}} */
 

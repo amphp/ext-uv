@@ -40,7 +40,18 @@
 #include "ext/sockets/php_sockets.h"
 #endif
 
-#include "zend_interfaces.h"
+#include <Zend/zend.h>
+#include <Zend/zend_compile.h>
+#include <Zend/zend_exceptions.h>
+#include <Zend/zend_extensions.h>
+#include <Zend/zend_globals.h>
+#include <Zend/zend_hash.h>
+#include <Zend/zend_ts_hash.h>
+#include <Zend/zend_interfaces.h>
+#include <Zend/zend_list.h>
+#include <Zend/zend_object_handlers.h>
+#include <Zend/zend_variables.h>
+#include <Zend/zend_vm.h>
 
 /* Define the entry point symbol
  * Zend will use when loading this module
