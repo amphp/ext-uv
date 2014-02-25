@@ -197,6 +197,7 @@ typedef struct {
 	zval *data;
 	zval *headers;
 	char *tmp;
+	size_t tmp_len;
 } php_http_parser_context;
 
 #define PHP_UV_HTTPPARSER_RESOURCE_NAME "uv_httpparser"

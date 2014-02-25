@@ -1,5 +1,5 @@
 --TEST--
-Check for uv_cwd
+Check for uv_http_parser
 --FILE--
 <?php
 $parser = uv_http_parser_init();
@@ -33,7 +33,22 @@ Cache-Control: max-age=0
 	echo $result['PATH'] . PHP_EOL;
 	echo $result['QUERY'] . PHP_EOL;
 	echo $result['FRAGMENT'] . PHP_EOL;
+	echo $result['UPGRADE'] . PHP_EOL;
 }
+
+$buffer = "GET /demo HTTP/1.1
+Upgrade: WebSocket
+Connection: Upgrade
+Host: example.com
+Origin: http://example.com
+WebSocket-Protocol: sample
+
+";
+
+$parser = uv_http_parser_init();
+$result = array();
+uv_http_parser_execute($parser, $buffer, $result);
+var_dump($result);
 --EXPECT--
 # Headers count
 9
@@ -52,3 +67,27 @@ max-age=0
 /img/http-parser.png
 key=value
 frag
+0
+array(5) {
+  ["QUERY_STRING"]=>
+  string(5) "/demo"
+  ["PATH"]=>
+  string(5) "/demo"
+  ["REQUEST_METHOD"]=>
+  string(3) "GET"
+  ["UPGRADE"]=>
+  int(1)
+  ["HEADERS"]=>
+  array(5) {
+    ["UPGRADE"]=>
+    string(9) "WebSocket"
+    ["CONNECTION"]=>
+    string(7) "Upgrade"
+    ["HOST"]=>
+    string(11) "example.com"
+    ["ORIGIN"]=>
+    string(18) "http://example.com"
+    ["WEBSOCKET_PROTOCOL"]=>
+    string(6) "sample"
+  }
+}

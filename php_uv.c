@@ -2316,6 +2316,12 @@ static int on_message_complete(http_parser *p)
 	php_http_parser_context *result = p->data;
 	result->finished = 1;
 
+	if (result->tmp != NULL) {
+		efree(result->tmp);
+		result->tmp = NULL;
+		result->tmp_len = 0;
+	}
+
 	return 0;
 }
 
@@ -2332,7 +2338,6 @@ static int on_url_cb(http_parser *p, const char *at, size_t len)
 	zval *data = result->data;
 
 	http_parser_parse_url(at, len, 0, &result->handle);
-
 	add_assoc_stringl(data, "QUERY_STRING", (char*)at, len, 1);
 
 	PHP_HTTP_PARSER_PARSE_URL(UF_SCHEMA, SCHEME);
@@ -2369,10 +2374,24 @@ char *php_uv_strtoupper(char *s, size_t len)
 static int header_field_cb(http_parser *p, const char *at, size_t len)
 {
 	php_http_parser_context *result = p->data;
-	/* TODO: */
-	result->tmp = estrndup(at, len);
-	php_uv_strtoupper(result->tmp, len);
 
+	if (result->was_header_value) {
+		if (result->tmp != NULL) {
+			efree(result->tmp);
+			result->tmp = NULL;
+			result->tmp_len = 0;
+		}
+		result->tmp = estrndup(at, len);
+		php_uv_strtoupper(result->tmp, len);
+		result->tmp_len = len;
+	} else {
+		result->tmp = erealloc(result->tmp, len + result->tmp_len + 1);
+		memcpy(result->tmp + result->tmp_len, at, len);
+		result->tmp[result->tmp_len + len] = '\0';
+		result->tmp_len = result->tmp_len + len;
+	}
+
+	result->was_header_value = 0;
 	return 0;
 }
 
@@ -2381,10 +2400,21 @@ static int header_value_cb(http_parser *p, const char *at, size_t len)
 	php_http_parser_context *result = p->data;
 	zval *data = result->headers;
 
-	add_assoc_stringl(data, result->tmp, (char*)at, len, 1);
-	/* TODO: */
-	efree(result->tmp);
-	result->tmp = NULL;
+	if (result->was_header_value) {
+		zval **element;
+
+		if (zend_hash_find(Z_ARRVAL_P(data), result->tmp, result->tmp_len+1, (void **)&element) == SUCCESS) {
+			Z_STRVAL_PP(element) = erealloc(Z_STRVAL_PP(element), Z_STRLEN_PP(element) + len + 1);
+			memcpy(Z_STRVAL_PP(element) + Z_STRLEN_PP(element), at, len);
+
+			Z_STRVAL_PP(element)[Z_STRLEN_PP(element)+len] = '\0';
+			Z_STRLEN_PP(element) = Z_STRLEN_PP(element) + len;
+		}
+	} else {
+		add_assoc_stringl(data, result->tmp, (char*)at, len, 1);
+	}
+
+	result->was_header_value = 1;
 	return 0;
 }
 
@@ -6317,6 +6347,9 @@ PHP_FUNCTION(uv_http_parser_init)
 	ctx->data = result;
 	ctx->headers = header;
 	ctx->finished = 0;
+	ctx->was_header_value = 1;
+	ctx->tmp = NULL;
+	ctx->tmp_len = 0;
 
 	if (target == HTTP_RESPONSE) {
 		ctx->is_response = 1;
@@ -6369,8 +6402,8 @@ PHP_FUNCTION(uv_http_parser_execute)
 	}
 
 	if (nparsed != body_len) {
-		php_error_docref(NULL TSRMLS_CC, E_NOTICE, "parse failed.");
-		RETURN_FALSE;
+		zend_throw_exception_ex(zend_exception_get_default(TSRMLS_C), 0 TSRMLS_CC, "parse failed");
+		return;
 	}
 
 	ZVAL_ZVAL(result, context->data, 1, 0);
