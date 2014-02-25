@@ -2345,6 +2345,11 @@ static int on_url_cb(http_parser *p, const char *at, size_t len)
 	return 0;
 }
 
+static int on_status_cb(http_parser *p, const char *at, size_t len)
+{
+	return 0;
+}
+
 char *php_uv_strtoupper(char *s, size_t len)
 {
 	unsigned char *c, *e;
@@ -6326,10 +6331,10 @@ PHP_FUNCTION(uv_http_parser_init)
 	ctx->settings.on_header_field = header_field_cb;
 	ctx->settings.on_header_value = header_value_cb;
 	ctx->settings.on_url = on_url_cb;
+	ctx->settings.on_status = on_status_cb;
 	ctx->settings.on_body = on_body_cb;
 	ctx->settings.on_headers_complete = on_headers_complete;
 	ctx->settings.on_message_complete = on_message_complete;
-
 
 	ZEND_REGISTER_RESOURCE(return_value, ctx, uv_httpparser_handle);
 }
@@ -6342,6 +6347,7 @@ PHP_FUNCTION(uv_http_parser_execute)
 	php_http_parser_context *context;
 	char *body;
 	int body_len;
+	size_t nparsed = 0;
 
 	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
 		"rs/a",&z_parser, &body, &body_len, &result) == FAILURE) {
@@ -6356,17 +6362,24 @@ PHP_FUNCTION(uv_http_parser_execute)
 	}
 
 	context->parser.data = context;
-	http_parser_execute(&context->parser, &context->settings, body, body_len);
+	nparsed = http_parser_execute(&context->parser, &context->settings, body, body_len);
 
 	if (result) {
 		zval_dtor(result);
 	}
+
+	if (nparsed != body_len) {
+		php_error_docref(NULL TSRMLS_CC, E_NOTICE, "parse failed.");
+		RETURN_FALSE;
+	}
+
 	ZVAL_ZVAL(result, context->data, 1, 0);
 	if (context->is_response == 0) {
 		add_assoc_string(result, "REQUEST_METHOD", (char*)http_method_str(context->parser.method), 1);
 	} else {
 		add_assoc_long(result, "STATUS_CODE", (long)context->parser.status_code);
 	}
+	add_assoc_long(result, "UPGRADE", (long)context->parser.upgrade);
 
 	MAKE_STD_ZVAL(headers);
 	ZVAL_ZVAL(headers, context->headers, 1, 0);
