@@ -6376,10 +6376,11 @@ PHP_FUNCTION(uv_http_parser_init)
 */
 PHP_FUNCTION(uv_http_parser_execute)
 {
-	zval *z_parser,*result, *headers = NULL;
+	zval *z_parser = NULL, *result = NULL, *version = NULL, *headers = NULL;
 	php_http_parser_context *context;
 	char *body;
 	int body_len;
+	char version_buffer[4] = {0};
 	size_t nparsed = 0;
 
 	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
@@ -6414,8 +6415,13 @@ PHP_FUNCTION(uv_http_parser_execute)
 	}
 	add_assoc_long(result, "UPGRADE", (long)context->parser.upgrade);
 
+	MAKE_STD_ZVAL(version);
+	snprintf(version_buffer, 4, "%d.%d", context->parser.http_major, context->parser.http_minor);
+	ZVAL_STRING(version, version_buffer, 1);
+
 	MAKE_STD_ZVAL(headers);
 	ZVAL_ZVAL(headers, context->headers, 1, 0);
+	add_assoc_zval(headers, "VERSION", version);
 	add_assoc_zval(result, "HEADERS", headers);
 
 	if (context->finished == 1) {
