@@ -2688,6 +2688,10 @@ ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_run, 0, 0, 1)
 	ZEND_ARG_INFO(0, loop)
 ZEND_END_ARG_INFO()
 
+ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_stop, 0, 0, 1)
+	ZEND_ARG_INFO(0, loop)
+ZEND_END_ARG_INFO()
+
 ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_loop_delete, 0, 0, 1)
 	ZEND_ARG_INFO(0, loop)
 ZEND_END_ARG_INFO()
@@ -3480,6 +3484,22 @@ PHP_FUNCTION(uv_run)
 	}
 	PHP_UV_FETCH_UV_DEFAULT_LOOP(loop, zloop);
 	uv_run(loop, run_mode);
+}
+/* }}} */
+
+/* {{{ proto void uv_stop([resource $uv_loop])
+*/
+PHP_FUNCTION(uv_stop)
+{
+	zval *zloop = NULL;
+	uv_loop_t *loop;
+
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
+		"|z",&zloop) == FAILURE) {
+		return;
+	}
+	PHP_UV_FETCH_UV_DEFAULT_LOOP(loop, zloop);
+	uv_stop(loop);
 }
 /* }}} */
 
@@ -6439,6 +6459,7 @@ static zend_function_entry uv_functions[] = {
 	PHP_FE(uv_unref,                    arginfo_uv_unref)
 	PHP_FE(uv_loop_new,                 NULL)
 	PHP_FE(uv_default_loop,             NULL)
+	PHP_FE(uv_stop,                     arginfo_uv_stop)
 	PHP_FE(uv_run,                      arginfo_uv_run)
 	PHP_FE(uv_run_once,                 arginfo_uv_run_once)
 	PHP_FE(uv_ip4_addr,                 arginfo_uv_ip4_addr)
