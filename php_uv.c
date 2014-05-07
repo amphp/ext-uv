@@ -65,6 +65,21 @@ zend_fcall_info empty_fcall_info = { 0, NULL, NULL, NULL, NULL, 0, NULL, NULL, 0
 	TSRMLS_SET_CTX(uv->thread_ctx); \
 	uv->resource_id = PHP_UV_LIST_INSERT(uv, uv_resource_handle); \
 
+#define PHP_UV_INIT_SIGNAL(uv, uv_type) \
+	uv = (php_uv_t *)emalloc(sizeof(php_uv_t)); \
+	if (!uv) { \
+		php_error_docref(NULL TSRMLS_CC, E_ERROR, "emalloc failed"); \
+		RETURN_FALSE; \
+	} \
+	if (uv_signal_init(loop, &uv->uv.signal)) { \
+		php_error_docref(NULL TSRMLS_CC, E_WARNING, "uv_signal_init failed");\
+		RETURN_FALSE;\
+	} \
+	uv->type = uv_type; \
+	PHP_UV_INIT_ZVALS(uv) \
+	TSRMLS_SET_CTX(uv->thread_ctx); \
+	uv->resource_id = PHP_UV_LIST_INSERT(uv, uv_resource_handle); \
+
 #define PHP_UV_INIT_CONNECT(req, uv) \
 	req = (uv_connect_t*)emalloc(sizeof(uv_connect_t)); \
 	req->data = uv; 
@@ -284,6 +299,8 @@ static void php_uv_close_cb(uv_handle_t *handle);
 static void php_uv_timer_cb(uv_timer_t *handle, int status);
 
 static void php_uv_idle_cb(uv_timer_t *handle, int status);
+
+static void php_uv_signal_cb(uv_signal_t *handle, int sig_num);
 
 
 static char *php_uv_map_resource_name(enum php_uv_resource_type type)
@@ -2215,6 +2232,31 @@ static void php_uv_timer_cb(uv_timer_t *handle, int status)
 	zval_ptr_dtor(&client);
 }
 
+static void php_uv_signal_cb(uv_signal_t *handle, int sig_num)
+{
+	zval *retval_ptr, *zsig, *client= NULL;
+	zval **params[2];
+	php_uv_t *uv = (php_uv_t*)handle->data;
+	TSRMLS_FETCH_FROM_CTX(uv->thread_ctx);
+
+	MAKE_STD_ZVAL(zsig);
+	ZVAL_LONG(zsig, sig_num);
+	MAKE_STD_ZVAL(client);
+	ZVAL_RESOURCE(client, uv->resource_id);
+	zend_list_addref(uv->resource_id);
+
+	params[0] = &client;
+	params[1] = &zsig;
+
+	php_uv_do_callback2(&retval_ptr, uv, params, 2, PHP_UV_SIGNAL_CB TSRMLS_CC);
+
+	if (retval_ptr != NULL) {
+		zval_ptr_dtor(&retval_ptr);
+	}
+	zval_ptr_dtor(&zsig);
+	zval_ptr_dtor(&client);
+}
+
 static inline uv_stream_t* php_uv_get_current_stream(php_uv_t *uv)
 {
 	uv_stream_t *stream;
@@ -3341,6 +3383,20 @@ ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_poll_stop, 0, 0, 1)
 	ZEND_ARG_INFO(0, handle)
 ZEND_END_ARG_INFO()
 
+ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_signal_init, 0, 0, 1)
+	ZEND_ARG_INFO(0, loop)
+ZEND_END_ARG_INFO()
+
+ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_signal_start, 0, 0, 3)
+	ZEND_ARG_INFO(0, sig_handle)
+	ZEND_ARG_INFO(0, sig_callback)
+	ZEND_ARG_INFO(0, sig_num)
+ZEND_END_ARG_INFO()
+
+ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_signal_stop, 0, 0, 1)
+	ZEND_ARG_INFO(0, sig_handle)
+ZEND_END_ARG_INFO()
+
 /* PHP Functions */
 
 /* {{{ proto void uv_unref(resource $uv_t)
@@ -3500,6 +3556,88 @@ PHP_FUNCTION(uv_stop)
 	}
 	PHP_UV_FETCH_UV_DEFAULT_LOOP(loop, zloop);
 	uv_stop(loop);
+}
+/* }}} */
+
+/* {{{ proto resource uv_signal_init([resource $uv_loop])
+*/
+PHP_FUNCTION(uv_signal_init)
+{
+	zval *zloop = NULL;
+	uv_loop_t *loop;
+	php_uv_t *uv;
+
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
+		"|z",&zloop) == FAILURE) {
+		return;
+	}
+
+	PHP_UV_FETCH_UV_DEFAULT_LOOP(loop, zloop);
+	PHP_UV_INIT_SIGNAL(uv, IS_UV_SIGNAL)
+
+	uv->uv.signal.data = uv;
+
+	ZVAL_RESOURCE(return_value, uv->resource_id);
+}
+/* }}} */
+
+/* {{{ proto void uv_signal_start(resource $sig_handle, callable $sig_callback, int $sig_num)
+*/
+PHP_FUNCTION(uv_signal_start)
+{
+	zval *sig_handle;
+	long sig_num;
+	php_uv_t *uv;
+	zend_fcall_info fci       = empty_fcall_info;
+	zend_fcall_info_cache fcc = empty_fcall_info_cache;
+	php_uv_cb_t *cb;
+
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
+		"rfl", &sig_handle, &fci, &fcc, &sig_num) == FAILURE) {
+		return;
+	}
+
+	ZEND_FETCH_RESOURCE(uv, php_uv_t *, &sig_handle, -1, PHP_UV_RESOURCE_NAME, uv_resource_handle);
+
+	PHP_UV_TYPE_CHECK(uv, IS_UV_SIGNAL);
+
+	if (uv_is_active((uv_handle_t*)&uv->uv.signal)) {
+		php_error_docref(NULL TSRMLS_CC, E_NOTICE, "passed uv signal resource has been started. you don't have to call this method");
+		RETURN_FALSE;
+	}
+
+	zend_list_addref(uv->resource_id);
+	php_uv_cb_init(&cb, uv, &fci, &fcc, PHP_UV_SIGNAL_CB);
+
+	uv_signal_start((uv_signal_t*)&uv->uv.signal, php_uv_signal_cb, sig_num);
+}
+/* }}} */
+
+/* {{{ proto int uv_signal_stop(resource $sig_handle)
+*/
+PHP_FUNCTION(uv_signal_stop)
+{
+	zval *sig_handle;
+	php_uv_t *uv;
+	int r = 0;
+
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
+		"r", &sig_handle) == FAILURE) {
+		return;
+	}
+
+	ZEND_FETCH_RESOURCE(uv, php_uv_t *, &sig_handle, -1, PHP_UV_RESOURCE_NAME, uv_resource_handle);
+
+	PHP_UV_TYPE_CHECK(uv, IS_UV_SIGNAL);
+
+	if (!uv_is_active((uv_handle_t*)&uv->uv.signal)) {
+		php_error_docref(NULL TSRMLS_CC, E_NOTICE, "passed uv signal resource has been stopped. you don't have to call this method");
+		RETURN_FALSE;
+	}
+
+	r = uv_signal_stop((uv_signal_t*)&uv->uv.signal);
+
+	RETURN_LONG(r);
 }
 /* }}} */
 
@@ -6622,6 +6760,10 @@ static zend_function_entry uv_functions[] = {
 	PHP_FE(uv_cwd,                      NULL)
 	PHP_FE(uv_chdir,                    arginfo_uv_chdir)
 	PHP_FE(uv_resident_set_memory,      NULL)
+	/* signal handling */
+	PHP_FE(uv_signal_init,              arginfo_uv_signal_init)
+	PHP_FE(uv_signal_start,             arginfo_uv_signal_start)
+	PHP_FE(uv_signal_stop,              arginfo_uv_signal_stop)
 	/* http parser */
 	PHP_FE(uv_http_parser_init,          arginfo_uv_http_parser_init)
 	PHP_FE(uv_http_parser_execute,       arginfo_uv_http_parser_execute)
