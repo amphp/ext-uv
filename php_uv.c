@@ -436,7 +436,7 @@ static inline int php_uv_common_init(php_uv_t **result, uv_loop_t *loop, enum ph
 		{
 			r = uv_check_init(loop, &uv->uv.check);
 			if (r) {
-				php_error_docref(NULL TSRMLS_CC, E_ERROR, "uv_prepare_init failed");
+				php_error_docref(NULL TSRMLS_CC, E_ERROR, "uv_check_init failed");
 				goto cleanup;
 			}
 			
