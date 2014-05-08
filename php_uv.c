@@ -1248,6 +1248,7 @@ static int php_uv_do_callback2(zval **retval_ptr, php_uv_t *uv, zval ***params, 
 }
 
 #ifdef ZTS
+
 static int php_uv_do_callback3(zval **retval_ptr, php_uv_t *uv, zval ***params, int param_count, enum php_uv_callback_type type)
 {
 	int error = 0;
@@ -1279,9 +1280,17 @@ static int php_uv_do_callback3(zval **retval_ptr, php_uv_t *uv, zval ***params, 
 		uv->callback[type]->fcc.called_scope = NULL;
 		uv->callback[type]->fcc.object_ptr = ZEG->This;
 
-		if (zend_call_function(&uv->callback[type]->fci, &uv->callback[type]->fcc TSRMLS_CC) != SUCCESS) {
+		zend_try {
+			if (zend_call_function(&uv->callback[type]->fci, &uv->callback[type]->fcc TSRMLS_CC) != SUCCESS) {
+				error = -1;
+			}
+
+			if (retval_ptr != NULL) {
+				zval_ptr_dtor(retval_ptr);
+			}
+		} zend_catch {
 			error = -1;
-		}
+		} zend_end_try();
 
 		{
 			zend_op_array *ops = &uv->callback[type]->fcc.function_handler->op_array;
@@ -1291,9 +1300,6 @@ static int php_uv_do_callback3(zval **retval_ptr, php_uv_t *uv, zval ***params, 
 							ops->run_time_cache = NULL;
 					}
 			}
-		}
-		if (retval_ptr != NULL) {
-			zval_ptr_dtor(retval_ptr);
 		}
 
 		php_request_shutdown(TSRMLS_C);
