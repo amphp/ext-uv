@@ -2989,3 +2989,65 @@ Cache-Control: max-age=0
 
 ````
 
+
+### void uv_stop([resource $uv_loop])
+
+##### *Description*
+
+##### *Parameters*
+
+*resource $uv_loop*: uv loop handle
+
+##### *Return Value*
+
+*void*:
+
+##### *Example*
+
+
+### resource uv_signal_init([resource $uv_loop])
+
+##### *Description*
+
+##### *Parameters*
+
+*resource $uv_loop*: uv loop handle
+
+##### *Return Value*
+
+*resource*:
+
+##### *Example*
+
+### void uv_signal_start(resource $sig_handle, callable $sig_callback, int $sig_num)
+
+##### *Description*
+
+##### *Parameters*
+
+*resource $sig_handle*: 
+
+*callable $callable*: signal callback
+
+*int $sig_num*: signal
+
+##### *Return Value*
+
+*void*:
+
+##### *Example*
+
+### int uv_signal_stop(resource $sig_handle)
+
+##### *Description*
+
+##### *Parameters*
+
+*resource $sig_handle*: 
+
+##### *Return Value*
+
+*int $sig_num*: 
+
+##### *Example*
+
