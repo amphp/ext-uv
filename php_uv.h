@@ -89,7 +89,8 @@ enum php_uv_resource_type{
 	IS_UV_TTY      = 16,
 	IS_UV_FS_POLL  = 17,
 	IS_UV_POLL     = 18,
-	IS_UV_MAX      = 19
+	IS_UV_SIGNAL   = 19,
+	IS_UV_MAX      = 20
 };
 
 enum php_uv_callback_type{
@@ -116,7 +117,8 @@ enum php_uv_callback_type{
 	PHP_UV_FS_EVENT_CB     = 20,
 	PHP_UV_FS_POLL_CB      = 21,
 	PHP_UV_POLL_CB         = 22,
-	PHP_UV_CB_MAX          = 23
+	PHP_UV_SIGNAL_CB       = 23,
+	PHP_UV_CB_MAX          = 24
 };
 
 typedef struct {
@@ -152,6 +154,7 @@ typedef struct {
 		uv_tty_t tty;
 		uv_fs_poll_t fs_poll;
 		uv_poll_t poll;
+		uv_signal_t signal;
 	} uv;
 	char *buffer;
 	zval *address;

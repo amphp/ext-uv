@@ -66,6 +66,67 @@ static int php_uv_class_init(TSRMLS_D)
 	zend_declare_class_constant_long(uv_class_entry, "S_IROTH",  sizeof("S_IROTH")-1, S_IROTH TSRMLS_CC);
 	zend_declare_class_constant_long(uv_class_entry, "S_IWOTH",  sizeof("S_IWOTH")-1, S_IWOTH TSRMLS_CC);
 	zend_declare_class_constant_long(uv_class_entry, "S_IXOTH",  sizeof("S_IXOTH")-1, S_IXOTH TSRMLS_CC);
+
+	/* Non-windows Signal Constants */
+	zend_declare_class_constant_long(uv_class_entry, "SIG_IGN",  sizeof("SIG_IGN")-1, (long) SIG_IGN TSRMLS_CC);
+	zend_declare_class_constant_long(uv_class_entry, "SIG_DFL",  sizeof("SIG_DFL")-1, (long) SIG_DFL TSRMLS_CC);
+	zend_declare_class_constant_long(uv_class_entry, "SIG_ERR",  sizeof("SIG_ERR")-1, (long) SIG_ERR TSRMLS_CC);
+	zend_declare_class_constant_long(uv_class_entry, "SIGHUP",   sizeof("SIGHUP")-1, (long) SIGHUP TSRMLS_CC);
+	zend_declare_class_constant_long(uv_class_entry, "SIGINT",   sizeof("SIGINT")-1, (long) SIGINT TSRMLS_CC);
+	zend_declare_class_constant_long(uv_class_entry, "SIGQUIT",  sizeof("SIGQUIT")-1, (long) SIGQUIT TSRMLS_CC);
+	zend_declare_class_constant_long(uv_class_entry, "SIGILL",   sizeof("SIGILL")-1, (long) SIGILL TSRMLS_CC);
+	zend_declare_class_constant_long(uv_class_entry, "SIGTRAP",  sizeof("SIGTRAP")-1, (long) SIGTRAP TSRMLS_CC);
+	zend_declare_class_constant_long(uv_class_entry, "SIGABRT",  sizeof("SIGABRT")-1, (long) SIGABRT TSRMLS_CC);
+#ifdef SIGIOT
+	zend_declare_class_constant_long(uv_class_entry, "SIGIOT",   sizeof("SIGIOT")-1, (long) SIGIOT TSRMLS_CC);
+#endif
+	zend_declare_class_constant_long(uv_class_entry, "SIGBUS",   sizeof("SIGBUS")-1, (long) SIGBUS TSRMLS_CC);
+	zend_declare_class_constant_long(uv_class_entry, "SIGFPE",   sizeof("SIGFPE")-1, (long) SIGFPE TSRMLS_CC);
+	zend_declare_class_constant_long(uv_class_entry, "SIGKILL",  sizeof("SIGKILL")-1, (long) SIGKILL TSRMLS_CC);
+	zend_declare_class_constant_long(uv_class_entry, "SIGUSR1",  sizeof("SIGUSR1")-1, (long) SIGUSR1 TSRMLS_CC);
+	zend_declare_class_constant_long(uv_class_entry, "SIGSEGV",  sizeof("SIGSEGV")-1, (long) SIGSEGV TSRMLS_CC);
+	zend_declare_class_constant_long(uv_class_entry, "SIGUSR2",  sizeof("SIGUSR2")-1, (long) SIGUSR2 TSRMLS_CC);
+	zend_declare_class_constant_long(uv_class_entry, "SIGPIPE",  sizeof("SIGPIPE")-1, (long) SIGPIPE TSRMLS_CC);
+	zend_declare_class_constant_long(uv_class_entry, "SIGALRM",  sizeof("SIGALRM")-1, (long) SIGALRM TSRMLS_CC);
+	zend_declare_class_constant_long(uv_class_entry, "SIGTERM",  sizeof("SIGTERM")-1, (long) SIGTERM TSRMLS_CC);
+#ifdef SIGSTKFLT
+	zend_declare_class_constant_long(uv_class_entry, "SIGSTKFLT",sizeof("SIGSTKFLT")-1, (long) SIGSTKFLT TSRMLS_CC);
+#endif
+#ifdef SIGCLD
+	zend_declare_class_constant_long(uv_class_entry, "SIGCLD",   sizeof("SIGCLD")-1, (long) SIGCLD TSRMLS_CC);
+#endif
+#ifdef SIGCHLD
+	zend_declare_class_constant_long(uv_class_entry, "SIGCHLD",  sizeof("SIGCHLD")-1, (long) SIGCHLD TSRMLS_CC);
+#endif
+	zend_declare_class_constant_long(uv_class_entry, "SIGCONT",  sizeof("SIGCONT")-1, (long) SIGCONT TSRMLS_CC);
+	zend_declare_class_constant_long(uv_class_entry, "SIGSTOP",  sizeof("SIGSTOP")-1, (long) SIGSTOP TSRMLS_CC);
+	zend_declare_class_constant_long(uv_class_entry, "SIGTSTP",  sizeof("SIGTSTP")-1, (long) SIGTSTP TSRMLS_CC);
+	zend_declare_class_constant_long(uv_class_entry, "SIGTTIN",  sizeof("SIGTTIN")-1, (long) SIGTTIN TSRMLS_CC);
+	zend_declare_class_constant_long(uv_class_entry, "SIGTTOU",  sizeof("SIGTTOU")-1, (long) SIGTTOU TSRMLS_CC);
+	zend_declare_class_constant_long(uv_class_entry, "SIGURG",   sizeof("SIGURG")-1, (long) SIGURG  TSRMLS_CC);
+	zend_declare_class_constant_long(uv_class_entry, "SIGXCPU",  sizeof("SIGXCPU")-1, (long) SIGXCPU TSRMLS_CC);
+	zend_declare_class_constant_long(uv_class_entry, "SIGXFSZ",  sizeof("SIGXFSZ")-1, (long) SIGXFSZ TSRMLS_CC);
+	zend_declare_class_constant_long(uv_class_entry, "SIGVTALRM",sizeof("SIGVTALRM")-1, (long) SIGVTALRM TSRMLS_CC);
+	zend_declare_class_constant_long(uv_class_entry, "SIGPROF",  sizeof("SIGPROF")-1, (long) SIGPROF TSRMLS_CC);
+	zend_declare_class_constant_long(uv_class_entry, "SIGWINCH", sizeof("SIGWINCH")-1, (long) SIGWINCH TSRMLS_CC);
+#ifdef SIGPOLL
+	zend_declare_class_constant_long(uv_class_entry, "SIGPOLL",  sizeof("SIGPOLL")-1, (long) SIGPOLL TSRMLS_CC);
+#endif
+	zend_declare_class_constant_long(uv_class_entry, "SIGIO",    sizeof("SIGIO")-1, (long) SIGIO TSRMLS_CC);
+#ifdef SIGPWR
+	zend_declare_class_constant_long(uv_class_entry, "SIGPWR",   sizeof("SIGPWR")-1, (long) SIGPWR TSRMLS_CC);
+#endif
+#ifdef SIGSYS
+	zend_declare_class_constant_long(uv_class_entry, "SIGSYS",   sizeof("SIGSYS")-1, (long) SIGSYS TSRMLS_CC);
+	zend_declare_class_constant_long(uv_class_entry, "SIGBABY",  sizeof("SIGBABY")-1, (long) SIGSYS TSRMLS_CC);
+#endif
+
+#else
+	/* Windows Signal Constants */
+	zend_declare_class_constant_long(uv_class_entry, "SIGBREAK", sizeof("SIGBREAK")-1, (long) SIGBREAK TSRMLS_CC);
+	zend_declare_class_constant_long(uv_class_entry, "SIGINT",   sizeof("SIGINT")-1, (long) SIGINT TSRMLS_CC);
+	zend_declare_class_constant_long(uv_class_entry, "SIGHUP",   sizeof("SIGHUP")-1, (long) SIGHUP TSRMLS_CC);
+	zend_declare_class_constant_long(uv_class_entry, "SIGWINCH", sizeof("SIGWINCH")-1, (long) SIGWINCH TSRMLS_CC);
 #endif
 
 	zend_declare_class_constant_long(uv_class_entry, "AF_INET",  sizeof("AF_INET")-1, AF_INET TSRMLS_CC);
