@@ -51,6 +51,9 @@ static int php_uv_class_init(TSRMLS_D)
 	zend_declare_class_constant_long(uv_class_entry, "O_TRUNC",   sizeof("O_TRUNC")-1,  O_TRUNC TSRMLS_CC);
 	zend_declare_class_constant_long(uv_class_entry, "O_APPEND",  sizeof("O_APPEND")-1, O_APPEND TSRMLS_CC);
 
+	zend_declare_class_constant_long(uv_class_entry, "S_IFDIR",  sizeof("S_IFDIR")-1, S_IFDIR TSRMLS_CC);
+	zend_declare_class_constant_long(uv_class_entry, "S_IFREG",  sizeof("S_IFREG")-1, S_IFREG TSRMLS_CC);
+
 #ifndef PHP_WIN32
 	zend_declare_class_constant_long(uv_class_entry, "O_NOCTTY",  sizeof("O_NOCTTY")-1, O_NOCTTY TSRMLS_CC);
 

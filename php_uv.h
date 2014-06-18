@@ -220,6 +220,20 @@ typedef struct {
 #define PHP_UV_LIST_INSERT(type, handle) zend_list_insert(type, handle)
 #endif
 
+
+/* File/directory stat mode constants*/
+#ifdef PHP_WIN32
+#define S_IFDIR _S_IFDIR
+#define S_IFREG _S_IFREG
+#else
+#ifndef S_IFDIR
+#define S_IFDIR 0040000
+#endif
+#ifndef S_IFREG
+#define S_IFREG 0100000
+#endif
+#endif
+
 /* TODO: remove these macro when libuv provides uv_inet_ntop & uv_inet_pton */
 #ifdef PHP_WIN32
 # include "libuv/src/ares/inet_net_pton.h"
