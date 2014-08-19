@@ -1,5 +1,5 @@
-PHP_ARG_ENABLE(uv, Whether to enable the "uv" extension,
-[  --enable-uv     Enable "uv" extension support])
+PHP_ARG_WITH(uv, Whether to include "uv" support,
+[ --with-uv[=DIR]        Include "uv" support])
 
 PHP_ARG_ENABLE(httpparser, Whether to enable the "httpparser" module,
     [ --enable-httpparser     Enable "httpparser" module support])
@@ -53,23 +53,43 @@ if test $PHP_UV != "no"; then
     if test $PHP_HTTPPARSER != "no"; then
         PHP_ADD_INCLUDE([$ext_srcdir/http-parser])
     fi
-    PHP_ADD_INCLUDE([$ext_srcdir/libuv/include])
 
-    CFLAGS=" $CFLAGS -Wunused-variable -Wpointer-sign -Wimplicit-function-declaration -Winline -Wunused-macros -Wredundant-decls -Wstrict-aliasing=2 -Wswitch-enum -Wdeclaration-after-statement -Wl,libuv/libuv.a"
+    SEARCH_PATH="/usr/local /usr"
+    SEARCH_FOR="/include/uv.h"
+    if test -r $PHP_UV/$SEARCH_FOR; then # path given as parameter
+       UV_DIR=$PHP_UV
+    else # search default path list
+       AC_MSG_CHECKING([for libuv files in default path])
+       for i in $SEARCH_PATH ; do
+           if test -r $i/$SEARCH_FOR; then
+             UV_DIR=$i
+             AC_MSG_RESULT(found in $i)
+           fi
+       done
+    fi
 
-    case $host in
-        *darwin*)
-            dnl these macro does not work. why?
-            dnl
-            dnl PHP_ADD_FRAMEWORK(CoreServices)
-            dnl PHP_ADD_FRAMEWORK(Carbon)
+    PHP_ADD_INCLUDE($UV_DIR/include)
 
-            CFLAGS="$CFLAGS -framework CoreServices -framework Carbon"
-        ;;
-        *linux*)
-            CFLAGS="$CFLAGS -lrt"
-    esac
+    PHP_CHECK_LIBRARY(uv, uv_version,
+    [
+      PHP_ADD_LIBRARY_WITH_PATH(uv, $UV_DIR/lib, UV_SHARED_LIBADD)
+      AC_DEFINE(HAVE_UVLIB,1,[ ])
+    ],[
+      AC_MSG_ERROR([wrong uv library version or library not found])
+    ],[
+      -L$UV_DIR/lib -lm
+    ])
 
     PHP_SUBST(UV_SHARED_LIBADD)
-    PHP_SUBST([CFLAGS])
+
+#    CFLAGS=" $CFLAGS -Wunused-variable -Wpointer-sign -Wimplicit-function-declaration -Winline -Wunused-macros -Wredundant-decls -Wstrict-aliasing=2 -Wswitch-enum -Wdeclaration-after-statement"
+
+#    case $host in
+#        *darwin*)
+#                ;;
+#        *linux*)
+#            CFLAGS="$CFLAGS -lrt"
+#    esac
+
+#    PHP_SUBST([CFLAGS])
 fi
