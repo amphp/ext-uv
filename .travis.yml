@@ -1,13 +1,13 @@
 language: php
 
 php:
-  - 5.3
-  - 5.4
-  - 5.5
+  - 5.6
 
 before_script:
-  - sudo apt-get install libuv-devel
-  - phpize && ./configure && make && sudo make install
+  - sudo apt-add-repository -y ppa:linuxjedi/ppa
+  - sudo apt-get update
+  - sudo apt-get -y install libuv-dev
+  - phpize && ./configure --with-uv && make && sudo make install
   - echo "extension=uv.so" >> `php --ini | grep "Loaded Configuration" | sed -e "s|.*:\s*||"`
 
 notifications:
