@@ -2,10 +2,10 @@ PHP_ARG_WITH(uv, Whether to include "uv" support,
 [ --with-uv[=DIR]        Include "uv" support])
 
 PHP_ARG_ENABLE(httpparser, Whether to enable the "httpparser" module,
-    [ --enable-httpparser     Enable "httpparser" module support])
+    [ --enable-httpparser     Enable "httpparser" module support], no, no)
 
 PHP_ARG_ENABLE(uv-debug, for uv debug support,
-    [ --enable-uv-debug       Enable enable uv deubg support], no, no)
+    [ --enable-uv-debug       Enable enable uv debug support], no, no)
 
 PHP_ARG_ENABLE(dtrace, Whether to enable the "dtrace" debug,
     [ --enable-dtrace         Enable "dtrace" support], no, no)
