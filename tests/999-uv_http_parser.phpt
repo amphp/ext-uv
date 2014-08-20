@@ -1,5 +1,7 @@
 --TEST--
 Check for uv_http_parser
+--SKIPIF--
+<?php if (!function_exists('uv_http_parser_execute')) die("Skipped: needs http parser."); ?>
 --FILE--
 <?php
 $parser = uv_http_parser_init();
