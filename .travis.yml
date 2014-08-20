@@ -6,7 +6,7 @@ php:
   - 5.5
 
 before_script:
-  - cd libuv && make libuv.a CFLAGS=-fPIC -s && cd ..
+  - sudo apt-get install libuv-devel
   - phpize && ./configure && make && sudo make install
   - echo "extension=uv.so" >> `php --ini | grep "Loaded Configuration" | sed -e "s|.*:\s*||"`
 
