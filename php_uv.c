@@ -4951,13 +4951,13 @@ PHP_FUNCTION(uv_hrtime)
 */
 PHP_FUNCTION(uv_exepath)
 {
-	char buffer[1024] = {0};
-	size_t buffer_sz;
-	
-	buffer_sz = sizeof(buffer);
-	uv_exepath(buffer, &buffer_sz);
-	buffer[buffer_sz] = '\0';
-	
+	char buffer[MAXPATHLEN];
+	size_t buffer_sz = sizeof(buffer) / sizeof(buffer[0]);
+
+	if (uv_exepath(buffer, &buffer_sz) == UV_EINVAL) {
+		RETURN_FALSE;
+	}
+
 	RETURN_STRINGL(buffer, buffer_sz, 1);
 }
 /* }}} */
