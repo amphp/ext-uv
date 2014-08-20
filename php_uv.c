@@ -4966,12 +4966,14 @@ PHP_FUNCTION(uv_exepath)
 */
 PHP_FUNCTION(uv_cwd)
 {
-	char buffer[1024] = {0};
-	size_t buffer_sz = sizeof(buffer);
-	
-	uv_cwd(buffer, buffer_sz);
-	buffer[buffer_sz] = '\0';
-	
+	char buffer[MAXPATHLEN];
+
+	if (zend_parse_parameters_none() == FAILURE) {
+		return;
+	}
+
+	uv_cwd(buffer, MAXPATHLEN);
+
 	RETURN_STRING(buffer, 1);
 }
 /* }}} */
