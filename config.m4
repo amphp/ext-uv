@@ -50,6 +50,8 @@ if test $PHP_UV != "no"; then
 
     PHP_NEW_EXTENSION(uv, php_uv.c uv.c $SOURCES, $ext_shared)
 
+	PHP_ADD_EXTENSION_DEP(uv, sockets)
+
     if test $PHP_HTTPPARSER != "no"; then
         PHP_ADD_INCLUDE([$ext_srcdir/http-parser])
     fi
