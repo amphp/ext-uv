@@ -6,8 +6,6 @@ void destruct_httpparser(zend_rsrc_list_entry *rsrc TSRMLS_DC)
 {
 	php_http_parser_context *obj = (php_http_parser_context *)rsrc->ptr;
 
-	fprintf(stderr, "Destroying http parser\n");
-
 	if (obj->headers) {
 		zval_ptr_dtor(&obj->headers);
 	}
