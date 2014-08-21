@@ -32,6 +32,10 @@
 #include "php.h"
 #include "uv.h"
 
+#ifdef ENABLE_HTTPPARSER
+#include "uv_http_parser.h"
+#endif
+
 #include "php_network.h"
 #include "php_streams.h"
 

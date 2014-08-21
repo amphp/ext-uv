@@ -1,9 +1,13 @@
+#include "uv_http_parser.h"
+
 static int uv_httpparser_handle;
 
-void static destruct_httpparser(zend_rsrc_list_entry *rsrc TSRMLS_DC)
+void destruct_httpparser(zend_rsrc_list_entry *rsrc TSRMLS_DC)
 {
 	php_http_parser_context *obj = (php_http_parser_context *)rsrc->ptr;
-	
+
+	fprintf(stderr, "Destroying http parser\n");
+
 	if (obj->headers) {
 		zval_ptr_dtor(&obj->headers);
 	}
@@ -12,6 +16,11 @@ void static destruct_httpparser(zend_rsrc_list_entry *rsrc TSRMLS_DC)
 	}
 
 	efree(obj);
+}
+
+void register_httpparser(int module_number)
+{
+	uv_httpparser_handle = zend_register_list_destructors_ex(destruct_httpparser, NULL, PHP_UV_HTTPPARSER_RESOURCE_NAME, module_number);
 }
 
 /*  http parser callbacks */
@@ -143,17 +152,6 @@ static int on_body_cb(http_parser *p, const char *at, size_t len)
 }
 /* end of callback */
 
-/* HTTP PARSER */
-ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_http_parser_init, 0, 0, 1)
-	ZEND_ARG_INFO(0, target)
-ZEND_END_ARG_INFO()
-
-ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_http_parser_execute, 0, 0, 3)
-	ZEND_ARG_INFO(0, resource)
-	ZEND_ARG_INFO(0, buffer)
-	ZEND_ARG_INFO(0, setting)
-ZEND_END_ARG_INFO()
-
 /* {{{ proto resource uv_http_parser_init(long $target = UV::HTTP_REQUEST)
 */
 PHP_FUNCTION(uv_http_parser_init)
@@ -216,10 +214,10 @@ PHP_FUNCTION(uv_http_parser_execute)
 	size_t nparsed = 0;
 
 	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
-		"rs/a",&z_parser, &body, &body_len, &result) == FAILURE) {
+		"rs/a", &z_parser, &body, &body_len, &result) == FAILURE) {
 		return;
 	}
-	
+
 	ZEND_FETCH_RESOURCE(context, php_http_parser_context*, &z_parser, -1, PHP_UV_HTTPPARSER_RESOURCE_NAME, uv_httpparser_handle);
 
 	if (context->finished == 1) {
@@ -253,25 +251,10 @@ PHP_FUNCTION(uv_http_parser_execute)
 
 	MAKE_STD_ZVAL(headers);
 	ZVAL_ZVAL(headers, context->headers, 1, 0);
+
 	add_assoc_zval(headers, "VERSION", version);
 	add_assoc_zval(result, "HEADERS", headers);
 
-	if (context->finished == 1) {
-		RETURN_TRUE;
-	} else {
-		RETURN_FALSE;
-	}
+	RETURN_BOOL(context->finished);
 }
-
-// static zend_function_entry uv_functions[] = {
-
-	/* http parser */
-	PHP_FE(uv_http_parser_init,          arginfo_uv_http_parser_init)
-	PHP_FE(uv_http_parser_execute,       arginfo_uv_http_parser_execute)
-
-// php_uv_class_init
-
-	zend_declare_class_constant_long(uv_class_entry,  "HTTP_BOTH", sizeof("HTTP_BOTH")-1, HTTP_BOTH TSRMLS_CC);
-	zend_declare_class_constant_long(uv_class_entry,  "HTTP_REQUEST", sizeof("HTTP_REQUEST")-1, HTTP_REQUEST TSRMLS_CC);
-	zend_declare_class_constant_long(uv_class_entry,  "HTTP_RESPONSE", sizeof("HTTP_RESPONSE")-1, HTTP_RESPONSE TSRMLS_CC);
 

@@ -44,7 +44,7 @@ if test $PHP_UV != "no"; then
     SOURCES=""
 
     if test $PHP_HTTPPARSER != "no"; then
-        SOURCES=" http-parser/http_parser.c"
+        SOURCES=" uv_http_parser.c http-parser/http_parser.c"
         AC_DEFINE([ENABLE_HTTPPARSER], [1], [ Enable http parser])
     fi
 
@@ -81,15 +81,4 @@ if test $PHP_UV != "no"; then
     ])
 
     PHP_SUBST(UV_SHARED_LIBADD)
-
-#    CFLAGS=" $CFLAGS -Wunused-variable -Wpointer-sign -Wimplicit-function-declaration -Winline -Wunused-macros -Wredundant-decls -Wstrict-aliasing=2 -Wswitch-enum -Wdeclaration-after-statement"
-
-#    case $host in
-#        *darwin*)
-#                ;;
-#        *linux*)
-#            CFLAGS="$CFLAGS -lrt"
-#    esac
-
-#    PHP_SUBST([CFLAGS])
 fi

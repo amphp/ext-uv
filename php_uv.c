@@ -232,7 +232,6 @@ static int uv_lock_handle;
 
 static int uv_stdio_handle;
 
-
 char *php_uv_resource_map[IS_UV_MAX] = {
 	"uv_tcp",
 	"uv_udp",
@@ -2573,8 +2572,11 @@ PHP_MINIT_FUNCTION(uv)
 	uv_loop_handle       = zend_register_list_destructors_ex(destruct_uv_loop, NULL, PHP_UV_LOOP_RESOURCE_NAME, module_number);
 	uv_sockaddr_handle   = zend_register_list_destructors_ex(destruct_uv_sockaddr, NULL, PHP_UV_SOCKADDR_RESOURCE_NAME, module_number);
 	uv_lock_handle       = zend_register_list_destructors_ex(destruct_uv_lock, NULL, PHP_UV_LOCK_RESOURCE_NAME, module_number);
-//	uv_httpparser_handle = zend_register_list_destructors_ex(destruct_httpparser, NULL, PHP_UV_HTTPPARSER_RESOURCE_NAME, module_number);
 	uv_stdio_handle      = zend_register_list_destructors_ex(destruct_uv_stdio, NULL, PHP_UV_STDIO_RESOURCE_NAME, module_number);
+
+#ifdef ENABLE_HTTPPARSER
+	register_httpparser(module_number);
+#endif
 
 	return SUCCESS;
 }
@@ -6509,9 +6511,13 @@ static zend_function_entry uv_functions[] = {
 	PHP_FE(uv_signal_init,              arginfo_uv_signal_init)
 	PHP_FE(uv_signal_start,             arginfo_uv_signal_start)
 	PHP_FE(uv_signal_stop,              arginfo_uv_signal_stop)
+#ifdef ENABLE_HTTPPARSER
+	/* http parser */
+	PHP_FE(uv_http_parser_init,          arginfo_uv_http_parser_init)
+	PHP_FE(uv_http_parser_execute,       arginfo_uv_http_parser_execute)
+#endif
 	{NULL, NULL, NULL}
 };
-
 
 PHP_MINFO_FUNCTION(uv)
 {
