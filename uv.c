@@ -139,10 +139,6 @@ static int php_uv_class_init(TSRMLS_D)
 	zend_declare_class_constant_long(uv_class_entry, "LEAVE_GROUP",  sizeof("LEAVE_GROUP")-1, UV_LEAVE_GROUP TSRMLS_CC);
 	zend_declare_class_constant_long(uv_class_entry, "JOIN_GROUP",  sizeof("JOIN_GROUP")-1, UV_JOIN_GROUP TSRMLS_CC);
 
-	zend_declare_class_constant_long(uv_class_entry,  "HTTP_BOTH", sizeof("HTTP_BOTH")-1, HTTP_BOTH TSRMLS_CC);
-	zend_declare_class_constant_long(uv_class_entry,  "HTTP_REQUEST", sizeof("HTTP_REQUEST")-1, HTTP_REQUEST TSRMLS_CC);
-	zend_declare_class_constant_long(uv_class_entry,  "HTTP_RESPONSE", sizeof("HTTP_RESPONSE")-1, HTTP_RESPONSE TSRMLS_CC);
-
 	/* for uv_handle_type */
 	zend_declare_class_constant_long(uv_class_entry,  "IS_UV_TCP", sizeof("IS_UV_TCP")-1, IS_UV_TCP TSRMLS_CC);
 	zend_declare_class_constant_long(uv_class_entry,  "IS_UV_UDP", sizeof("IS_UV_UDP")-1, IS_UV_UDP TSRMLS_CC);
@@ -186,6 +182,13 @@ static int php_uv_class_init(TSRMLS_D)
 	zend_declare_class_constant_long(uv_class_entry,  "PROCESS_SETGID", sizeof("PROCESS_SETGID")-1, UV_PROCESS_SETGID TSRMLS_CC);
 	zend_declare_class_constant_long(uv_class_entry,  "PROCESS_WINDOWS_VERBATIM_ARGUMENTS", sizeof("PROCESS_WINDOWS_VERBATIM_ARGUMENTS")-1, UV_PROCESS_WINDOWS_VERBATIM_ARGUMENTS TSRMLS_CC);
 	zend_declare_class_constant_long(uv_class_entry,  "PROCESS_DETACHED", sizeof("PROCESS_DETACHED")-1, UV_PROCESS_DETACHED TSRMLS_CC);
+
+#ifdef ENABLE_HTTPPARSER
+	/* http parser */
+	zend_declare_class_constant_long(uv_class_entry,  "HTTP_BOTH", sizeof("HTTP_BOTH")-1, HTTP_BOTH TSRMLS_CC);
+	zend_declare_class_constant_long(uv_class_entry,  "HTTP_REQUEST", sizeof("HTTP_REQUEST")-1, HTTP_REQUEST TSRMLS_CC);
+	zend_declare_class_constant_long(uv_class_entry,  "HTTP_RESPONSE", sizeof("HTTP_RESPONSE")-1, HTTP_RESPONSE TSRMLS_CC);
+#endif
 
 #define PHP_UV_ERRNO_GEN(code_notused, name, msg_notused) zend_declare_class_constant_long(uv_class_entry,  #name, sizeof(#name)-1, UV_##name TSRMLS_CC);
 	UV_ERRNO_MAP(PHP_UV_ERRNO_GEN)

@@ -1,5 +1,7 @@
 --TEST--
 Check for uv_http_parser
+--SKIPIF--
+<?php if (!function_exists('uv_http_parser_execute')) die("Skipped: needs http parser."); ?>
 --FILE--
 <?php
 $parser = uv_http_parser_init();
@@ -51,7 +53,7 @@ uv_http_parser_execute($parser, $buffer, $result);
 var_dump($result);
 --EXPECT--
 # Headers count
-9
+10
 # Headers values
 chobie.net
 Mozilla/5.0 (Macintosh; Intel Mac OS X 10.7; rv:12.0) Gecko/20100101 Firefox/12.0
@@ -78,7 +80,7 @@ array(5) {
   ["UPGRADE"]=>
   int(1)
   ["HEADERS"]=>
-  array(5) {
+  array(6) {
     ["UPGRADE"]=>
     string(9) "WebSocket"
     ["CONNECTION"]=>
@@ -89,5 +91,7 @@ array(5) {
     string(18) "http://example.com"
     ["WEBSOCKET_PROTOCOL"]=>
     string(6) "sample"
+    ["VERSION"]=>
+    string(3) "1.1"
   }
 }

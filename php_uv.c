@@ -230,10 +230,7 @@ static int uv_sockaddr_handle;
 
 static int uv_lock_handle;
 
-static int uv_httpparser_handle;
-
 static int uv_stdio_handle;
-
 
 char *php_uv_resource_map[IS_UV_MAX] = {
 	"uv_tcp",
@@ -2322,20 +2319,6 @@ static inline uv_stream_t* php_uv_get_current_stream(php_uv_t *uv)
 	return stream;
 }
 
-void static destruct_httpparser(zend_rsrc_list_entry *rsrc TSRMLS_DC)
-{
-	php_http_parser_context *obj = (php_http_parser_context *)rsrc->ptr;
-	
-	if (obj->headers) {
-		zval_ptr_dtor(&obj->headers);
-	}
-	if (obj->data) {
-		zval_ptr_dtor(&obj->data);
-	}
-
-	efree(obj);
-}
-
 void static destruct_uv_stdio(zend_rsrc_list_entry *rsrc TSRMLS_DC)
 {
 	php_uv_stdio_t *obj = (php_uv_stdio_t *)rsrc->ptr;
@@ -2348,134 +2331,6 @@ void static destruct_uv_stdio(zend_rsrc_list_entry *rsrc TSRMLS_DC)
 	efree(obj);
 }
 
-/*  http parser callbacks */
-static int on_message_begin(http_parser *p)
-{
-	return 0;
-}
-
-static int on_headers_complete(http_parser *p)
-{
-	return 0;
-}
-
-static int on_message_complete(http_parser *p)
-{
-	php_http_parser_context *result = p->data;
-	result->finished = 1;
-
-	if (result->tmp != NULL) {
-		efree(result->tmp);
-		result->tmp = NULL;
-		result->tmp_len = 0;
-	}
-
-	return 0;
-}
-
-#define PHP_HTTP_PARSER_PARSE_URL(flag, name) \
-	if (result->handle.field_set & (1 << flag)) { \
-		const char *tmp_name = at+result->handle.field_data[flag].off; \
-		int length = result->handle.field_data[flag].len; \
-		add_assoc_stringl(data, #name, (char*)tmp_name, length, 1); \
-	} 
-
-static int on_url_cb(http_parser *p, const char *at, size_t len)
-{
-	php_http_parser_context *result = p->data;
-	zval *data = result->data;
-
-	http_parser_parse_url(at, len, 0, &result->handle);
-	add_assoc_stringl(data, "QUERY_STRING", (char*)at, len, 1);
-
-	PHP_HTTP_PARSER_PARSE_URL(UF_SCHEMA, SCHEME);
-	PHP_HTTP_PARSER_PARSE_URL(UF_HOST, HOST);
-	PHP_HTTP_PARSER_PARSE_URL(UF_PORT, PORT);
-	PHP_HTTP_PARSER_PARSE_URL(UF_PATH, PATH);
-	PHP_HTTP_PARSER_PARSE_URL(UF_QUERY, QUERY);
-	PHP_HTTP_PARSER_PARSE_URL(UF_FRAGMENT, FRAGMENT);
-
-	return 0;
-}
-
-static int on_status_cb(http_parser *p, const char *at, size_t len)
-{
-	return 0;
-}
-
-char *php_uv_strtoupper(char *s, size_t len)
-{
-	unsigned char *c, *e;
-
-	c = (unsigned char *)s;
-	e = (unsigned char *)c+len;
-
-	while (c < e) {
-		*c = toupper(*c);
-		if (*c == '-') *c = '_';
-		c++;
-	}
-	return s;
-}
-
-
-static int header_field_cb(http_parser *p, const char *at, size_t len)
-{
-	php_http_parser_context *result = p->data;
-
-	if (result->was_header_value) {
-		if (result->tmp != NULL) {
-			efree(result->tmp);
-			result->tmp = NULL;
-			result->tmp_len = 0;
-		}
-		result->tmp = estrndup(at, len);
-		php_uv_strtoupper(result->tmp, len);
-		result->tmp_len = len;
-	} else {
-		result->tmp = erealloc(result->tmp, len + result->tmp_len + 1);
-		memcpy(result->tmp + result->tmp_len, at, len);
-		result->tmp[result->tmp_len + len] = '\0';
-		result->tmp_len = result->tmp_len + len;
-	}
-
-	result->was_header_value = 0;
-	return 0;
-}
-
-static int header_value_cb(http_parser *p, const char *at, size_t len)
-{
-	php_http_parser_context *result = p->data;
-	zval *data = result->headers;
-
-	if (result->was_header_value) {
-		zval **element;
-
-		if (zend_hash_find(Z_ARRVAL_P(data), result->tmp, result->tmp_len+1, (void **)&element) == SUCCESS) {
-			Z_STRVAL_PP(element) = erealloc(Z_STRVAL_PP(element), Z_STRLEN_PP(element) + len + 1);
-			memcpy(Z_STRVAL_PP(element) + Z_STRLEN_PP(element), at, len);
-
-			Z_STRVAL_PP(element)[Z_STRLEN_PP(element)+len] = '\0';
-			Z_STRLEN_PP(element) = Z_STRLEN_PP(element) + len;
-		}
-	} else {
-		add_assoc_stringl(data, result->tmp, (char*)at, len, 1);
-	}
-
-	result->was_header_value = 1;
-	return 0;
-}
-
-static int on_body_cb(http_parser *p, const char *at, size_t len)
-{
-	php_http_parser_context *result = p->data;
-	zval *data = result->headers;
-
-	add_assoc_stringl(data, "BODY", (char*)at, len,  1);
-
-	return 0;
-}
-/* end of callback */
 
 /* common functions */
 
@@ -2717,8 +2572,11 @@ PHP_MINIT_FUNCTION(uv)
 	uv_loop_handle       = zend_register_list_destructors_ex(destruct_uv_loop, NULL, PHP_UV_LOOP_RESOURCE_NAME, module_number);
 	uv_sockaddr_handle   = zend_register_list_destructors_ex(destruct_uv_sockaddr, NULL, PHP_UV_SOCKADDR_RESOURCE_NAME, module_number);
 	uv_lock_handle       = zend_register_list_destructors_ex(destruct_uv_lock, NULL, PHP_UV_LOCK_RESOURCE_NAME, module_number);
-	uv_httpparser_handle = zend_register_list_destructors_ex(destruct_httpparser, NULL, PHP_UV_HTTPPARSER_RESOURCE_NAME, module_number);
 	uv_stdio_handle      = zend_register_list_destructors_ex(destruct_uv_stdio, NULL, PHP_UV_STDIO_RESOURCE_NAME, module_number);
+
+#ifdef ENABLE_HTTPPARSER
+	register_httpparser(module_number);
+#endif
 
 	return SUCCESS;
 }
@@ -5095,13 +4953,13 @@ PHP_FUNCTION(uv_hrtime)
 */
 PHP_FUNCTION(uv_exepath)
 {
-	char buffer[1024] = {0};
-	size_t buffer_sz;
-	
-	buffer_sz = sizeof(buffer);
-	uv_exepath(buffer, &buffer_sz);
-	buffer[buffer_sz] = '\0';
-	
+	char buffer[MAXPATHLEN];
+	size_t buffer_sz = sizeof(buffer) / sizeof(buffer[0]);
+
+	if (uv_exepath(buffer, &buffer_sz) == UV_EINVAL) {
+		RETURN_FALSE;
+	}
+
 	RETURN_STRINGL(buffer, buffer_sz, 1);
 }
 /* }}} */
@@ -5110,12 +4968,14 @@ PHP_FUNCTION(uv_exepath)
 */
 PHP_FUNCTION(uv_cwd)
 {
-	char buffer[1024] = {0};
-	size_t buffer_sz = sizeof(buffer);
-	
-	uv_cwd(buffer, buffer_sz);
-	buffer[buffer_sz] = '\0';
-	
+	char buffer[MAXPATHLEN];
+
+	if (zend_parse_parameters_none() == FAILURE) {
+		return;
+	}
+
+	uv_cwd(buffer, MAXPATHLEN);
+
 	RETURN_STRING(buffer, 1);
 }
 /* }}} */
@@ -6475,125 +6335,6 @@ PHP_FUNCTION(uv_fs_poll_stop)
 /* }}} */
 
 
-/* HTTP PARSER */
-ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_http_parser_init, 0, 0, 1)
-	ZEND_ARG_INFO(0, target)
-ZEND_END_ARG_INFO()
-
-ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_http_parser_execute, 0, 0, 3)
-	ZEND_ARG_INFO(0, resource)
-	ZEND_ARG_INFO(0, buffer)
-	ZEND_ARG_INFO(0, setting)
-ZEND_END_ARG_INFO()
-
-/* {{{ proto resource uv_http_parser_init(long $target = UV::HTTP_REQUEST)
-*/
-PHP_FUNCTION(uv_http_parser_init)
-{
-	long target = HTTP_REQUEST;
-	zval *header, *result;
-	php_http_parser_context *ctx = NULL;
-
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
-		"|l",&target) == FAILURE) {
-		return;
-	}
-
-	ctx = emalloc(sizeof(php_http_parser_context));
-	http_parser_init(&ctx->parser, target);
-
-	MAKE_STD_ZVAL(header);
-	array_init(header);
-	
-	MAKE_STD_ZVAL(result);
-	array_init(result);
-
-	ctx->data = result;
-	ctx->headers = header;
-	ctx->finished = 0;
-	ctx->was_header_value = 1;
-	ctx->tmp = NULL;
-	ctx->tmp_len = 0;
-
-	if (target == HTTP_RESPONSE) {
-		ctx->is_response = 1;
-	} else {
-		ctx->is_response = 0;
-	}
-
-	memset(&ctx->handle, 0, sizeof(struct http_parser_url));
-
-	/* setup callback */
-	ctx->settings.on_message_begin = on_message_begin;
-	ctx->settings.on_header_field = header_field_cb;
-	ctx->settings.on_header_value = header_value_cb;
-	ctx->settings.on_url = on_url_cb;
-	ctx->settings.on_status = on_status_cb;
-	ctx->settings.on_body = on_body_cb;
-	ctx->settings.on_headers_complete = on_headers_complete;
-	ctx->settings.on_message_complete = on_message_complete;
-
-	ZEND_REGISTER_RESOURCE(return_value, ctx, uv_httpparser_handle);
-}
-
-/* {{{ proto bool uv_http_parser_execute(resource $parser, string $body, array &$result)
-*/
-PHP_FUNCTION(uv_http_parser_execute)
-{
-	zval *z_parser = NULL, *result = NULL, *version = NULL, *headers = NULL;
-	php_http_parser_context *context;
-	char *body;
-	int body_len;
-	char version_buffer[4] = {0};
-	size_t nparsed = 0;
-
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
-		"rs/a",&z_parser, &body, &body_len, &result) == FAILURE) {
-		return;
-	}
-	
-	ZEND_FETCH_RESOURCE(context, php_http_parser_context*, &z_parser, -1, PHP_UV_HTTPPARSER_RESOURCE_NAME, uv_httpparser_handle);
-
-	if (context->finished == 1) {
-		php_error_docref(NULL TSRMLS_CC, E_NOTICE, "passed uv_parser resource has already finished.");
-		RETURN_FALSE;
-	}
-
-	context->parser.data = context;
-	nparsed = http_parser_execute(&context->parser, &context->settings, body, body_len);
-
-	if (result) {
-		zval_dtor(result);
-	}
-
-	if (nparsed != body_len) {
-		zend_throw_exception_ex(zend_exception_get_default(TSRMLS_C), 0 TSRMLS_CC, "parse failed");
-		return;
-	}
-
-	ZVAL_ZVAL(result, context->data, 1, 0);
-	if (context->is_response == 0) {
-		add_assoc_string(result, "REQUEST_METHOD", (char*)http_method_str(context->parser.method), 1);
-	} else {
-		add_assoc_long(result, "STATUS_CODE", (long)context->parser.status_code);
-	}
-	add_assoc_long(result, "UPGRADE", (long)context->parser.upgrade);
-
-	MAKE_STD_ZVAL(version);
-	snprintf(version_buffer, 4, "%d.%d", context->parser.http_major, context->parser.http_minor);
-	ZVAL_STRING(version, version_buffer, 1);
-
-	MAKE_STD_ZVAL(headers);
-	ZVAL_ZVAL(headers, context->headers, 1, 0);
-	add_assoc_zval(headers, "VERSION", version);
-	add_assoc_zval(result, "HEADERS", headers);
-
-	if (context->finished == 1) {
-		RETURN_TRUE;
-	} else {
-		RETURN_FALSE;
-	}
-}
 
 
 static zend_function_entry uv_functions[] = {
@@ -6770,12 +6511,13 @@ static zend_function_entry uv_functions[] = {
 	PHP_FE(uv_signal_init,              arginfo_uv_signal_init)
 	PHP_FE(uv_signal_start,             arginfo_uv_signal_start)
 	PHP_FE(uv_signal_stop,              arginfo_uv_signal_stop)
+#ifdef ENABLE_HTTPPARSER
 	/* http parser */
 	PHP_FE(uv_http_parser_init,          arginfo_uv_http_parser_init)
 	PHP_FE(uv_http_parser_execute,       arginfo_uv_http_parser_execute)
+#endif
 	{NULL, NULL, NULL}
 };
-
 
 PHP_MINFO_FUNCTION(uv)
 {
@@ -6783,14 +6525,14 @@ PHP_MINFO_FUNCTION(uv)
 	char http_parser_version[20];
 
 	sprintf(uv_version, "%d.%d",UV_VERSION_MAJOR, UV_VERSION_MINOR);
-	sprintf(http_parser_version, "%d.%d",HTTP_PARSER_VERSION_MAJOR, HTTP_PARSER_VERSION_MINOR);
+//	sprintf(http_parser_version, "%d.%d",HTTP_PARSER_VERSION_MAJOR, HTTP_PARSER_VERSION_MINOR);
 	
 	php_printf("PHP libuv Extension\n");
 	php_info_print_table_start();
 	php_info_print_table_header(2,"libuv Support",  "enabled");
 	php_info_print_table_row(2,"Version", PHP_UV_EXTVER);
 	php_info_print_table_row(2,"libuv Version", uv_version);
-	php_info_print_table_row(2,"http-parser Version", http_parser_version);
+//	php_info_print_table_row(2,"http-parser Version", http_parser_version);
 	php_info_print_table_end();
 }
 

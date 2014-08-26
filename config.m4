@@ -1,11 +1,11 @@
-PHP_ARG_ENABLE(uv, Whether to enable the "uv" extension,
-[  --enable-uv     Enable "uv" extension support])
+PHP_ARG_WITH(uv, Whether to include "uv" support,
+[ --with-uv[=DIR]        Include "uv" support])
 
 PHP_ARG_ENABLE(httpparser, Whether to enable the "httpparser" module,
-    [ --enable-httpparser     Enable "httpparser" module support])
+    [ --enable-httpparser     Enable "httpparser" module support], no, no)
 
 PHP_ARG_ENABLE(uv-debug, for uv debug support,
-    [ --enable-uv-debug       Enable enable uv deubg support], no, no)
+    [ --enable-uv-debug       Enable enable uv debug support], no, no)
 
 PHP_ARG_ENABLE(dtrace, Whether to enable the "dtrace" debug,
     [ --enable-dtrace         Enable "dtrace" support], no, no)
@@ -44,32 +44,49 @@ if test $PHP_UV != "no"; then
     SOURCES=""
 
     if test $PHP_HTTPPARSER != "no"; then
-        SOURCES=" http-parser/http_parser.c"
+        SOURCES=" uv_http_parser.c http-parser/http_parser.c"
         AC_DEFINE([ENABLE_HTTPPARSER], [1], [ Enable http parser])
     fi
 
     PHP_NEW_EXTENSION(uv, php_uv.c uv.c $SOURCES, $ext_shared)
 
+	PHP_ADD_EXTENSION_DEP(uv, sockets)
+
     if test $PHP_HTTPPARSER != "no"; then
         PHP_ADD_INCLUDE([$ext_srcdir/http-parser])
     fi
-    PHP_ADD_INCLUDE([$ext_srcdir/libuv/include])
 
-    CFLAGS=" $CFLAGS -Wunused-variable -Wpointer-sign -Wimplicit-function-declaration -Winline -Wunused-macros -Wredundant-decls -Wstrict-aliasing=2 -Wswitch-enum -Wdeclaration-after-statement -Wl,libuv/libuv.a"
+    SEARCH_PATH="/usr/local /usr"
+    SEARCH_FOR="/include/uv.h"
+    if test -r $PHP_UV/$SEARCH_FOR; then # path given as parameter
+       UV_DIR=$PHP_UV
+    else # search default path list
+       AC_MSG_CHECKING([for libuv files in default path])
+       for i in $SEARCH_PATH ; do
+           if test -r $i/$SEARCH_FOR; then
+             UV_DIR=$i
+             AC_MSG_RESULT(found in $i)
+           fi
+       done
+    fi
 
-    case $host in
-        *darwin*)
-            dnl these macro does not work. why?
-            dnl
-            dnl PHP_ADD_FRAMEWORK(CoreServices)
-            dnl PHP_ADD_FRAMEWORK(Carbon)
+    PHP_ADD_INCLUDE($UV_DIR/include)
 
-            CFLAGS="$CFLAGS -framework CoreServices -framework Carbon"
-        ;;
+    PHP_CHECK_LIBRARY(uv, uv_version,
+    [
+      PHP_ADD_LIBRARY_WITH_PATH(uv, $UV_DIR/lib, UV_SHARED_LIBADD)
+      AC_DEFINE(HAVE_UVLIB,1,[ ])
+    ],[
+      AC_MSG_ERROR([wrong uv library version or library not found])
+    ],[
+      -L$UV_DIR/lib -lm
+    ])
+
+	case $host in
         *linux*)
             CFLAGS="$CFLAGS -lrt"
     esac
 
+	PHP_SUBST([CFLAGS])
     PHP_SUBST(UV_SHARED_LIBADD)
-    PHP_SUBST([CFLAGS])
 fi

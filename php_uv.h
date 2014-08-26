@@ -31,7 +31,10 @@
 
 #include "php.h"
 #include "uv.h"
-#include "http_parser.h"
+
+#ifdef ENABLE_HTTPPARSER
+#include "uv_http_parser.h"
+#endif
 
 #include "php_network.h"
 #include "php_streams.h"
@@ -188,22 +191,6 @@ typedef struct {
 	zval *stream;
 	int flags;
 } php_uv_stdio_t;
-
-
-typedef struct {
-	struct http_parser parser;
-	struct http_parser_url handle;
-	struct http_parser_settings settings;
-	int is_response;
-	int was_header_value;
-	int finished;
-	zval *data;
-	zval *headers;
-	char *tmp;
-	size_t tmp_len;
-} php_http_parser_context;
-
-#define PHP_UV_HTTPPARSER_RESOURCE_NAME "uv_httpparser"
 
 #define PHP_UV_RESOURCE_NAME "uv"
 #define PHP_UV_SOCKADDR_RESOURCE_NAME "uv_sockaddr"
