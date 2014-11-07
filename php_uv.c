@@ -56,7 +56,7 @@ zend_fcall_info empty_fcall_info = { 0, NULL, NULL, NULL, NULL, 0, NULL, NULL, 0
 		RETURN_FALSE; \
 	} \
 	r = uv_timer_init(loop, &uv->uv.timer); \
-	if (r) { \
+	if (r < 0) { \
 		php_error_docref(NULL TSRMLS_CC, E_WARNING, "uv_timer_init failed");\
 		RETURN_FALSE;\
 	} \
@@ -257,6 +257,9 @@ char *php_uv_resource_map[IS_UV_MAX] = {
 /* TODO: fix this */
 static char uv_fs_read_buf[8192];
 
+/* TODO: unsure about this! */
+static uv_buf_t uv_fs_read_buf_t;
+
 /* declarations */
 
 static inline uv_stream_t* php_uv_get_current_stream(php_uv_t *uv);
@@ -285,17 +288,17 @@ static void php_uv_close_cb2(uv_handle_t *handle);
 
 static void php_uv_shutdown_cb(uv_shutdown_t* req, int status);
 
-static void php_uv_read_cb(uv_stream_t* handle, ssize_t nread, uv_buf_t buf);
+static void php_uv_read_cb(uv_stream_t* handle, ssize_t nread,const uv_buf_t* buf);
 
 static void php_uv_read2_cb(uv_pipe_t* handle, ssize_t nread, uv_buf_t buf, uv_handle_type pending);
 
-static uv_buf_t php_uv_read_alloc(uv_handle_t* handle, size_t suggested_size);
+static void php_uv_read_alloc(uv_handle_t* handle, size_t suggested_size, uv_buf_t* buf);
 
 static void php_uv_close_cb(uv_handle_t *handle);
 
-static void php_uv_timer_cb(uv_timer_t *handle, int status);
+static void php_uv_timer_cb(uv_timer_t *handle);
 
-static void php_uv_idle_cb(uv_timer_t *handle, int status);
+static void php_uv_idle_cb(uv_timer_t *handle);
 
 static void php_uv_signal_cb(uv_signal_t *handle, int sig_num);
 
@@ -356,11 +359,8 @@ static php_socket_t php_uv_zval_to_fd(zval *ptr TSRMLS_DC)
 
 static const char* php_uv_strerror(long error_code)
 {
-	uv_err_t error;
-	error.code = error_code;
-	
 	/* Note: uv_strerror doesn't use assert. we don't need check value here */
-	return uv_strerror(error);
+	return uv_strerror(error_code);
 }
 
 /**
@@ -388,7 +388,7 @@ static inline int php_uv_common_init(php_uv_t **result, uv_loop_t *loop, enum ph
 		case IS_UV_TCP:
 		{
 			r = uv_tcp_init(loop, &uv->uv.tcp);
-			if (r) {
+			if (r < 0) {
 				php_error_docref(NULL TSRMLS_CC, E_ERROR, "uv_tcp_init failed");
 				goto cleanup;
 			}
@@ -399,7 +399,7 @@ static inline int php_uv_common_init(php_uv_t **result, uv_loop_t *loop, enum ph
 		case IS_UV_IDLE:
 		{
 			r = uv_idle_init(loop, &uv->uv.idle);
-			if (r) {
+			if (r < 0) {
 				php_error_docref(NULL TSRMLS_CC, E_ERROR, "uv_idle_init failed");
 				goto cleanup;
 			}
@@ -410,7 +410,7 @@ static inline int php_uv_common_init(php_uv_t **result, uv_loop_t *loop, enum ph
 		case IS_UV_UDP:
 		{
 			r = uv_udp_init(loop, &uv->uv.udp);
-			if (r) {
+			if (r < 0) {
 				php_error_docref(NULL TSRMLS_CC, E_ERROR, "uv_udp_init failed");
 				goto cleanup;
 			}
@@ -421,7 +421,7 @@ static inline int php_uv_common_init(php_uv_t **result, uv_loop_t *loop, enum ph
 		case IS_UV_PREPARE:
 		{
 			r = uv_prepare_init(loop, &uv->uv.prepare);
-			if (r) {
+			if (r < 0) {
 				php_error_docref(NULL TSRMLS_CC, E_ERROR, "uv_prepare_init failed");
 				goto cleanup;
 			}
@@ -432,7 +432,7 @@ static inline int php_uv_common_init(php_uv_t **result, uv_loop_t *loop, enum ph
 		case IS_UV_CHECK:
 		{
 			r = uv_check_init(loop, &uv->uv.check);
-			if (r) {
+			if (r < 0) {
 				php_error_docref(NULL TSRMLS_CC, E_ERROR, "uv_check_init failed");
 				goto cleanup;
 			}
@@ -953,9 +953,11 @@ static void php_uv_fs_common(uv_fs_type fs_type, INTERNAL_FUNCTION_PARAMETERS)
 			
 			PHP_UV_FS_PARSE_PARAMETERS("zzlf", &zloop, &zstream, &length, &fci, &fcc);
 			memset(uv_fs_read_buf, 0, length);
+            uv_fs_read_buf_t = uv_buf_init(uv_fs_read_buf, length);
+
 			PHP_UV_FS_SETUP()
 			PHP_UV_ZVAL_TO_FD(fd, zstream);
-			PHP_UV_FS_ASYNC(loop, read, fd, uv_fs_read_buf, length, -1);
+			PHP_UV_FS_ASYNC(loop, read, fd, &uv_fs_read_buf_t, 1, -1);
 			break;
 		}
 		case UV_FS_SENDFILE:
@@ -979,12 +981,16 @@ static void php_uv_fs_common(uv_fs_type fs_type, INTERNAL_FUNCTION_PARAMETERS)
 			char *buffer;
 			int buffer_len = 0;
 			long fd, offset = -1;
-			
+			uv_buf_t uv_fs_write_buf_t;
+
 			PHP_UV_FS_PARSE_PARAMETERS("zzslf", &zloop, &zstream, &buffer, &buffer_len, &offset, &fci, &fcc);
 			PHP_UV_FS_SETUP();
 			PHP_UV_ZVAL_TO_FD(fd, zstream);
 			uv->buffer = estrndup(buffer, buffer_len);
-			PHP_UV_FS_ASYNC(loop, write, fd, uv->buffer, buffer_len, offset);
+
+            /* TODO: is this right?! */
+            uv_fs_write_buf_t = uv_buf_init(uv->buffer, buffer_len);
+			PHP_UV_FS_ASYNC(loop, write, fd, &uv_fs_write_buf_t, 1, offset);
 			break;
 		}
 		case UV_FS_UNKNOWN:
@@ -1043,7 +1049,7 @@ static zval *php_uv_address_to_zval(const struct sockaddr *addr)
 	return tmp;
 }
 
-static zval *php_uv_make_stat(const uv_statbuf_t *s)
+static zval *php_uv_make_stat(const uv_stat_t *s)
 {
 	zval *tmp;
 	MAKE_STD_ZVAL(tmp);
@@ -1342,7 +1348,8 @@ static void php_uv_tcp_connect_cb(uv_connect_t *req, int status)
 	efree(req);
 }
 
-static void php_uv_process_close_cb(uv_process_t* process, int exit_status, int term_signal)
+/* TODO: Not sure how PHP will deal with int64_t */
+static void php_uv_process_close_cb(uv_process_t* process, int64_t exit_status, int term_signal)
 {
 	zval *retval_ptr, *signal, *stat, *proc= NULL;
 	zval **params[3];
@@ -1554,7 +1561,7 @@ static void php_uv_shutdown_cb(uv_shutdown_t* handle, int status)
 	efree(handle);
 }
 
-static void php_uv_read_cb(uv_stream_t* handle, ssize_t nread, uv_buf_t buf)
+static void php_uv_read_cb(uv_stream_t* handle, ssize_t nread, const uv_buf_t* buf)
 {
 	zval *rsc, *buffer, *err, *retval_ptr = NULL;
 	zval **params[3];
@@ -1565,7 +1572,7 @@ static void php_uv_read_cb(uv_stream_t* handle, ssize_t nread, uv_buf_t buf)
 
 	MAKE_STD_ZVAL(buffer);
 	if (nread > 0) {
-		ZVAL_STRINGL(buffer,buf.base,nread, 1);
+		ZVAL_STRINGL(buffer,buf->base,nread, 1);
 	} else {
 		ZVAL_NULL(buffer);
 	}
@@ -1591,8 +1598,8 @@ static void php_uv_read_cb(uv_stream_t* handle, ssize_t nread, uv_buf_t buf)
 		zval_ptr_dtor(&retval_ptr);
 	}
 
-	if (buf.base) {
-		efree(buf.base);
+	if (buf->base) {
+		efree(buf->base);
 	}
 	
 	PHP_UV_DEBUG_RESOURCE_REFCOUNT(uv_read_cb, uv->resource_id);
@@ -1645,60 +1652,50 @@ static void php_uv_read2_cb(uv_pipe_t* handle, ssize_t nread, uv_buf_t buf, uv_h
 	PHP_UV_DEBUG_RESOURCE_REFCOUNT(uv_read2_cb, uv->resource_id);
 }
 
-static void php_uv_prepare_cb(uv_prepare_t* handle, int status)
+static void php_uv_prepare_cb(uv_prepare_t* handle)
 {
 	zval *retval_ptr = NULL;
-	zval **params[2];
-	zval *rsc, *zstat;
+	zval **params[1];
+	zval *rsc;
 	php_uv_t *uv = (php_uv_t*)handle->data;
 	TSRMLS_FETCH_FROM_CTX(uv->thread_ctx);
 
 	PHP_UV_DEBUG_PRINT("prepare_cb\n");
 
-	MAKE_STD_ZVAL(zstat);
-	ZVAL_LONG(zstat, status);
-	
 	MAKE_STD_ZVAL(rsc);
 	ZVAL_RESOURCE(rsc, uv->resource_id);
 	zend_list_addref(uv->resource_id);
 
 	params[0] = &rsc;
-	params[1] = &zstat;
 
-	php_uv_do_callback2(&retval_ptr, uv, params, 2, PHP_UV_PREPARE_CB TSRMLS_CC);
+	php_uv_do_callback2(&retval_ptr, uv, params, 1, PHP_UV_PREPARE_CB TSRMLS_CC);
 
 	zval_ptr_dtor(&rsc);
-	zval_ptr_dtor(&zstat);
 	if (retval_ptr != NULL) {
 		zval_ptr_dtor(&retval_ptr);
 	}
 	PHP_UV_DEBUG_RESOURCE_REFCOUNT(uv_prepare_cb, uv->resource_id);
 }
 
-static void php_uv_check_cb(uv_check_t* handle, int status)
+static void php_uv_check_cb(uv_check_t* handle)
 {
 	zval *retval_ptr = NULL;
-	zval **params[2];
-	zval *rsc, *zstat;
+	zval **params[1];
+	zval *rsc;
 	php_uv_t *uv = (php_uv_t*)handle->data;
 	TSRMLS_FETCH_FROM_CTX(uv->thread_ctx);
 
 	PHP_UV_DEBUG_PRINT("check_cb\n");
 
-	MAKE_STD_ZVAL(zstat);
-	ZVAL_LONG(zstat, status);
-	
 	MAKE_STD_ZVAL(rsc);
 	ZVAL_RESOURCE(rsc, uv->resource_id);
 	zend_list_addref(uv->resource_id);
 
 	params[0] = &rsc;
-	params[1] = &zstat;
 	
-	php_uv_do_callback2(&retval_ptr, uv, params, 2, PHP_UV_CHECK_CB TSRMLS_CC);
+	php_uv_do_callback2(&retval_ptr, uv, params, 1, PHP_UV_CHECK_CB TSRMLS_CC);
 
 	zval_ptr_dtor(&rsc);
-	zval_ptr_dtor(&zstat);
 	if (retval_ptr != NULL) {
 		zval_ptr_dtor(&retval_ptr);
 	}
@@ -1706,29 +1703,25 @@ static void php_uv_check_cb(uv_check_t* handle, int status)
 }
 
 
-static void php_uv_async_cb(uv_async_t* handle, int status)
+static void php_uv_async_cb(uv_async_t* handle)
 {
 	zval *retval_ptr = NULL;
-	zval **params[2];
-	zval *zstat, *resource;
+	zval **params[1];
+	zval *resource;
 	php_uv_t *uv = (php_uv_t*)handle->data;
 	TSRMLS_FETCH_FROM_CTX(uv->thread_ctx);
 
 	PHP_UV_DEBUG_PRINT("async_cb\n");
 
-	MAKE_STD_ZVAL(zstat);
-	ZVAL_LONG(zstat, status);
 	MAKE_STD_ZVAL(resource);
 	ZVAL_RESOURCE(resource, uv->resource_id);
 	zend_list_addref(uv->resource_id);
 
 	params[0] = &resource;
-	params[1] = &zstat;
 
-	php_uv_do_callback2(&retval_ptr, uv, params, 2, PHP_UV_ASYNC_CB TSRMLS_CC);
+	php_uv_do_callback2(&retval_ptr, uv, params, 1, PHP_UV_ASYNC_CB TSRMLS_CC);
 
 	zval_ptr_dtor(&resource);
-	zval_ptr_dtor(&zstat);
 	if (retval_ptr != NULL) {
 		zval_ptr_dtor(&retval_ptr);
 	}
@@ -1829,7 +1822,7 @@ static void php_uv_fs_cb(uv_fs_t* req)
 		{
 			zval *buffer;
 			if (Z_LVAL_P(result) >= 0) {
-				buffer = php_uv_make_stat((const uv_statbuf_t*)req->ptr);
+				buffer = php_uv_make_stat((const uv_stat_t*)req->ptr);
 			} else {
 				MAKE_STD_ZVAL(buffer);
 				ZVAL_NULL(buffer);
@@ -1956,7 +1949,7 @@ static void php_uv_fs_event_cb(uv_fs_event_t* req, const char* filename, int eve
 	zval_ptr_dtor(params[3]);
 }
 
-static void php_uv_statbuf_to_zval(zval *result, const uv_statbuf_t *stat)
+static void php_uv_stat_to_zval(zval *result, const uv_stat_t *stat)
 {
 	array_init(result);
 	
@@ -1981,7 +1974,7 @@ static void php_uv_statbuf_to_zval(zval *result, const uv_statbuf_t *stat)
 
 }
 
-static void php_uv_fs_poll_cb(uv_fs_poll_t* handle, int status, const uv_statbuf_t* prev, const uv_statbuf_t* curr)
+static void php_uv_fs_poll_cb(uv_fs_poll_t* handle, int status, const uv_stat_t* prev, const uv_stat_t* curr)
 {
 	zval **params[4], *retval_ptr, *rsc, *stat, *p, *c = NULL;
 	php_uv_t *uv = (php_uv_t*)handle->data;
@@ -1995,9 +1988,9 @@ static void php_uv_fs_poll_cb(uv_fs_poll_t* handle, int status, const uv_statbuf
 	ZVAL_LONG(stat, status);
 	
 	MAKE_STD_ZVAL(p);
-	php_uv_statbuf_to_zval(p, prev);
+	php_uv_stat_to_zval(p, prev);
 	MAKE_STD_ZVAL(c);
-	php_uv_statbuf_to_zval(c, curr);
+	php_uv_stat_to_zval(c, curr);
 	
 	params[0] = &rsc;
 	params[1] = &stat;
@@ -2057,7 +2050,7 @@ static void php_uv_poll_cb(uv_poll_t* handle, int status, int events)
 }
 
 
-static void php_uv_udp_recv_cb(uv_udp_t* handle, ssize_t nread, uv_buf_t buf, struct sockaddr* addr, unsigned flags)
+static void php_uv_udp_recv_cb(uv_udp_t* handle, ssize_t nread, const uv_buf_t* buf, const struct sockaddr* addr, unsigned flags)
 {
 	/* TODO: is this implment correct? */
 	zval *retval_ptr = NULL;
@@ -2067,7 +2060,7 @@ static void php_uv_udp_recv_cb(uv_udp_t* handle, ssize_t nread, uv_buf_t buf, st
 	TSRMLS_FETCH_FROM_CTX(uv->thread_ctx);
 	
 	MAKE_STD_ZVAL(buffer);
-	ZVAL_STRINGL(buffer,buf.base,nread, 1);
+	ZVAL_STRINGL(buffer,buf->base,nread, 1);
 
 	MAKE_STD_ZVAL(rsc);
 	ZVAL_RESOURCE(rsc, uv->resource_id);
@@ -2089,14 +2082,16 @@ static void php_uv_udp_recv_cb(uv_udp_t* handle, ssize_t nread, uv_buf_t buf, st
 		zval_ptr_dtor(&retval_ptr);
 	}
 
-	if (buf.base) {
-		efree(buf.base);
+	if (buf->base) {
+		efree(buf->base);
 	}
 }
 
-static uv_buf_t php_uv_read_alloc(uv_handle_t* handle, size_t suggested_size)
+static void php_uv_read_alloc(uv_handle_t* handle, size_t suggested_size, uv_buf_t* buf)
 {
-	return uv_buf_init(emalloc(suggested_size), suggested_size);
+    buf->base = emalloc(suggested_size);
+    buf->len = suggested_size;
+	//return uv_buf_init(emalloc(suggested_size), suggested_size);
 }
 
 
@@ -2124,10 +2119,10 @@ static void php_uv_close_cb(uv_handle_t *handle)
 }
 
 
-static void php_uv_idle_cb(uv_timer_t *handle, int status)
+static void php_uv_idle_cb(uv_timer_t *handle)
 {
-	zval *retval_ptr, *idle, *stat = NULL;
-	zval **params[2];
+	zval *retval_ptr, *idle;
+	zval **params[1];
 
 	php_uv_t *uv = (php_uv_t*)handle->data;
 	TSRMLS_FETCH_FROM_CTX(uv->thread_ctx);
@@ -2136,11 +2131,7 @@ static void php_uv_idle_cb(uv_timer_t *handle, int status)
 	ZVAL_RESOURCE(idle, uv->resource_id);
 	zend_list_addref(uv->resource_id);
 	
-	MAKE_STD_ZVAL(stat);
-	ZVAL_LONG(stat, status);
-
 	params[0] = &idle;
-	params[1] = &stat;
 	
 	php_uv_do_callback2(&retval_ptr, uv, params, 2, PHP_UV_IDLE_CB TSRMLS_CC);
 
@@ -2149,7 +2140,6 @@ static void php_uv_idle_cb(uv_timer_t *handle, int status)
 		zval_ptr_dtor(&retval_ptr);
 	}
 	zval_ptr_dtor(&idle);
-	zval_ptr_dtor(&stat);
 }
 
 static void php_uv_getaddrinfo_cb(uv_getaddrinfo_t* handle, int status, struct addrinfo* res)
@@ -2210,28 +2200,24 @@ static void php_uv_getaddrinfo_cb(uv_getaddrinfo_t* handle, int status, struct a
 	uv_freeaddrinfo(res);
 }
 
-static void php_uv_timer_cb(uv_timer_t *handle, int status)
+static void php_uv_timer_cb(uv_timer_t *handle)
 {
-	zval *retval_ptr, *stat, *client= NULL;
+	zval *retval_ptr, *client= NULL;
 	zval **params[2];
 	php_uv_t *uv = (php_uv_t*)handle->data;
 	TSRMLS_FETCH_FROM_CTX(uv->thread_ctx);
 	
-	MAKE_STD_ZVAL(stat);
-	ZVAL_LONG(stat, status);
 	MAKE_STD_ZVAL(client);
 	ZVAL_RESOURCE(client, uv->resource_id);
 	zend_list_addref(uv->resource_id);
 
 	params[0] = &client;
-	params[1] = &stat;
 	
-	php_uv_do_callback2(&retval_ptr, uv, params, 2, PHP_UV_TIMER_CB TSRMLS_CC);
+	php_uv_do_callback2(&retval_ptr, uv, params, 1, PHP_UV_TIMER_CB TSRMLS_CC);
 
 	if (retval_ptr != NULL) {
 		zval_ptr_dtor(&retval_ptr);
 	}
-	zval_ptr_dtor(&stat);
 	zval_ptr_dtor(&client);
 }
 
@@ -2404,16 +2390,16 @@ static void php_uv_socket_bind(enum php_uv_socket_type ip_type, INTERNAL_FUNCTIO
 
 	switch (ip_type) {
 		case PHP_UV_TCP_IPV4:
-			r = uv_tcp_bind((uv_tcp_t*)&uv->uv.tcp, PHP_UV_SOCKADDR_IPV4(addr));
+			r = uv_tcp_bind((uv_tcp_t*)&uv->uv.tcp, (const struct sockaddr*)&PHP_UV_SOCKADDR_IPV4(addr), 0);
 			break;
 		case PHP_UV_TCP_IPV6:
-			r = uv_tcp_bind6((uv_tcp_t*)&uv->uv.tcp, PHP_UV_SOCKADDR_IPV6(addr));
+			r = uv_tcp_bind((uv_tcp_t*)&uv->uv.tcp, (const struct sockaddr*)&PHP_UV_SOCKADDR_IPV6(addr), 0);
 			break;
 		case PHP_UV_UDP_IPV4:
-			r = uv_udp_bind((uv_udp_t*)&uv->uv.udp, PHP_UV_SOCKADDR_IPV4(addr), flags);
+			r = uv_udp_bind((uv_udp_t*)&uv->uv.udp, (const struct sockaddr*)&PHP_UV_SOCKADDR_IPV4(addr), flags);
 			break;
 		case PHP_UV_UDP_IPV6:
-			r = uv_udp_bind6((uv_udp_t*)&uv->uv.udp, PHP_UV_SOCKADDR_IPV6(addr), flags);
+			r = uv_udp_bind((uv_udp_t*)&uv->uv.udp, (const struct sockaddr*)&PHP_UV_SOCKADDR_IPV6(addr), flags);
 			break;
 		case PHP_UV_TCP:
 		case PHP_UV_UDP:
@@ -2422,7 +2408,7 @@ static void php_uv_socket_bind(enum php_uv_socket_type ip_type, INTERNAL_FUNCTIO
 			break;
 	}
 
-	if (r) {
+	if (r < 0) {
 		php_error_docref(NULL TSRMLS_CC, E_WARNING, "bind failed");
 		RETURN_FALSE;
 	}
@@ -2503,9 +2489,9 @@ static void php_uv_udp_send(int type, INTERNAL_FUNCTION_PARAMETERS)
 	php_uv_cb_init(&cb, client, &fci, &fcc, PHP_UV_SEND_CB);
 	
 	if (type == 1) {
-		uv_udp_send(&w->req, &client->uv.udp, &w->buf, 1, PHP_UV_SOCKADDR_IPV4(addr), php_uv_udp_send_cb);
+		uv_udp_send(&w->req, &client->uv.udp, &w->buf, 1, (const struct sockaddr*)&PHP_UV_SOCKADDR_IPV4(addr), php_uv_udp_send_cb);
 	} else if (type == 2) {
-		uv_udp_send6(&w->req, &client->uv.udp, &w->buf, 1, PHP_UV_SOCKADDR_IPV6(addr), php_uv_udp_send_cb);
+		uv_udp_send(&w->req, &client->uv.udp, &w->buf, 1, (const struct sockaddr*)&PHP_UV_SOCKADDR_IPV6(addr), php_uv_udp_send_cb);
 	}
 }
 
@@ -2542,14 +2528,14 @@ static void php_uv_tcp_connect(enum php_uv_socket_type type, INTERNAL_FUNCTION_P
 			goto clean;
 		}
 		
-		uv_tcp_connect(req, &uv->uv.tcp, PHP_UV_SOCKADDR_IPV4(addr), php_uv_tcp_connect_cb);
+		uv_tcp_connect(req, &uv->uv.tcp, (const struct sockaddr*)&PHP_UV_SOCKADDR_IPV4(addr), php_uv_tcp_connect_cb);
 	} else {
 		if (!PHP_UV_SOCKADDR_IS_IPV6(addr)) {
 			php_error_docref(NULL TSRMLS_CC, E_WARNING, "passed uv sockaddr resource is not initialized for ipv6");
 			goto clean;
 		}
 
-		uv_tcp_connect6(req, &uv->uv.tcp, PHP_UV_SOCKADDR_IPV6(addr), php_uv_tcp_connect_cb);
+		uv_tcp_connect(req, &uv->uv.tcp,  (const struct sockaddr*)&PHP_UV_SOCKADDR_IPV6(addr), php_uv_tcp_connect_cb);
 	}
 
 	return;
@@ -2861,6 +2847,14 @@ ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_pipe_connect, 0, 0, 3)
 	ZEND_ARG_INFO(0, handle)
 	ZEND_ARG_INFO(0, name)
 	ZEND_ARG_INFO(0, callback)
+ZEND_END_ARG_INFO()
+
+ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_pipe_pending_count, 0, 0, 1)
+    ZEND_ARG_INFO(0, handle)
+ZEND_END_ARG_INFO()
+
+ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_pipe_pending_type, 0, 0, 1)
+    ZEND_ARG_INFO(0, handle)
 ZEND_END_ARG_INFO()
 
 ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_pipe_pending_instances, 0, 0, 2)
@@ -3293,7 +3287,7 @@ PHP_FUNCTION(uv_unref)
 PHP_FUNCTION(uv_last_error)
 {
 	uv_loop_t *loop;
-	uv_err_t err;
+	int err;
 	zval *zloop = NULL;
 	
 	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
@@ -3303,7 +3297,7 @@ PHP_FUNCTION(uv_last_error)
 	PHP_UV_FETCH_UV_DEFAULT_LOOP(loop, zloop);
 	err = uv_last_error(loop);
 
-	RETVAL_LONG(err.code);
+	RETVAL_LONG(err);
 }
 /* }}} */
 
@@ -3313,20 +3307,18 @@ PHP_FUNCTION(uv_err_name)
 {
 	long error_code;
 	const char *error_msg;
-	uv_err_t error;
 	
 	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
 		"l", &error_code) == FAILURE) {
 		return;
 	}
 	
-	if (error_code > UV_MAX_ERRORS || error_code < -1) {
+	if (error_code < UV_ERRNO_MAX || error_code > 0) {
 		php_error_docref(NULL TSRMLS_CC, E_NOTICE, "passes unexpected value.");
 		RETURN_FALSE;
 	}
 
-	error.code = error_code;
-	error_msg = uv_err_name(error);
+	error_msg = uv_err_name(error_code);
 
 	RETVAL_STRING(error_msg, 1);
 }
@@ -3612,7 +3604,7 @@ PHP_FUNCTION(uv_write)
 	PHP_UV_INIT_WRITE_REQ(w, uv, data, data_len)
 
 	r = uv_write(&w->req, (uv_stream_t*)php_uv_get_current_stream(uv), &w->buf, 1, php_uv_write_cb);
-	if (r) {
+	if (r < 0) {
 		php_error_docref(NULL TSRMLS_CC, E_WARNING, "write failed");
 	}
 
@@ -3652,7 +3644,7 @@ PHP_FUNCTION(uv_write2)
 	PHP_UV_INIT_WRITE_REQ(w, uv, data, data_len)
 
 	r = uv_write2(&w->req, (uv_stream_t*)php_uv_get_current_stream(uv), &w->buf, 1, (uv_stream_t*)php_uv_get_current_stream(send), php_uv_write_cb);
-	if (r) {
+	if (r < 0) {
 		php_error_docref(NULL TSRMLS_CC, E_ERROR, "write2 failed");
 	}
 
@@ -3705,7 +3697,7 @@ PHP_FUNCTION(uv_accept)
 	}
 	
 	r = uv_accept((uv_stream_t *)php_uv_get_current_stream(server), (uv_stream_t *)php_uv_get_current_stream(client));
-	if (r) {
+	if (r < 0) {
 		php_error_docref(NULL TSRMLS_CC, E_WARNING, "%s", php_uv_strerror(r));
 		RETURN_FALSE;
 	}
@@ -3746,7 +3738,7 @@ PHP_FUNCTION(uv_shutdown)
 	shutdown->data = uv;
 	
 	r = uv_shutdown(shutdown, (uv_stream_t*)php_uv_get_current_stream(uv), (uv_shutdown_cb)php_uv_shutdown_cb);
-	if (r) {
+	if (r < 0) {
 		php_error_docref(NULL TSRMLS_CC, E_WARNING, "%s", php_uv_strerror(r));
 	}
 
@@ -3841,7 +3833,7 @@ PHP_FUNCTION(uv_read_start)
 	php_uv_cb_init(&cb, uv, &fci, &fcc, PHP_UV_READ_CB);
 
 	r = uv_read_start((uv_stream_t*)php_uv_get_current_stream(uv), php_uv_read_alloc, php_uv_read_cb);
-	if (r) {
+	if (r < 0) {
 		php_error_docref(NULL TSRMLS_CC, E_NOTICE, "read failed");
 	}
 	PHP_UV_DEBUG_RESOURCE_REFCOUNT(uv_read_start, uv->resource_id);
@@ -3887,7 +3879,7 @@ PHP_FUNCTION(uv_read2_start)
 
 	php_uv_cb_init(&cb, uv, &fci, &fcc, PHP_UV_READ2_CB);
 	r = uv_read2_start((uv_stream_t*)php_uv_get_current_stream(uv), php_uv_read_alloc, php_uv_read2_cb);
-	if (r) {
+	if (r < 0) {
 		php_error_docref(NULL TSRMLS_CC, E_NOTICE, "read2 failed");
 	}
 	PHP_UV_DEBUG_RESOURCE_REFCOUNT(uv_read2_start, uv->resource_id);
@@ -3933,8 +3925,10 @@ PHP_FUNCTION(uv_ip4_addr)
 	}
 
 	PHP_UV_SOCKADDR_INIT(sockaddr, 1);
-	PHP_UV_SOCKADDR_IPV4(sockaddr) = uv_ip4_addr(address, port);
-	
+	//PHP_UV_SOCKADDR_IPV4(sockaddr) = uv_ip4_addr(address, port);
+    /* TODO: is this right?! */
+    uv_ip4_addr(address, port, &PHP_UV_SOCKADDR_IPV4(sockaddr));
+
 	ZEND_REGISTER_RESOURCE(return_value, sockaddr, uv_sockaddr_handle);
 	sockaddr->resource_id = Z_RESVAL_P(return_value);
 }
@@ -3955,7 +3949,9 @@ PHP_FUNCTION(uv_ip6_addr)
 	}
 	
 	PHP_UV_SOCKADDR_INIT(sockaddr, 0);
-	PHP_UV_SOCKADDR_IPV6(sockaddr) = uv_ip6_addr(address, port);
+	//PHP_UV_SOCKADDR_IPV6(sockaddr) = uv_ip6_addr(address, port);
+    /* TODO: is this right?! */
+    uv_ip6_addr(address, port, &PHP_UV_SOCKADDR_IPV6(sockaddr));
 	
 	ZEND_REGISTER_RESOURCE(return_value, sockaddr, uv_sockaddr_handle);
 	sockaddr->resource_id = Z_RESVAL_P(return_value);
@@ -3995,7 +3991,7 @@ PHP_FUNCTION(uv_listen)
 	php_uv_cb_init(&cb, uv, &fci, &fcc, PHP_UV_LISTEN_CB);
 
 	r = uv_listen((uv_stream_t*)php_uv_get_current_stream(uv), backlog, php_uv_listen_cb);
-	if (r) {
+	if (r < 0) {
 		php_error_docref(NULL TSRMLS_CC, E_WARNING, "%s", php_uv_strerror(r));
 	}
 }
@@ -4417,7 +4413,7 @@ PHP_FUNCTION(uv_udp_recv_start)
 
 	php_uv_cb_init(&cb, uv, &fci, &fcc, PHP_UV_RECV_CB);
 	r = uv_udp_recv_start((uv_udp_t*)&uv->uv.udp, php_uv_read_alloc, php_uv_udp_recv_cb);
-	if (r) {
+	if (r < 0) {
 		php_error_docref(NULL TSRMLS_CC, E_NOTICE, "read failed");
 	}
 }
@@ -4452,9 +4448,9 @@ PHP_FUNCTION(uv_udp_set_membership)
 {
 	zval *client;
 	php_uv_t *uv;
-	char *multicast_addr, interface_addr;
+	char *multicast_addr, *interface_addr;
 	int error, multicast_addr_len, interface_addr_len = 0;
-	long membership;
+	int membership;
 	
 	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
 		"rssl", &client, &multicast_addr, &multicast_addr_len, &interface_addr, &interface_addr_len, &membership) == FAILURE) {
@@ -4489,7 +4485,7 @@ PHP_FUNCTION(uv_udp_set_multicast_loop)
 	PHP_UV_TYPE_CHECK(uv, IS_UV_UDP);
 
 	r = uv_udp_set_multicast_loop((uv_udp_t*)&uv->uv.udp, enabled);
-	if (r) {
+	if (r < 0) {
 		php_error_docref(NULL TSRMLS_CC, E_NOTICE, "uv_udp_set_muticast_loop failed");
 	}
 }
@@ -4521,7 +4517,7 @@ PHP_FUNCTION(uv_udp_set_multicast_ttl)
 	}
 
 	r = uv_udp_set_multicast_ttl((uv_udp_t*)&uv->uv.udp, ttl);
-	if (r) {
+	if (r < 0) {
 		php_error_docref(NULL TSRMLS_CC, E_NOTICE, "uv_udp_set_muticast_ttl failed");
 	}
 }
@@ -4545,7 +4541,7 @@ PHP_FUNCTION(uv_udp_set_broadcast)
 	PHP_UV_TYPE_CHECK(uv, IS_UV_UDP);
 
 	r = uv_udp_set_broadcast((uv_udp_t*)&uv->uv.udp, enabled);
-	if (r) {
+	if (r < 0) {
 		php_error_docref(NULL TSRMLS_CC, E_NOTICE, "uv_udp_set_muticast_loop failed");
 	}
 }
@@ -4719,7 +4715,7 @@ PHP_FUNCTION(uv_pipe_init)
 	uv->type = IS_UV_PIPE;
 	r = uv_pipe_init(loop, &uv->uv.pipe, (int)ipc);
 	
-	if (r) {
+	if (r < 0) {
 		php_error_docref(NULL TSRMLS_CC, E_ERROR, "uv_pipe_init failed");
 		return;
 	}
@@ -4837,6 +4833,43 @@ PHP_FUNCTION(uv_pipe_pending_instances)
 }
 /* }}} */
 
+/* {{{ proto void uv_pipe_pending_count(resource $handle)
+*/
+PHP_FUNCTION(uv_pipe_pending_count)
+{
+	php_uv_t *uv;
+	zval *handle;
+
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
+		"z",&handle) == FAILURE) {
+		return;
+	}
+	ZEND_FETCH_RESOURCE(uv, php_uv_t *, &handle, -1, PHP_UV_RESOURCE_NAME, uv_resource_handle);
+
+	PHP_UV_TYPE_CHECK(uv, IS_UV_PIPE);
+
+	uv_pipe_pending_count(&uv->uv.pipe);
+}
+/* }}} */
+
+/* {{{ proto void uv_pipe_pending_type(resource $handle)
+*/
+PHP_FUNCTION(uv_pipe_pending_type)
+{
+	php_uv_t *uv;
+	zval *handle;
+
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
+		"z",&handle) == FAILURE) {
+		return;
+	}
+	ZEND_FETCH_RESOURCE(uv, php_uv_t *, &handle, -1, PHP_UV_RESOURCE_NAME, uv_resource_handle);
+
+	PHP_UV_TYPE_CHECK(uv, IS_UV_PIPE);
+
+	uv_pipe_pending_type(&uv->uv.pipe);
+}
+/* }}} */
 
 #if (PHP_MAJOR_VERSION == 5) && (PHP_MINOR_VERSION >= 3)
 /* {{{ proto void uv_stdio_new(zval $fd, long $flags)
@@ -4915,7 +4948,7 @@ PHP_FUNCTION(uv_loadavg)
 */
 PHP_FUNCTION(uv_uptime)
 {
-	uv_err_t error;
+    int error;
 	double uptime;
 
 	error = uv_uptime(&uptime);
@@ -4969,12 +5002,13 @@ PHP_FUNCTION(uv_exepath)
 PHP_FUNCTION(uv_cwd)
 {
 	char buffer[MAXPATHLEN];
+    size_t buffer_sz = sizeof(buffer) / sizeof(buffer[0]);
 
 	if (zend_parse_parameters_none() == FAILURE) {
 		return;
 	}
 
-	uv_cwd(buffer, MAXPATHLEN);
+	uv_cwd(buffer, &buffer_sz);
 
 	RETURN_STRING(buffer, 1);
 }
@@ -4986,11 +5020,11 @@ PHP_FUNCTION(uv_cpu_info)
 {
 	zval *retval;
 	uv_cpu_info_t *cpus;
-	uv_err_t error;
+	int error;
 	int i, count;
 
 	error = uv_cpu_info(&cpus, &count);
-	if (UV_OK == error.code) {
+	if (0 == error) {
 		MAKE_STD_ZVAL(retval);
 		array_init(retval);
 		
@@ -5028,12 +5062,12 @@ PHP_FUNCTION(uv_interface_addresses)
 {
 	zval *retval;
 	uv_interface_address_t *interfaces;
-	uv_err_t error;
+	int error;
 	char buffer[512];
 	int i, count;
 
 	error = uv_interface_addresses(&interfaces, &count);
-	if (UV_OK == error.code) {
+	if (0 == error) {
 		MAKE_STD_ZVAL(retval);
 		array_init(retval);
 		
@@ -5231,7 +5265,7 @@ PHP_FUNCTION(uv_spawn)
 	proc->resource_id = Z_RESVAL_P(return_value);
 	zval_copy_ctor(return_value);
 
-	r = uv_spawn(loop, &proc->uv.process, options);
+	r = uv_spawn(loop, &proc->uv.process, &options);
 
 	if (zenv != NULL) {
 		char **p = zenv;
@@ -5291,7 +5325,7 @@ PHP_FUNCTION(uv_kill)
 */
 PHP_FUNCTION(uv_chdir)
 {
-	uv_err_t error;
+	int error;
 	char *directory;
 	int directory_len;
 	
@@ -5300,7 +5334,7 @@ PHP_FUNCTION(uv_chdir)
 		return;
 	}
 	error = uv_chdir(directory);
-	if (error.code == UV_OK) {
+	if (error == 0) {
 		RETURN_TRUE;
 	} else {
 		RETURN_FALSE;
@@ -5633,7 +5667,7 @@ PHP_FUNCTION(uv_async_init)
 	PHP_UV_INIT_UV(uv, IS_UV_ASYNC);
 
 	r = uv_async_init(loop, &uv->uv.async, php_uv_async_cb);
-	if (r) {
+	if (r < 0) {
 		php_error_docref(NULL TSRMLS_CC, E_ERROR, "uv_async_init failed");
 		return;
 	}
@@ -5694,7 +5728,7 @@ PHP_FUNCTION(uv_queue_work)
 	
 	r = uv_queue_work(loop, (uv_work_t*)&uv->uv.work, php_uv_work_cb, php_uv_after_work_cb);
 
-	if (r) {
+	if (r < 0) {
 		php_error_docref(NULL TSRMLS_CC, E_ERROR, "uv_queue_work failed");
 		return;
 	}
@@ -5938,11 +5972,19 @@ PHP_FUNCTION(uv_fs_event_init)
 
 	uv->uv.fs_event.data = uv;
 
-	error = uv_fs_event_init(loop, (uv_fs_event_t*)&uv->uv.fs_event, path, php_uv_fs_event_cb, flags);
-	if (error) {
+    /* TODO: is this right?! */
+	//error = uv_fs_event_init(loop, (uv_fs_event_t*)&uv->uv.fs_event, path, php_uv_fs_event_cb, flags);
+    error = uv_fs_event_init(loop, (uv_fs_event_t*)&uv->uv.fs_event);
+	if (error < 0) {
 		php_error_docref(NULL TSRMLS_CC, E_ERROR, "uv_fs_event_init failed"); \
 		return;
 	}
+    
+    error = uv_fs_event_start((uv_fs_event_t*)&uv->uv.fs_event, php_uv_fs_event_cb, path, flags);
+    if(error < 0) {
+        php_error_docref(NULL TSRMLS_CC, E_ERROR, "uv_fs_event_start failed"); \
+        return;
+    }
 }
 /* }}} */
 
@@ -6423,6 +6465,8 @@ static zend_function_entry uv_functions[] = {
 	PHP_FE(uv_pipe_open,                arginfo_uv_pipe_open)
 	PHP_FE(uv_pipe_connect,             arginfo_uv_pipe_connect)
 	PHP_FE(uv_pipe_pending_instances,   arginfo_uv_pipe_pending_instances)
+    PHP_FE(uv_pipe_pending_count,       arginfo_uv_pipe_pending_count)
+    PHP_FE(uv_pipe_pending_type,        arginfo_uv_pipe_pending_type)
 #if (PHP_MAJOR_VERSION == 5) && (PHP_MINOR_VERSION >= 3)
 	PHP_FE(uv_stdio_new,                NULL)
 #endif
