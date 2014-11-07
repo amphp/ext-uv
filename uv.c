@@ -190,7 +190,7 @@ static int php_uv_class_init(TSRMLS_D)
 	zend_declare_class_constant_long(uv_class_entry,  "HTTP_RESPONSE", sizeof("HTTP_RESPONSE")-1, HTTP_RESPONSE TSRMLS_CC);
 #endif
 
-#define PHP_UV_ERRNO_GEN(code_notused, name, msg_notused) zend_declare_class_constant_long(uv_class_entry,  #name, sizeof(#name)-1, UV_##name TSRMLS_CC);
+#define PHP_UV_ERRNO_GEN(name, msg_notused) zend_declare_class_constant_long(uv_class_entry,  #name, sizeof(#name)-1, UV_##name TSRMLS_CC);
 	UV_ERRNO_MAP(PHP_UV_ERRNO_GEN)
 #undef PHP_UV_ERRNO_GEN
 

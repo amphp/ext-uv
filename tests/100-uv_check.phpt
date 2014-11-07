@@ -16,7 +16,7 @@ uv_idle_start($idle, function($stat) use (&$i, $idle, $loop){
     }
 });
 
-uv_check_start($check, function($check, $status){
+uv_check_start($check, function($check){
     echo "Hello";
     uv_check_stop($check);
 });

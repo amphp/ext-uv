@@ -875,14 +875,14 @@ static void php_uv_fs_common(uv_fs_type fs_type, INTERNAL_FUNCTION_PARAMETERS)
 			PHP_UV_FS_SETUP_AND_EXECUTE(open, path, flag, mode);
 			break;
 		}
-		case UV_FS_READDIR:
+		case UV_FS_SCANDIR:
 		{
 			char *path;
 			int path_len = 0;
 			long flags;
 			
 			PHP_UV_FS_PARSE_PARAMETERS("zslf!", &zloop, &path, &path_len, &flags, &fci, &fcc);
-			PHP_UV_FS_SETUP_AND_EXECUTE(readdir, path, flags);
+			PHP_UV_FS_SETUP_AND_EXECUTE(scandir, path, flags);
 			break;
 		}
 		case UV_FS_LSTAT:
@@ -1798,7 +1798,7 @@ static void php_uv_fs_cb(uv_fs_t* req)
 			argc = 1;
 			break;
 		}
-		case UV_FS_READDIR:
+		case UV_FS_SCANDIR:
 		{
 			zval *dirent;
 			int nnames, i = 0;
@@ -2133,7 +2133,7 @@ static void php_uv_idle_cb(uv_timer_t *handle)
 	
 	params[0] = &idle;
 	
-	php_uv_do_callback2(&retval_ptr, uv, params, 2, PHP_UV_IDLE_CB TSRMLS_CC);
+	php_uv_do_callback2(&retval_ptr, uv, params, 1, PHP_UV_IDLE_CB TSRMLS_CC);
 
 	
 	if (retval_ptr != NULL) {
@@ -4839,6 +4839,7 @@ PHP_FUNCTION(uv_pipe_pending_count)
 {
 	php_uv_t *uv;
 	zval *handle;
+    int count;
 
 	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
 		"z",&handle) == FAILURE) {
@@ -4848,7 +4849,8 @@ PHP_FUNCTION(uv_pipe_pending_count)
 
 	PHP_UV_TYPE_CHECK(uv, IS_UV_PIPE);
 
-	uv_pipe_pending_count(&uv->uv.pipe);
+	count = uv_pipe_pending_count(&uv->uv.pipe);
+    RETURN_LONG(count);
 }
 /* }}} */
 
@@ -4858,6 +4860,7 @@ PHP_FUNCTION(uv_pipe_pending_type)
 {
 	php_uv_t *uv;
 	zval *handle;
+    uv_handle_type ret;
 
 	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,
 		"z",&handle) == FAILURE) {
@@ -4867,7 +4870,8 @@ PHP_FUNCTION(uv_pipe_pending_type)
 
 	PHP_UV_TYPE_CHECK(uv, IS_UV_PIPE);
 
-	uv_pipe_pending_type(&uv->uv.pipe);
+	ret = uv_pipe_pending_type(&uv->uv.pipe);
+    RETURN_LONG(ret);
 }
 /* }}} */
 
@@ -5934,7 +5938,15 @@ PHP_FUNCTION(uv_fs_fstat)
 */
 PHP_FUNCTION(uv_fs_readdir)
 {
-	php_uv_fs_common(UV_FS_READDIR, INTERNAL_FUNCTION_PARAM_PASSTHRU);
+	php_uv_fs_common(UV_FS_SCANDIR, INTERNAL_FUNCTION_PARAM_PASSTHRU);
+}
+/* }}} */
+
+/* {{{ proto uv_fs_scandir(resource $loop, string $path, long $flags, callable $callback)
+ *  */
+PHP_FUNCTION(uv_fs_scandir)
+{
+    php_uv_fs_common(UV_FS_SCANDIR, INTERNAL_FUNCTION_PARAM_PASSTHRU);
 }
 /* }}} */
 
