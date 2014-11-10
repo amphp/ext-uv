@@ -56,7 +56,7 @@ zend_fcall_info empty_fcall_info = { 0, NULL, NULL, NULL, NULL, 0, NULL, NULL, 0
 		RETURN_FALSE; \
 	} \
 	r = uv_timer_init(loop, &uv->uv.timer); \
-	if (r < 0) { \
+	if (r) { \
 		php_error_docref(NULL TSRMLS_CC, E_WARNING, "uv_timer_init failed");\
 		RETURN_FALSE;\
 	} \
@@ -388,7 +388,7 @@ static inline int php_uv_common_init(php_uv_t **result, uv_loop_t *loop, enum ph
 		case IS_UV_TCP:
 		{
 			r = uv_tcp_init(loop, &uv->uv.tcp);
-			if (r < 0) {
+			if (r) {
 				php_error_docref(NULL TSRMLS_CC, E_ERROR, "uv_tcp_init failed");
 				goto cleanup;
 			}
@@ -399,7 +399,7 @@ static inline int php_uv_common_init(php_uv_t **result, uv_loop_t *loop, enum ph
 		case IS_UV_IDLE:
 		{
 			r = uv_idle_init(loop, &uv->uv.idle);
-			if (r < 0) {
+			if (r) {
 				php_error_docref(NULL TSRMLS_CC, E_ERROR, "uv_idle_init failed");
 				goto cleanup;
 			}
@@ -410,7 +410,7 @@ static inline int php_uv_common_init(php_uv_t **result, uv_loop_t *loop, enum ph
 		case IS_UV_UDP:
 		{
 			r = uv_udp_init(loop, &uv->uv.udp);
-			if (r < 0) {
+			if (r) {
 				php_error_docref(NULL TSRMLS_CC, E_ERROR, "uv_udp_init failed");
 				goto cleanup;
 			}
@@ -421,7 +421,7 @@ static inline int php_uv_common_init(php_uv_t **result, uv_loop_t *loop, enum ph
 		case IS_UV_PREPARE:
 		{
 			r = uv_prepare_init(loop, &uv->uv.prepare);
-			if (r < 0) {
+			if (r) {
 				php_error_docref(NULL TSRMLS_CC, E_ERROR, "uv_prepare_init failed");
 				goto cleanup;
 			}
@@ -432,7 +432,7 @@ static inline int php_uv_common_init(php_uv_t **result, uv_loop_t *loop, enum ph
 		case IS_UV_CHECK:
 		{
 			r = uv_check_init(loop, &uv->uv.check);
-			if (r < 0) {
+			if (r) {
 				php_error_docref(NULL TSRMLS_CC, E_ERROR, "uv_check_init failed");
 				goto cleanup;
 			}
@@ -1117,7 +1117,10 @@ void static destruct_uv_loop(zend_rsrc_list_entry *rsrc TSRMLS_DC)
 {
 	uv_loop_t *loop = (uv_loop_t *)rsrc->ptr;
 	if (loop != _php_uv_default_loop) {
-		uv_loop_delete(loop);
+		//uv_loop_delete(loop);
+        /* updated for libuv 1.0 as uv_loop_delete is deprecated */
+        uv_loop_close(loop);
+        efree(loop);
 	}
 }
 
@@ -2408,7 +2411,7 @@ static void php_uv_socket_bind(enum php_uv_socket_type ip_type, INTERNAL_FUNCTIO
 			break;
 	}
 
-	if (r < 0) {
+	if (r) {
 		php_error_docref(NULL TSRMLS_CC, E_WARNING, "bind failed");
 		RETURN_FALSE;
 	}
@@ -3530,7 +3533,10 @@ PHP_FUNCTION(uv_loop_delete)
 	PHP_UV_FETCH_UV_DEFAULT_LOOP(loop, zloop);
 	
 	if (loop != _php_uv_default_loop) {
-		uv_loop_delete(loop);
+		//uv_loop_delete(loop);
+        /* uv_loop_delete deprecated with libuv 1.0 */
+        uv_loop_close(loop);            
+        efree(loop);
 	}
 }
 /* }}} */
@@ -3604,7 +3610,7 @@ PHP_FUNCTION(uv_write)
 	PHP_UV_INIT_WRITE_REQ(w, uv, data, data_len)
 
 	r = uv_write(&w->req, (uv_stream_t*)php_uv_get_current_stream(uv), &w->buf, 1, php_uv_write_cb);
-	if (r < 0) {
+	if (r) {
 		php_error_docref(NULL TSRMLS_CC, E_WARNING, "write failed");
 	}
 
@@ -3644,7 +3650,7 @@ PHP_FUNCTION(uv_write2)
 	PHP_UV_INIT_WRITE_REQ(w, uv, data, data_len)
 
 	r = uv_write2(&w->req, (uv_stream_t*)php_uv_get_current_stream(uv), &w->buf, 1, (uv_stream_t*)php_uv_get_current_stream(send), php_uv_write_cb);
-	if (r < 0) {
+	if (r) {
 		php_error_docref(NULL TSRMLS_CC, E_ERROR, "write2 failed");
 	}
 
@@ -3697,7 +3703,7 @@ PHP_FUNCTION(uv_accept)
 	}
 	
 	r = uv_accept((uv_stream_t *)php_uv_get_current_stream(server), (uv_stream_t *)php_uv_get_current_stream(client));
-	if (r < 0) {
+	if (r) {
 		php_error_docref(NULL TSRMLS_CC, E_WARNING, "%s", php_uv_strerror(r));
 		RETURN_FALSE;
 	}
@@ -3738,7 +3744,7 @@ PHP_FUNCTION(uv_shutdown)
 	shutdown->data = uv;
 	
 	r = uv_shutdown(shutdown, (uv_stream_t*)php_uv_get_current_stream(uv), (uv_shutdown_cb)php_uv_shutdown_cb);
-	if (r < 0) {
+	if (r) {
 		php_error_docref(NULL TSRMLS_CC, E_WARNING, "%s", php_uv_strerror(r));
 	}
 
@@ -3833,7 +3839,7 @@ PHP_FUNCTION(uv_read_start)
 	php_uv_cb_init(&cb, uv, &fci, &fcc, PHP_UV_READ_CB);
 
 	r = uv_read_start((uv_stream_t*)php_uv_get_current_stream(uv), php_uv_read_alloc, php_uv_read_cb);
-	if (r < 0) {
+	if (r) {
 		php_error_docref(NULL TSRMLS_CC, E_NOTICE, "read failed");
 	}
 	PHP_UV_DEBUG_RESOURCE_REFCOUNT(uv_read_start, uv->resource_id);
@@ -3844,6 +3850,9 @@ PHP_FUNCTION(uv_read_start)
 */
 PHP_FUNCTION(uv_read2_start)
 {
+    /* TODO: determine how to make this backwards compatible? */
+    php_error_docref(NULL TSRMLS_CC, E_ERROR, "uv_read2_start is no longer supported.");
+    /*
 	zval *client;
 	php_uv_t *uv;
 	int r;
@@ -3879,10 +3888,11 @@ PHP_FUNCTION(uv_read2_start)
 
 	php_uv_cb_init(&cb, uv, &fci, &fcc, PHP_UV_READ2_CB);
 	r = uv_read2_start((uv_stream_t*)php_uv_get_current_stream(uv), php_uv_read_alloc, php_uv_read2_cb);
-	if (r < 0) {
+	if (r) {
 		php_error_docref(NULL TSRMLS_CC, E_NOTICE, "read2 failed");
 	}
 	PHP_UV_DEBUG_RESOURCE_REFCOUNT(uv_read2_start, uv->resource_id);
+    */
 }
 /* }}} */
 
@@ -3991,7 +4001,7 @@ PHP_FUNCTION(uv_listen)
 	php_uv_cb_init(&cb, uv, &fci, &fcc, PHP_UV_LISTEN_CB);
 
 	r = uv_listen((uv_stream_t*)php_uv_get_current_stream(uv), backlog, php_uv_listen_cb);
-	if (r < 0) {
+	if (r) {
 		php_error_docref(NULL TSRMLS_CC, E_WARNING, "%s", php_uv_strerror(r));
 	}
 }
@@ -4342,9 +4352,11 @@ PHP_FUNCTION(uv_default_loop)
 */
 PHP_FUNCTION(uv_loop_new)
 {
-	uv_loop_t *loop;
+	uv_loop_t *loop = emalloc(sizeof(*loop));
+    uv_loop_init(loop);
 	
-	loop = uv_loop_new();
+	//loop = uv_loop_new();
+
 	ZEND_REGISTER_RESOURCE(return_value, loop, uv_loop_handle);
 }
 /* }}} */
@@ -4413,7 +4425,7 @@ PHP_FUNCTION(uv_udp_recv_start)
 
 	php_uv_cb_init(&cb, uv, &fci, &fcc, PHP_UV_RECV_CB);
 	r = uv_udp_recv_start((uv_udp_t*)&uv->uv.udp, php_uv_read_alloc, php_uv_udp_recv_cb);
-	if (r < 0) {
+	if (r) {
 		php_error_docref(NULL TSRMLS_CC, E_NOTICE, "read failed");
 	}
 }
@@ -4485,7 +4497,7 @@ PHP_FUNCTION(uv_udp_set_multicast_loop)
 	PHP_UV_TYPE_CHECK(uv, IS_UV_UDP);
 
 	r = uv_udp_set_multicast_loop((uv_udp_t*)&uv->uv.udp, enabled);
-	if (r < 0) {
+	if (r) {
 		php_error_docref(NULL TSRMLS_CC, E_NOTICE, "uv_udp_set_muticast_loop failed");
 	}
 }
@@ -4517,7 +4529,7 @@ PHP_FUNCTION(uv_udp_set_multicast_ttl)
 	}
 
 	r = uv_udp_set_multicast_ttl((uv_udp_t*)&uv->uv.udp, ttl);
-	if (r < 0) {
+	if (r) {
 		php_error_docref(NULL TSRMLS_CC, E_NOTICE, "uv_udp_set_muticast_ttl failed");
 	}
 }
@@ -4541,7 +4553,7 @@ PHP_FUNCTION(uv_udp_set_broadcast)
 	PHP_UV_TYPE_CHECK(uv, IS_UV_UDP);
 
 	r = uv_udp_set_broadcast((uv_udp_t*)&uv->uv.udp, enabled);
-	if (r < 0) {
+	if (r) {
 		php_error_docref(NULL TSRMLS_CC, E_NOTICE, "uv_udp_set_muticast_loop failed");
 	}
 }
@@ -4715,7 +4727,7 @@ PHP_FUNCTION(uv_pipe_init)
 	uv->type = IS_UV_PIPE;
 	r = uv_pipe_init(loop, &uv->uv.pipe, (int)ipc);
 	
-	if (r < 0) {
+	if (r) {
 		php_error_docref(NULL TSRMLS_CC, E_ERROR, "uv_pipe_init failed");
 		return;
 	}
@@ -5671,7 +5683,7 @@ PHP_FUNCTION(uv_async_init)
 	PHP_UV_INIT_UV(uv, IS_UV_ASYNC);
 
 	r = uv_async_init(loop, &uv->uv.async, php_uv_async_cb);
-	if (r < 0) {
+	if (r) {
 		php_error_docref(NULL TSRMLS_CC, E_ERROR, "uv_async_init failed");
 		return;
 	}
@@ -5732,7 +5744,7 @@ PHP_FUNCTION(uv_queue_work)
 	
 	r = uv_queue_work(loop, (uv_work_t*)&uv->uv.work, php_uv_work_cb, php_uv_after_work_cb);
 
-	if (r < 0) {
+	if (r) {
 		php_error_docref(NULL TSRMLS_CC, E_ERROR, "uv_queue_work failed");
 		return;
 	}
