@@ -950,12 +950,13 @@ static void php_uv_fs_common(uv_fs_type fs_type, INTERNAL_FUNCTION_PARAMETERS)
 			zval *zstream = NULL;
 			unsigned long fd;
 			unsigned long length;
-			
-			PHP_UV_FS_PARSE_PARAMETERS("zzlf", &zloop, &zstream, &length, &fci, &fcc);
+			unsigned long offset;
+
+			PHP_UV_FS_PARSE_PARAMETERS("zzllf", &zloop, &zstream, &offset, &length, &fci, &fcc);
 			memset(uv_fs_read_buf, 0, length);
 			PHP_UV_FS_SETUP()
 			PHP_UV_ZVAL_TO_FD(fd, zstream);
-			PHP_UV_FS_ASYNC(loop, read, fd, uv_fs_read_buf, length, -1);
+			PHP_UV_FS_ASYNC(loop, read, fd, uv_fs_read_buf, length, offset);
 			break;
 		}
 		case UV_FS_SENDFILE:
@@ -3023,6 +3024,7 @@ ZEND_END_ARG_INFO()
 ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_fs_read, 0, 0, 3)
 	ZEND_ARG_INFO(0, loop)
 	ZEND_ARG_INFO(0, fd)
+	ZEND_ARG_INFO(0, offset)
 	ZEND_ARG_INFO(0, size)
 	ZEND_ARG_INFO(0, callback)
 ZEND_END_ARG_INFO()
@@ -5713,7 +5715,7 @@ PHP_FUNCTION(uv_fs_open)
 /* }}} */
 
 
-/* {{{ proto void uv_fs_read(resoruce $loop, zval $fd, callable $callback)
+/* {{{ proto void uv_fs_read(resoruce $loop, zval $fd, long $offset, long $length, callable $callback)
 */
 PHP_FUNCTION(uv_fs_read)
 {

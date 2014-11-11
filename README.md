@@ -2180,7 +2180,7 @@ uv_run();
 
 
 
-### void uv_fs_read(resource $loop, zval $fd, long $length, callable $callback)
+### void uv_fs_read(resource $loop, zval $fd, long $offset, long $length, callable $callback)
 
 ##### *Description*
 
@@ -2191,6 +2191,10 @@ async read.
 *resource $loop*: uv loop handle
 
 *zval $fd*: this expects long $fd, resource $php_stream or resource $php_socket.
+
+*long $offset*: the offset position in the file at which reading should commence.
+
+*long $length*: the length in bytes that should be read starting at position *$offset*.
 
 *resource $callback*: this callback parameter expects (zval $fd, long $nread, string $buffer).
 
