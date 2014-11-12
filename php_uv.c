@@ -1804,8 +1804,6 @@ static void php_uv_fs_cb(uv_fs_t* req)
 		case UV_FS_SCANDIR:
 		{
 			zval *dirent;
-			int nnames, i = 0;
-			char *namebuf = (char *)req->ptr;
 			uv_dirent_t dent;
 
 			MAKE_STD_ZVAL(dirent);
