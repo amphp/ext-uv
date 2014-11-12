@@ -1806,15 +1806,13 @@ static void php_uv_fs_cb(uv_fs_t* req)
 			zval *dirent;
 			int nnames, i = 0;
 			char *namebuf = (char *)req->ptr;
-			
+			uv_dirent_t dent;
+
 			MAKE_STD_ZVAL(dirent);
 			array_init(dirent);
-			
-			nnames = req->result;
-			for (i = 0; i < nnames; i++) {
-				add_next_index_string(dirent, namebuf, 1);
-				namebuf += strlen(namebuf) + 1;
-			}
+		    while (UV_EOF != uv_fs_scandir_next(req, &dent)) {
+                add_next_index_string(dirent, dent.name, 1);
+            }	
 			
 			params[1] = &dirent;
 		break;
@@ -2918,6 +2916,13 @@ ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_fs_sendfile, 0, 0, 6)
 ZEND_END_ARG_INFO()
 
 ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_fs_readdir, 0, 0, 4)
+	ZEND_ARG_INFO(0, loop)
+	ZEND_ARG_INFO(0, path)
+	ZEND_ARG_INFO(0, flags)
+	ZEND_ARG_INFO(0, callback)
+ZEND_END_ARG_INFO()
+
+ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_fs_scandir, 0, 0, 4)
 	ZEND_ARG_INFO(0, loop)
 	ZEND_ARG_INFO(0, path)
 	ZEND_ARG_INFO(0, flags)
@@ -6556,6 +6561,7 @@ static zend_function_entry uv_functions[] = {
 	PHP_FE(uv_fs_lstat,                 arginfo_uv_fs_lstat)
 	PHP_FE(uv_fs_fstat,                 arginfo_uv_fs_fstat)
 	PHP_FE(uv_fs_readdir,               arginfo_uv_fs_readdir)
+    PHP_FE(uv_fs_scandir,               arginfo_uv_fs_scandir)
 	PHP_FE(uv_fs_sendfile,              arginfo_uv_fs_sendfile)
 	PHP_FE(uv_fs_event_init,            arginfo_uv_fs_event_init)
 	/* tty */
