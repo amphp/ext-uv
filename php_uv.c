@@ -4908,11 +4908,10 @@ PHP_FUNCTION(uv_stdio_new)
 		return;
 	}
 
-	stdio = (php_uv_stdio_t*)emalloc(sizeof(php_uv_stdio_t));
-	stdio->flags = flags;
-	stdio->stream = NULL;
-
-	if (Z_TYPE_P(handle) == IS_LONG) {
+	if(Z_TYPE_P(handle) == IS_NULL) {
+		php_error_docref(NULL TSRMLS_CC, E_WARNING, "passed unexpected resource");
+		RETURN_FALSE;
+    } else if (Z_TYPE_P(handle) == IS_LONG) {
 		fd = Z_LVAL_P(handle);
 	} else if (Z_TYPE_P(handle) == IS_RESOURCE) {
 		if (ZEND_FETCH_RESOURCE_NO_RETURN(stream, php_stream*, &handle, -1, NULL, php_file_le_stream())) {
@@ -4929,7 +4928,10 @@ PHP_FUNCTION(uv_stdio_new)
 		}
 	}
 	
-	
+    stdio = (php_uv_stdio_t*)emalloc(sizeof(php_uv_stdio_t));
+	stdio->flags = flags;
+	stdio->stream = NULL;
+
 	stdio->fd = fd;
 	
 	if (Z_TYPE_P(handle) == IS_RESOURCE) {
