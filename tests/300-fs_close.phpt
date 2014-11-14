@@ -15,5 +15,5 @@ uv_fs_open(uv_default_loop(),FIXTURE_PATH, UV::O_RDONLY, 0, function($r){
 });
 
 uv_run();
---EXPECT--
-OK
+--EXPECTF--
+Warning: uv_fs_close(): invalid resource type detected in %s on line %d

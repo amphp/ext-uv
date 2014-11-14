@@ -110,6 +110,18 @@ zend_fcall_info empty_fcall_info = { 0, NULL, NULL, NULL, NULL, 0, NULL, NULL, 0
 	lock->type = lock_type; \
 	lock->locked = 0; \
 
+#define PHP_UV_ZVAL_TO_VALID_POLL_FD(fd, zstream) \
+{ \
+	fd = php_uv_zval_to_valid_poll_fd(zstream TSRMLS_CC); \
+	if (fd < 0) { \
+		php_error_docref(NULL TSRMLS_CC, E_WARNING, "invalid variable passed. can't convert to fd."); \
+		RETURN_FALSE; \
+	} \
+	if (uv->fs_fd == NULL) { \
+		uv->fs_fd = zstream;\
+		Z_ADDREF_P(zstream);\
+	}\
+}
 
 #define PHP_UV_ZVAL_TO_FD(fd, zstream) \
 { \
@@ -318,6 +330,51 @@ static char *php_uv_map_resource_name(enum php_uv_resource_type type)
 		RETURN_FALSE; \
 	} \
 
+#if (PHP_MAJOR_VERSION == 5) && (PHP_MINOR_VERSION >= 3)
+static php_socket_t php_uv_zval_to_valid_poll_fd(zval *ptr TSRMLS_DC)
+{
+	php_socket_t fd = -1;
+	php_stream *stream;
+	php_uv_t *uv;
+
+    /* Validate Checks */
+    const char check_php[] = "PHP";
+    const char check_file[] = "plainfile";
+
+#ifndef PHP_WIN32
+	php_socket *socket;
+#endif
+	/* TODO: is this correct on windows platform? */
+	if (Z_TYPE_P(ptr) == IS_RESOURCE) {
+		if (ZEND_FETCH_RESOURCE_NO_RETURN(stream, php_stream *, &ptr, -1, NULL, php_file_le_stream())) {
+            /* make sure only valid resource streams are passed - plainfiles and php streams are invalid */
+            if (stream->wrapper) {
+                if ( (strcmp((char *)stream->wrapper->wops->label, check_file) == 0) || (strcmp((char *)stream->wrapper->wops->label, check_php) == 0) ) {
+                    php_error_docref(NULL TSRMLS_CC, E_ERROR, "invalid resource passed, this resource is not supported");
+                    return -1;
+                }
+            } 
+            
+            if (php_stream_cast(stream, PHP_STREAM_AS_FD | PHP_STREAM_CAST_INTERNAL, (void*)&fd, 1) != SUCCESS || fd < 0) {
+				fd = -1;
+			}
+		} else if (ZEND_FETCH_RESOURCE_NO_RETURN(uv, php_uv_t*, &ptr, -1, NULL, uv_resource_handle)) {
+			php_error_docref(NULL TSRMLS_CC, E_WARNING, "uv resource does not support yet");
+			fd = -1;
+#ifndef PHP_WIN32
+		} else if (ZEND_FETCH_RESOURCE_NO_RETURN(socket, php_socket *, &ptr, -1, NULL, php_sockets_le_socket())) {
+			/* TODO: is this correct on windows platform? */
+			fd = socket->bsd_socket;
+#endif
+		} else {
+			php_error_docref(NULL TSRMLS_CC, E_WARNING, "unhandled resource type detected.");
+			fd = -1;
+		}
+	} 
+	
+	return fd;
+}
+#endif
 
 #if (PHP_MAJOR_VERSION == 5) && (PHP_MINOR_VERSION >= 3)
 static php_socket_t php_uv_zval_to_fd(zval *ptr TSRMLS_DC)
@@ -351,6 +408,14 @@ static php_socket_t php_uv_zval_to_fd(zval *ptr TSRMLS_DC)
 		if (fd < 0) {
 			fd = -1;
 		}
+      
+        /* make sure that a valid resource handle was passed - issue #36 */
+        int err; 
+        err = uv_guess_handle((uv_file) fd);
+        if(err == UV_UNKNOWN_HANDLE) {
+            php_error_docref(NULL TSRMLS_CC, E_WARNING, "invalid resource type detected");
+            fd = -1;
+        }
 	}
 	
 	return fd;
@@ -6210,7 +6275,7 @@ PHP_FUNCTION(uv_poll_init)
 
 	PHP_UV_INIT_UV(uv, IS_UV_POLL);
 	PHP_UV_FETCH_UV_DEFAULT_LOOP(loop, zloop);
-	PHP_UV_ZVAL_TO_FD(fd, zstream);
+	PHP_UV_ZVAL_TO_VALID_POLL_FD(fd, zstream);
 	
 	error = uv_poll_init(loop, &uv->uv.poll, fd);
 	if (error) {
