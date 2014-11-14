@@ -4,7 +4,6 @@ Check poll of a pipe works
 <?php
 $fd = popen(PHP_BINARY . " ". __DIR__ . "/fixtures/proc.php", "w");
 stream_set_blocking($fd, 0);
-fwrite($fd, 'test');
 
 $loop = uv_loop_new();
 $poll = uv_poll_init($loop, $fd);
