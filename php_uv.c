@@ -1178,12 +1178,19 @@ void static destruct_uv_lock(zend_rsrc_list_entry *rsrc TSRMLS_DC)
 	efree(lock);
 }
 
+static void destruct_uv_loop_walk_cb(uv_handle_t* handle, void* arg) 
+{
+    if (!uv_is_closing(handle)) {
+        uv_close(handle, NULL);
+    }
+}
+
 void static destruct_uv_loop(zend_rsrc_list_entry *rsrc TSRMLS_DC)
 {
 	uv_loop_t *loop = (uv_loop_t *)rsrc->ptr;
 	if (loop != _php_uv_default_loop) {
-		//uv_loop_delete(loop);
         /* updated for libuv 1.0 as uv_loop_delete is deprecated */
+        uv_walk(loop, destruct_uv_loop_walk_cb, NULL);
         uv_loop_close(loop);
         efree(loop);
 	}
@@ -1226,8 +1233,8 @@ void static destruct_uv(zend_rsrc_list_entry *rsrc TSRMLS_DC)
 	}
 
 	obj->in_free = 1;
-	
-	/* for now */
+
+    /* for now */
 	for (i = 0; i < PHP_UV_CB_MAX; i++) {
 		php_uv_cb_t *cb =  obj->callback[i];
 		if (cb != NULL) {
@@ -3343,10 +3350,8 @@ PHP_FUNCTION(uv_unref)
 	
 	if (ZEND_FETCH_RESOURCE_NO_RETURN(loop, uv_loop_t*, &handle, -1, NULL, uv_loop_handle)) {
 		uv_unref((uv_handle_t *)loop);
-		zend_list_delete(Z_RESVAL_P(handle));
 	} else if (ZEND_FETCH_RESOURCE_NO_RETURN(uv, php_uv_t*, &handle, -1, NULL, uv_resource_handle)) {
 		uv_unref((uv_handle_t *)php_uv_get_current_stream(uv));
-		zend_list_delete(uv->resource_id);
 	} else {
 		php_error_docref(NULL TSRMLS_CC, E_ERROR, "passes unexpected resource.");
 	}
@@ -4111,6 +4116,7 @@ PHP_FUNCTION(uv_timer_init)
 	PHP_UV_INIT_TIMER(uv, IS_UV_TIMER)
 
 	uv->uv.timer.data = uv;
+    PHP_UV_DEBUG_PRINT("uv_timer_init: resource: %d\n", uv->resource_id);
 
 	ZVAL_RESOURCE(return_value, uv->resource_id);
 }
@@ -4180,7 +4186,7 @@ PHP_FUNCTION(uv_timer_stop)
 		php_error_docref(NULL TSRMLS_CC, E_NOTICE, "passed uv timer resource has been stopped. you don't have to call this method");
 		RETURN_FALSE;
 	}
-
+    PHP_UV_DEBUG_PRINT("uv_timer_stop: resource: %d\n", uv->resource_id);
 	r = uv_timer_stop((uv_timer_t*)&uv->uv.timer);
 
 	RETURN_LONG(r);
