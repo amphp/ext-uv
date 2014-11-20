@@ -3,7 +3,7 @@ set -e
 set -o pipefail
 
 # install 'libuv'
-git clone --recursive --branch v1.0.0-rc2 --depth 1 https://github.com/joyent/libuv.git
+git clone --recursive --branch v1.0.0 --depth 1 https://github.com/joyent/libuv.git
 pushd libuv
 ./autogen.sh && ./configure && make && sudo make install
 popd
