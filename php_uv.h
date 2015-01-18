@@ -39,9 +39,7 @@
 #include "php_network.h"
 #include "php_streams.h"
 
-#if (PHP_MAJOR_VERSION == 5) && (PHP_MINOR_VERSION >= 3)
 #include "ext/sockets/php_sockets.h"
-#endif
 
 #include <Zend/zend.h>
 #include <Zend/zend_compile.h>
@@ -134,7 +132,7 @@ typedef struct {
 #ifdef ZTS
 	void ***thread_ctx;
 #endif
-	int resource_id;
+	zend_resource *resource_id;
 	int type;
 	uv_os_sock_t sock;
 	union {
@@ -167,7 +165,7 @@ typedef struct {
 
 typedef struct {
 	int is_ipv4;
-	int resource_id;
+	zend_resource *resource_id;
 	union {
 		struct sockaddr_in ipv4;
 		struct sockaddr_in6 ipv6;
@@ -177,7 +175,7 @@ typedef struct {
 typedef struct {
 	int locked;
 	enum php_uv_lock_type type;
-	int resource_id;
+	zend_resource *resource_id;
 	union {
 		uv_rwlock_t rwlock;
 		uv_mutex_t mutex;
@@ -186,7 +184,7 @@ typedef struct {
 } php_uv_lock_t;
 
 typedef struct {
-	int resource_id;
+	zend_resource *resource_id;
 	int fd;
 	zval *stream;
 	int flags;
@@ -201,11 +199,7 @@ typedef struct {
 #define PHP_UV_STDIO_RESOURCE_NAME "uv_stdio"
 
 
-#if PHP_VERSION_ID>=50399
-#define PHP_UV_LIST_INSERT(type, handle) zend_list_insert(type, handle TSRMLS_CC)
-#else
-#define PHP_UV_LIST_INSERT(type, handle) zend_list_insert(type, handle)
-#endif
+#define PHP_UV_LIST_INSERT(type, handle) Z_RES_P(zend_list_insert(type, handle))
 
 
 /* File/directory stat mode constants*/

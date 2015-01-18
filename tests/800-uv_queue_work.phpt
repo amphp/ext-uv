@@ -12,11 +12,11 @@ if (!preg_match("/Thread Safety.+?enabled/", $data)) {
 <?php
 $loop = uv_default_loop();
 
-$a = function(){
+$a = function() {
     echo "[queue]";
 };
 
-$b = function(){
+$b = function() {
     echo "[finished]";
 };
 $queue = uv_queue_work($loop, $a, $b);

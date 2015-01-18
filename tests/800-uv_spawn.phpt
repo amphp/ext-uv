@@ -13,16 +13,16 @@ $stdio[] = uv_stdio_new($out, UV::CREATE_PIPE | UV::WRITABLE_PIPE);
 
 $flags = 0;
 uv_spawn(uv_default_loop(), "php", array('-r','echo "WORLD";'), $stdio, dirname(uv_exepath()), 
-    array("key"=>"hello"), 
+    array("key" => "hello"),
     function($process, $stat, $signal){
-	    uv_close($process,function(){});
+	    uv_close($process, function() { });
 
 }, $flags);
 
-uv_read_start($out, function($out, $nread, $buffer) {
+uv_read2_start($out, function($out, $nread, $buffer, $stat){
     echo $buffer;
 
-    uv_close($out,function(){});
+    uv_close($out, function() { });
 });
 
 uv_run();

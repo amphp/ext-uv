@@ -9,7 +9,7 @@ $poll = uv_fs_poll_init(uv_default_loop());
 fclose(fopen(FIXTURE_PATH, "w+"));
 
 $i = 0;
-uv_fs_poll_start($poll,function($rsc,$stat,$p,$c) use (&$i){
+uv_fs_poll_start($poll,function($rsc,$stat,$p,$c) use (&$i) {
     echo "OK";
     
     if ($i > 3) {
@@ -20,7 +20,7 @@ uv_fs_poll_start($poll,function($rsc,$stat,$p,$c) use (&$i){
 }, FIXTURE_PATH, 1);
 
 $timer = uv_timer_init();
-uv_timer_start($timer, 100, 100, function($timer) use (&$i){
+uv_timer_start($timer, 100, 100, function($timer) use (&$i) {
     $fp = fopen(FIXTURE_PATH, "w+");
     fwrite($fp,"hoge");
     fclose($fp);

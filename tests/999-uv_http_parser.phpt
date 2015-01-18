@@ -6,7 +6,7 @@ Check for uv_http_parser
 <?php
 $parser = uv_http_parser_init();
 $result = array();
-if(uv_http_parser_execute($parser,"GET /img/http-parser.png?key=value#frag HTTP/1.1
+if (uv_http_parser_execute($parser, "GET /img/http-parser.png?key=value#frag HTTP/1.1
 Host: chobie.net
 User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10.7; rv:12.0) Gecko/20100101 Firefox/12.0
 Accept: image/png,image/*;q=0.8,*/*;q=0.5
@@ -17,7 +17,7 @@ Referer: http://chobie.net/
 Cookie: key=value
 Cache-Control: max-age=0
 
-",$result)) {
+", $result)) {
 	echo "# Headers count\n";
 	echo count($result['HEADERS']) . PHP_EOL;
 	echo "# Headers values\n";
