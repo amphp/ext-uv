@@ -5,10 +5,10 @@ Check for #14
 $loop = uv_default_loop();
 $filename ="does_not_exist.txt";
 uv_fs_stat($loop, $filename, function ($result, $stat) {
-    if($result < 0) {
+    if (!$result) {
         echo  'OK' . PHP_EOL;
     } else {
-        echo 'FAILED: uv_fs_stat should have returned a value less than 0' . PHP_EOL;
+        echo 'FAILED: uv_fs_stat should have returned false' . PHP_EOL;
     }
 
     if (is_null($stat)) {
@@ -21,10 +21,10 @@ uv_fs_stat($loop, $filename, function ($result, $stat) {
 $filename = tempnam(sys_get_temp_dir(), 'test-no14');
 
 uv_fs_stat($loop, $filename, function ($result, $stat) {
-    if($result === 0) {
+    if (is_resource($result)) {
         echo 'OK' . PHP_EOL;
     } else {
-        echo "FAILED: uv_fs_stat should have returned a result of 0" . PHP_EOL;
+        echo "FAILED: uv_fs_stat should have returned a resource of type stream" . PHP_EOL;
     }
 
     if(!empty($stat)) {

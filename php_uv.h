@@ -158,8 +158,7 @@ typedef struct {
 		uv_signal_t signal;
 	} uv;
 	char *buffer;
-	zval *address;
-	zval *fs_fd;
+	zend_resource *fs_fd;
 	php_uv_cb_t *callback[PHP_UV_CB_MAX];
 } php_uv_t;
 
@@ -186,7 +185,7 @@ typedef struct {
 typedef struct {
 	zend_resource *resource_id;
 	int fd;
-	zval *stream;
+	zend_resource *stream;
 	int flags;
 } php_uv_stdio_t;
 

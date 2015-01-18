@@ -13,7 +13,7 @@ uv_fs_open(uv_default_loop(), FIXTURE_PATH, UV::O_RDONLY, 0, function($r) {
 
             uv_fs_close(uv_default_loop(), $stream, function() { });
         } else {
-            echo $data ;
+            echo trim($data) . "\n";
         }
     });
 });
@@ -28,13 +28,14 @@ uv_fs_open(uv_default_loop(), FIXTURE_PATH, UV::O_RDONLY, 0, function($r) {
 
             uv_fs_close(uv_default_loop(), $stream, function() { });
         } else {
-            echo $data;
+            echo "H" . trim($data) . "\n";
         }
     });
 });
 
 
 uv_run();
+?>
 --EXPECT--
 Hello
-ello
+Hello

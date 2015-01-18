@@ -117,7 +117,7 @@
 		RETURN_FALSE; \
 	} \
 	if (uv->fs_fd == NULL) { \
-		uv->fs_fd = zstream;\
+		uv->fs_fd = Z_RES_P(zstream);\
 		Z_ADDREF_P(zstream);\
 	}\
 }
@@ -130,7 +130,7 @@
 		RETURN_FALSE; \
 	} \
 	if (uv->fs_fd == NULL) { \
-		uv->fs_fd = zstream;\
+		uv->fs_fd = Z_RES_P(zstream);\
 		Z_ADDREF_P(zstream);\
 	}\
 }
@@ -148,7 +148,6 @@
 		for (ix = 0; ix < PHP_UV_CB_MAX; ix++) {\
 			uv->callback[ix] = NULL;\
 		} \
-		uv->address = NULL; \
 		uv->fs_fd   = NULL; \
 		uv->in_free = 0;\
 	}
@@ -1222,12 +1221,8 @@ void static destruct_uv(zend_resource *rsrc)
 		}
 	}
 
-	if (obj->address != NULL) {
-		zval_ptr_dtor(obj->address);
-		obj->address = NULL;
-	}
 	if (obj->fs_fd != NULL) {
-		zval_ptr_dtor(obj->fs_fd);
+		zend_list_delete(obj->fs_fd);
 		obj->fs_fd = NULL;
 	}
 
@@ -1729,9 +1724,14 @@ static void php_uv_fs_cb(uv_fs_t* req)
 	PHP_UV_DEBUG_PRINT("# php_uv_fs_cb %d\n", uv->resource_id);
 
 	if (uv->fs_fd != NULL) {
-		ZVAL_ZVAL(&params[0], uv->fs_fd, 1, 0);
+		GC_REFCOUNT(uv->fs_fd)++;
+		ZVAL_RES(&params[0], uv->fs_fd);
 	} else {
-		PHP_UV_FD_TO_ZVAL(&params[0], uv->uv.fs.result)
+		if (uv->uv.fs.result < 0) {
+			ZVAL_FALSE(&params[0]);
+		} else {
+			PHP_UV_FD_TO_ZVAL(&params[0], uv->uv.fs.result)
+		}
 	}
 
 	switch (uv->uv.fs.fs_type) {
@@ -1928,7 +1928,8 @@ static void php_uv_poll_cb(uv_poll_t* handle, int status, int events)
 	ZVAL_LONG(&params[1], status);
 	ZVAL_LONG(&params[2], events);
 	if (uv->fs_fd != NULL) {
-		ZVAL_ZVAL(&params[3], uv->fs_fd, 1, 0);
+		GC_REFCOUNT(uv->fs_fd)++;
+		ZVAL_RES(&params[3], uv->fs_fd);
 	} else {
 		PHP_UV_FD_TO_ZVAL(&params[3], uv->sock);
 	}
@@ -2161,7 +2162,7 @@ void static destruct_uv_stdio(zend_resource *rsrc)
 	php_uv_stdio_t *obj = (php_uv_stdio_t *)rsrc->ptr;
 
 	if (obj->stream != NULL) {
-		zval_ptr_dtor(obj->stream);
+		zend_list_delete(obj->stream);
 		obj->stream = NULL;
 	}
 
@@ -4751,7 +4752,7 @@ PHP_FUNCTION(uv_stdio_new)
 	stdio->fd = fd;
 
 	if (Z_TYPE_P(handle) == IS_RESOURCE) {
-		stdio->stream = handle;
+		stdio->stream = Z_RES_P(handle);
 		Z_ADDREF_P(handle);
 	}
 
@@ -5863,7 +5864,7 @@ PHP_FUNCTION(uv_tty_get_winsize)
 	int error, width, height = 0;
 
 	if (zend_parse_parameters(ZEND_NUM_ARGS(),
-		"rrr", &handle, &w, &h) == FAILURE) {
+		"r/z/z", &handle, &w, &h) == FAILURE) {
 		return;
 	}
 
