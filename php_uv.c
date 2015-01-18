@@ -347,7 +347,7 @@ static php_socket_t php_uv_zval_to_valid_poll_fd(zval *ptr)
 		if (ZEND_FETCH_RESOURCE_NO_RETURN(stream, php_stream *, ptr, -1, NULL, php_file_le_stream())) {
 			/* make sure only valid resource streams are passed - plainfiles and php streams are invalid */
 			if (stream->wrapper) {
-				if (!strcmp((char *)stream->wrapper->wops->label, check_file) || !strcmp((char *)stream->wrapper->wops->label, check_php)) {
+				if (strcmp((char *)stream->wrapper->wops->label, check_file) && strcmp((char *)stream->wrapper->wops->label, check_php)) {
 					php_error_docref(NULL, E_ERROR, "invalid resource passed, this resource is not supported");
 					return -1;
 				}
@@ -528,12 +528,15 @@ static void php_uv_cb_init(php_uv_cb_t **result, php_uv_t *uv, zend_fcall_info *
 
 	if (uv->callback[type] == NULL) {
 		cb = emalloc(sizeof(php_uv_cb_t));
-		zval_dtor(&cb->fci.function_name);
+	} else {
+		cb = uv->callback[type];
+
+		if (Z_TYPE(cb->fci.function_name) != IS_UNDEF) {
+			zval_dtor(&cb->fci.function_name);
+		}
 		if (fci->object) {
 			OBJ_RELEASE(fci->object);
 		}
-	} else {
-		cb = uv->callback[type];
 	}
 
 	memcpy(&cb->fci, fci, sizeof(zend_fcall_info));
@@ -994,6 +997,9 @@ static void php_uv_fs_common(uv_fs_type fs_type, INTERNAL_FUNCTION_PARAMETERS)
 			unsigned long offset;
 
 			PHP_UV_FS_PARSE_PARAMETERS("rrllf", &zloop, &zstream, &offset, &length, &fci, &fcc);
+			if (length >= sizeof(uv_fs_read_buf)) {
+				length = sizeof(uv_fs_read_buf) - 1;
+			}
 			memset(uv_fs_read_buf, 0, length);
 			uv_fs_read_buf_t = uv_buf_init(uv_fs_read_buf, length);
 
@@ -1302,7 +1308,7 @@ static int php_uv_do_callback3(zval *retval_ptr, php_uv_t *uv, zval *params, int
 	int error = 0;
 //	zend_executor_globals *ZEG = NULL;
 	void *tsrm_ls, *old;
-	zend_op_array **old_rtc;
+	zend_op_array *old_rtc;
 
 	if (ZEND_FCI_INITIALIZED(uv->callback[type]->fci)) {
 		tsrm_ls = tsrm_new_interpreter_context();
@@ -5000,8 +5006,10 @@ PHP_FUNCTION(uv_spawn)
 				stdio[x].data.fd = stdio_tmp->fd;
 			} else if (stdio_tmp->flags & (UV_CREATE_PIPE | UV_INHERIT_STREAM)) {
 				php_uv_t* uv_pipe;
+				zval passed_id;
+				ZVAL_RES(&passed_id, stdio_tmp->stream);
 
-				ZEND_FETCH_RESOURCE(uv_pipe, php_uv_t*, stdio_tmp->stream, -1, PHP_UV_RESOURCE_NAME, uv_resource_handle);
+				ZEND_FETCH_RESOURCE(uv_pipe, php_uv_t*, &passed_id, -1, PHP_UV_RESOURCE_NAME, uv_resource_handle);
 				stdio[x].data.stream = (uv_stream_t*)&uv_pipe->uv.pipe;
 			} else {
 				php_error_docref(NULL, E_WARNING, "passes unexpected stdio flags");
