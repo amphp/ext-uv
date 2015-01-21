@@ -347,7 +347,7 @@ static php_socket_t php_uv_zval_to_valid_poll_fd(zval *ptr)
 		if (ZEND_FETCH_RESOURCE_NO_RETURN(stream, php_stream *, ptr, -1, NULL, php_file_le_stream())) {
 			/* make sure only valid resource streams are passed - plainfiles and php streams are invalid */
 			if (stream->wrapper) {
-				if (strcmp((char *)stream->wrapper->wops->label, check_file) && strcmp((char *)stream->wrapper->wops->label, check_php)) {
+				if (!strcmp((char *)stream->wrapper->wops->label, check_file) || !strcmp((char *)stream->wrapper->wops->label, check_php)) {
 					php_error_docref(NULL, E_ERROR, "invalid resource passed, this resource is not supported");
 					return -1;
 				}
