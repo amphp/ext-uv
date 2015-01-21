@@ -173,7 +173,7 @@
 #define PHP_UV_LOCK_MUTEX_P(resource) &resource->lock.mutex
 #define PHP_UV_LOCK_SEM_P(resource) &resource->lock.semaphore
 
-#define PHP_UV_FD_TO_ZVAL(zv, fd) { php_stream *_stream = php_stream_fopen_from_fd(fd, "w+", NULL); zval *_z = (zv); php_stream_to_zval(_stream, _z); }
+#define PHP_UV_FD_TO_ZVAL(zv, fd) { php_stream *_stream = php_stream_fopen_from_fd(fd, "w+", NULL); zval *_z = (zv); php_stream_to_zval(_stream, _z); Z_ADDREF_P(_z); }
 
 #if PHP_UV_DEBUG>=1
 #define PHP_UV_DEBUG_PRINT(format, ...) fprintf(stderr, format, ## __VA_ARGS__)
