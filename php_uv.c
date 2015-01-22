@@ -265,12 +265,6 @@ char *php_uv_resource_map[IS_UV_MAX] = {
 	"uv_poll",
 };
 
-/* TODO: fix this */
-static char uv_fs_read_buf[8192];
-
-/* TODO: unsure about this! */
-static uv_buf_t uv_fs_read_buf_t;
-
 /* declarations */
 
 static inline uv_stream_t* php_uv_get_current_stream(php_uv_t *uv);
@@ -890,7 +884,6 @@ static void php_uv_fs_common(uv_fs_type fs_type, INTERNAL_FUNCTION_PARAMETERS)
 			PHP_UV_FS_PARSE_PARAMETERS("rrf", &zloop, &zstream, &fci, &fcc);
 			PHP_UV_FS_SETUP()
 			PHP_UV_ZVAL_TO_FD(fd, zstream);
-			memset(uv_fs_read_buf, 0, sizeof(uv_fs_read_buf));
 			PHP_UV_FS_ASYNC(loop, close, fd);
 			break;
 		}
@@ -993,19 +986,24 @@ static void php_uv_fs_common(uv_fs_type fs_type, INTERNAL_FUNCTION_PARAMETERS)
 		{
 			zval *zstream = NULL;
 			unsigned long fd;
-			unsigned long length;
-			unsigned long offset;
+			long length;
+			long offset;
+			uv_buf_t buf;
 
 			PHP_UV_FS_PARSE_PARAMETERS("rrllf", &zloop, &zstream, &offset, &length, &fci, &fcc);
-			if (length >= sizeof(uv_fs_read_buf)) {
-				length = sizeof(uv_fs_read_buf) - 1;
+			if (length <= 0) {
+				length = -1;
 			}
-			memset(uv_fs_read_buf, 0, length);
-			uv_fs_read_buf_t = uv_buf_init(uv_fs_read_buf, length);
-
+			if (offset < 0) {
+				offset = 0;
+			}
 			PHP_UV_FS_SETUP()
 			PHP_UV_ZVAL_TO_FD(fd, zstream);
-			PHP_UV_FS_ASYNC(loop, read, fd, &uv_fs_read_buf_t, 1, offset);
+
+			uv->buffer = (char*) emalloc(length+1);
+			buf = uv_buf_init(uv->buffer, length+1);
+
+			PHP_UV_FS_ASYNC(loop, read, fd, &buf, 1, offset);
 			break;
 		}
 		case UV_FS_SENDFILE:
@@ -1798,11 +1796,12 @@ static void php_uv_fs_cb(uv_fs_t* req)
 			argc = 3;
 
 			if (uv->uv.fs.result > 0) {
-				ZVAL_STRINGL(&params[2], uv_fs_read_buf, uv->uv.fs.result);
+				ZVAL_STRINGL(&params[2], uv->buffer, uv->uv.fs.result);
 			} else {
 				ZVAL_NULL(&params[2]);
 			}
 			ZVAL_LONG(&params[1], uv->uv.fs.result);
+			efree(uv->buffer);
 
 			break;
 		}
