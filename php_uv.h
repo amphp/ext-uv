@@ -39,7 +39,14 @@
 #include "php_network.h"
 #include "php_streams.h"
 
+#ifdef HAVE_SOCKETS
 #include "ext/sockets/php_sockets.h"
+#elif !defined(PHP_WIN32)
+typedef struct {
+	int bsd_socket;
+	/* other fields are not interesting... */
+} php_socket;
+#endif
 
 #include <Zend/zend.h>
 #include <Zend/zend_compile.h>

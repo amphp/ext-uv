@@ -205,7 +205,9 @@
 #define UV_EG_ALL(ls) UV_FETCH_ALL(ls, executor_globals_id, zend_executor_globals*)
 #endif
 
-
+#if !defined(PHP_WIN32) && !defined(HAVE_SOCKETS)
+int (*php_sockets_le_socket)(void) = NULL;
+#endif
 extern void php_uv_init();
 
 typedef struct {
@@ -354,7 +356,7 @@ static php_socket_t php_uv_zval_to_valid_poll_fd(zval *ptr)
 			php_error_docref(NULL, E_WARNING, "uv resource does not support yet");
 			fd = -1;
 #ifndef PHP_WIN32
-		} else if (ZEND_FETCH_RESOURCE_NO_RETURN(socket, php_socket *, ptr, -1, NULL, php_sockets_le_socket())) {
+		} else if (php_sockets_le_socket && ZEND_FETCH_RESOURCE_NO_RETURN(socket, php_socket *, ptr, -1, NULL, php_sockets_le_socket())) {
 			/* TODO: is this correct on windows platform? */
 			fd = socket->bsd_socket;
 #endif
@@ -385,7 +387,7 @@ static php_socket_t php_uv_zval_to_fd(zval *ptr)
 			php_error_docref(NULL, E_WARNING, "uv resource does not support yet");
 			fd = -1;
 #ifndef PHP_WIN32
-		} else if (ZEND_FETCH_RESOURCE_NO_RETURN(socket, php_socket *, ptr, -1, NULL, php_sockets_le_socket())) {
+		} else if (php_sockets_le_socket && ZEND_FETCH_RESOURCE_NO_RETURN(socket, php_socket *, ptr, -1, NULL, php_sockets_le_socket())) {
 			/* TODO: is this correct on windows platform? */
 			fd = socket->bsd_socket;
 #endif
@@ -2417,6 +2419,20 @@ PHP_MINIT_FUNCTION(uv)
 
 #ifdef ENABLE_HTTPPARSER
 	register_httpparser(module_number);
+#endif
+
+#if !defined(PHP_WIN32) && !defined(HAVE_SOCKETS)
+	{
+		zend_module_entry *sockets;
+		if ((sockets = zend_hash_str_find_ptr(&module_registry, ZEND_STRL("sockets")))) {
+			if (sockets->handle) { // shared
+				php_sockets_le_socket = (int (*)(void)) DL_FETCH_SYMBOL(sockets->handle, "php_sockets_le_socket");
+				if (php_sockets_le_socket == NULL) {
+					php_sockets_le_socket = (int (*)(void)) DL_FETCH_SYMBOL(sockets->handle, "_php_sockets_le_socket");
+				}
+			}
+		}
+	}
 #endif
 
 	return SUCCESS;
