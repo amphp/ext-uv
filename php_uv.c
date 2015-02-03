@@ -341,16 +341,16 @@ static php_socket_t php_uv_zval_to_valid_poll_fd(zval *ptr)
 	/* TODO: is this correct on windows platform? */
 	if (Z_TYPE_P(ptr) == IS_RESOURCE) {
 		if (ZEND_FETCH_RESOURCE_NO_RETURN(stream, php_stream *, ptr, -1, NULL, php_file_le_stream())) {
-			/* make sure only valid resource streams are passed - plainfiles and php streams are invalid */
+			/* Some streams (specifically STDIO and encrypted streams) can be cast to FDs */
+			if (php_stream_cast(stream, PHP_STREAM_AS_FD_FOR_SELECT | PHP_STREAM_CAST_INTERNAL, (void*)&fd, 1) == SUCCESS && fd >= 0) {
+				return fd;
+			}
 			if (stream->wrapper) {
+				/* make sure only valid resource streams are passed - plainfiles and most php streams are invalid */
 				if (!strcmp((char *)stream->wrapper->wops->label, check_file) || !strcmp((char *)stream->wrapper->wops->label, check_php)) {
 					php_error_docref(NULL, E_ERROR, "invalid resource passed, this resource is not supported");
 					return -1;
 				}
-			}
-
-			if (php_stream_cast(stream, PHP_STREAM_AS_FD | PHP_STREAM_CAST_INTERNAL, (void*)&fd, 1) != SUCCESS || fd < 0) {
-				fd = -1;
 			}
 		} else if (ZEND_FETCH_RESOURCE_NO_RETURN(uv, php_uv_t*, ptr, -1, NULL, uv_resource_handle)) {
 			php_error_docref(NULL, E_WARNING, "uv resource does not support yet");
