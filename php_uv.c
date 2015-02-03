@@ -352,6 +352,7 @@ static php_socket_t php_uv_zval_to_valid_poll_fd(zval *ptr)
 					return -1;
 				}
 			}
+			fd = -1;
 		} else if (ZEND_FETCH_RESOURCE_NO_RETURN(uv, php_uv_t*, ptr, -1, NULL, uv_resource_handle)) {
 			php_error_docref(NULL, E_WARNING, "uv resource does not support yet");
 			fd = -1;
