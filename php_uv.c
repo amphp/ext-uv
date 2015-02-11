@@ -95,7 +95,7 @@
 
 #define PHP_UV_FETCH_UV_DEFAULT_LOOP(loop, zloop) \
 	if (zloop != NULL) { \
-		ZEND_FETCH_RESOURCE(loop, uv_loop_t*, zloop, -1, PHP_UV_LOOP_RESOURCE_NAME, uv_loop_handle); \
+		loop = (uv_loop_t *) zend_fetch_resource_ex(zloop, PHP_UV_LOOP_RESOURCE_NAME, uv_loop_handle); \
 	} else { \
 		loop = uv_default_loop(); \
 	}  \
@@ -340,7 +340,7 @@ static php_socket_t php_uv_zval_to_valid_poll_fd(zval *ptr)
 #endif
 	/* TODO: is this correct on windows platform? */
 	if (Z_TYPE_P(ptr) == IS_RESOURCE) {
-		if (ZEND_FETCH_RESOURCE_NO_RETURN(stream, php_stream *, ptr, -1, NULL, php_file_le_stream())) {
+		if ((stream = (php_stream *) zend_fetch_resource_ex(ptr, NULL, php_file_le_stream()))) {
 			/* Some streams (specifically STDIO and encrypted streams) can be cast to FDs */
 			if (php_stream_cast(stream, PHP_STREAM_AS_FD_FOR_SELECT | PHP_STREAM_CAST_INTERNAL, (void*)&fd, 1) == SUCCESS && fd >= 0) {
 				return fd;
@@ -353,12 +353,11 @@ static php_socket_t php_uv_zval_to_valid_poll_fd(zval *ptr)
 				}
 			}
 			fd = -1;
-		} else if (ZEND_FETCH_RESOURCE_NO_RETURN(uv, php_uv_t*, ptr, -1, NULL, uv_resource_handle)) {
+		} else if ((uv = (php_uv_t *) zend_fetch_resource_ex(ptr, NULL, uv_resource_handle))) {
 			php_error_docref(NULL, E_WARNING, "uv resource does not support yet");
 			fd = -1;
 #ifndef PHP_WIN32
-		} else if (php_sockets_le_socket && ZEND_FETCH_RESOURCE_NO_RETURN(socket, php_socket *, ptr, -1, NULL, php_sockets_le_socket())) {
-			/* TODO: is this correct on windows platform? */
+		} else if (php_sockets_le_socket && (socket = (php_socket *) zend_fetch_resource_ex(ptr, NULL, php_sockets_le_socket()))) {
 			fd = socket->bsd_socket;
 #endif
 		} else {
@@ -380,16 +379,15 @@ static php_socket_t php_uv_zval_to_fd(zval *ptr)
 #endif
 	/* TODO: is this correct on windows platform? */
 	if (Z_TYPE_P(ptr) == IS_RESOURCE) {
-		if (ZEND_FETCH_RESOURCE_NO_RETURN(stream, php_stream *, ptr, -1, NULL, php_file_le_stream())) {
-			if (php_stream_cast(stream, PHP_STREAM_AS_FD | PHP_STREAM_CAST_INTERNAL, (void*)&fd, 1) != SUCCESS || fd < 0) {
+		if ((stream = (php_stream *) zend_fetch_resource_ex(ptr, NULL, php_file_le_stream()))) {
+			if (php_stream_cast(stream, PHP_STREAM_AS_FD | PHP_STREAM_CAST_INTERNAL, (void *) &fd, 1) != SUCCESS || fd < 0) {
 				fd = -1;
 			}
-		} else if (ZEND_FETCH_RESOURCE_NO_RETURN(uv, php_uv_t*, ptr, -1, NULL, uv_resource_handle)) {
+		} else if ((uv = (php_uv_t *) zend_fetch_resource_ex(ptr, NULL, uv_resource_handle))) {
 			php_error_docref(NULL, E_WARNING, "uv resource does not support yet");
 			fd = -1;
 #ifndef PHP_WIN32
-		} else if (php_sockets_le_socket && ZEND_FETCH_RESOURCE_NO_RETURN(socket, php_socket *, ptr, -1, NULL, php_sockets_le_socket())) {
-			/* TODO: is this correct on windows platform? */
+		} else if (php_sockets_le_socket && (socket = (php_socket *) zend_fetch_resource_ex(ptr, NULL, php_sockets_le_socket()))) {
 			fd = socket->bsd_socket;
 #endif
 		} else {
@@ -507,8 +505,8 @@ static inline int php_uv_common_init(php_uv_t **result, uv_loop_t *loop, enum ph
 	TSRMLS_SET_CTX(uv->thread_ctx);
 
 	if (return_value != NULL) {
-		ZEND_REGISTER_RESOURCE(return_value, uv, uv_resource_handle);
-		uv->resource_id = Z_RES_P(return_value);
+		uv->resource_id = zend_register_resource(uv, uv_resource_handle);
+		ZVAL_RES(return_value, uv->resource_id);
 	}
 
 	*result = uv;
@@ -588,7 +586,7 @@ static void php_uv_lock_init(enum php_uv_lock_type lock_type, INTERNAL_FUNCTION_
 	}
 
 	if (error == 0) {
-		ZEND_REGISTER_RESOURCE(return_value, lock, uv_lock_handle);
+		ZVAL_RES(return_value, zend_register_resource(lock, uv_lock_handle));
 	} else {
 		efree(lock);
 		RETURN_FALSE;
@@ -605,7 +603,7 @@ static void php_uv_lock_lock(enum php_uv_lock_type lock_type, INTERNAL_FUNCTION_
 		return;
 	}
 
-	ZEND_FETCH_RESOURCE(lock, php_uv_lock_t *, handle, -1, PHP_UV_LOCK_RESOURCE_NAME, uv_lock_handle);
+	lock = (php_uv_lock_t *) zend_fetch_resource_ex(handle, PHP_UV_LOCK_RESOURCE_NAME, uv_lock_handle);
 
 	switch (lock_type) {
 		case IS_UV_RWLOCK:
@@ -648,7 +646,7 @@ static void php_uv_lock_unlock(enum php_uv_lock_type  lock_type, INTERNAL_FUNCTI
 		return;
 	}
 
-	ZEND_FETCH_RESOURCE(lock, php_uv_lock_t *, handle, -1, PHP_UV_LOCK_RESOURCE_NAME, uv_lock_handle);
+	lock = (php_uv_lock_t *) zend_fetch_resource_ex(handle, PHP_UV_LOCK_RESOURCE_NAME, uv_lock_handle);
 
 	switch (lock_type) {
 		case IS_UV_RWLOCK:
@@ -698,7 +696,7 @@ static void php_uv_lock_trylock(enum php_uv_lock_type lock_type, INTERNAL_FUNCTI
 		return;
 	}
 
-	ZEND_FETCH_RESOURCE(lock, php_uv_lock_t *, handle, -1, PHP_UV_LOCK_RESOURCE_NAME, uv_lock_handle);
+	lock = (php_uv_lock_t *) zend_fetch_resource_ex(handle, PHP_UV_LOCK_RESOURCE_NAME, uv_lock_handle);
 
 	switch(lock_type) {
 		case IS_UV_RWLOCK:
@@ -808,8 +806,9 @@ static void php_uv_fs_common(uv_fs_type fs_type, INTERNAL_FUNCTION_PARAMETERS)
 			unsigned long fd;
 
 			PHP_UV_FS_PARSE_PARAMETERS("rrllf!", &zloop, &zstream, &mode, &fci, &fcc);
+			PHP_UV_FS_SETUP();
 			PHP_UV_ZVAL_TO_FD(fd, zstream);
-			PHP_UV_FS_SETUP_AND_EXECUTE(fchmod, fd, mode);
+			PHP_UV_FS_ASYNC(loop, fchmod, fd, mode);
 			break;
 		}
 		case UV_FS_RENAME:
@@ -1374,7 +1373,7 @@ static int php_uv_do_callback3(zval *retval_ptr, php_uv_t *uv, zval *params, int
 
 static void php_uv_tcp_connect_cb(uv_connect_t *req, int status)
 {
-	zval retval;
+	zval retval = {{0}};
 	zval params[2] = {{{0}}};
 	php_uv_t *uv = (php_uv_t*)req->data;
 	TSRMLS_FETCH_FROM_CTX(uv->thread_ctx);
@@ -1394,7 +1393,7 @@ static void php_uv_tcp_connect_cb(uv_connect_t *req, int status)
 /* TODO: Not sure how PHP will deal with int64_t */
 static void php_uv_process_close_cb(uv_process_t* process, int64_t exit_status, int term_signal)
 {
-	zval retval;
+	zval retval = {{0}};
 	zval params[3] = {{{0}}};
 	php_uv_t *uv = (php_uv_t*)process->data;
 	TSRMLS_FETCH_FROM_CTX(uv->thread_ctx);
@@ -1414,7 +1413,7 @@ static void php_uv_process_close_cb(uv_process_t* process, int64_t exit_status, 
 
 static void php_uv_pipe_connect_cb(uv_connect_t *req, int status)
 {
-	zval retval;
+	zval retval = {{0}};
 	zval params[2] = {{{0}}};
 	php_uv_t *uv = (php_uv_t*)req->data;
 	TSRMLS_FETCH_FROM_CTX(uv->thread_ctx);
@@ -1434,7 +1433,7 @@ static void php_uv_pipe_connect_cb(uv_connect_t *req, int status)
 static void php_uv_walk_cb(uv_handle_t* handle, void* arg)
 {
 /*
-	zval retval;
+	zval retval = {{0}};
 	zval params[2] = {{{0}}};
 	TSRMLS_FETCH_FROM_CTX(uv->thread_ctx);
 
@@ -1453,7 +1452,7 @@ static void php_uv_walk_cb(uv_handle_t* handle, void* arg)
 static void php_uv_write_cb(uv_write_t* req, int status)
 {
 	write_req_t* wr = (write_req_t*) req;
-	zval retval;
+	zval retval = {{0}};
 	zval params[2] = {{{0}}};
 	php_uv_t *uv = (php_uv_t*)req->handle->data;
 	TSRMLS_FETCH_FROM_CTX(uv->thread_ctx);
@@ -1482,7 +1481,7 @@ static void php_uv_udp_send_cb(uv_udp_send_t* req, int status)
 {
 
 	send_req_t* wr = (send_req_t*) req;
-	zval retval;
+	zval retval = {{0}};
 	zval params[2] = {{{0}}};
 	php_uv_t *uv = (php_uv_t*)req->data;
 	TSRMLS_FETCH_FROM_CTX(uv->thread_ctx);
@@ -1505,7 +1504,7 @@ static void php_uv_udp_send_cb(uv_udp_send_t* req, int status)
 
 static void php_uv_listen_cb(uv_stream_t* server, int status)
 {
-	zval retval;
+	zval retval = {{0}};
 	zval params[2] = {{{0}}};
 	php_uv_t *uv = (php_uv_t*)server->data;
 
@@ -1544,7 +1543,7 @@ static void php_uv_close_cb2(uv_handle_t *handle)
 
 static void php_uv_shutdown_cb(uv_shutdown_t* handle, int status)
 {
-	zval retval;
+	zval retval = {{0}};
 	zval params[2] = {{{0}}};
 	php_uv_t *uv = (php_uv_t*)handle->data;
 	TSRMLS_FETCH_FROM_CTX(uv->thread_ctx);
@@ -1565,7 +1564,7 @@ static void php_uv_shutdown_cb(uv_shutdown_t* handle, int status)
 
 static void php_uv_read_cb(uv_stream_t* handle, ssize_t nread, const uv_buf_t* buf)
 {
-	zval retval;
+	zval retval = {{0}};
 	zval params[3] = {{{0}}};
 	php_uv_t *uv = (php_uv_t*)handle->data;
 	TSRMLS_FETCH_FROM_CTX(uv->thread_ctx);
@@ -1599,7 +1598,7 @@ static void php_uv_read_cb(uv_stream_t* handle, ssize_t nread, const uv_buf_t* b
 
 static void php_uv_read2_cb(uv_pipe_t* handle, ssize_t nread, uv_buf_t buf, uv_handle_type pending)
 {
-	zval retval;
+	zval retval = {{0}};
 	zval params[4] = {{{0}}};
 	php_uv_t *uv = (php_uv_t*)handle->data;
 	TSRMLS_FETCH_FROM_CTX(uv->thread_ctx);
@@ -1632,7 +1631,7 @@ static void php_uv_read2_cb(uv_pipe_t* handle, ssize_t nread, uv_buf_t buf, uv_h
 
 static void php_uv_prepare_cb(uv_prepare_t* handle)
 {
-	zval retval;
+	zval retval = {{0}};
 	zval params[1];
 	php_uv_t *uv = (php_uv_t*)handle->data;
 	TSRMLS_FETCH_FROM_CTX(uv->thread_ctx);
@@ -1652,7 +1651,7 @@ static void php_uv_prepare_cb(uv_prepare_t* handle)
 
 static void php_uv_check_cb(uv_check_t* handle)
 {
-	zval retval;
+	zval retval = {{0}};
 	zval params[1];
 	php_uv_t *uv = (php_uv_t*)handle->data;
 	TSRMLS_FETCH_FROM_CTX(uv->thread_ctx);
@@ -1673,7 +1672,7 @@ static void php_uv_check_cb(uv_check_t* handle)
 
 static void php_uv_async_cb(uv_async_t* handle)
 {
-	zval retval;
+	zval retval = {{0}};
 	zval params[1];
 	php_uv_t *uv = (php_uv_t*)handle->data;
 	TSRMLS_FETCH_FROM_CTX(uv->thread_ctx);
@@ -1694,7 +1693,7 @@ static void php_uv_async_cb(uv_async_t* handle)
 
 static void php_uv_work_cb(uv_work_t* req)
 {
-	zval retval;
+	zval retval = {{0}};
 	php_uv_t *uv = (php_uv_t*)req->data;
 
 	uv = (php_uv_t*)req->data;
@@ -1708,7 +1707,7 @@ static void php_uv_work_cb(uv_work_t* req)
 
 static void php_uv_after_work_cb(uv_work_t* req, int status)
 {
-	zval retval;
+	zval retval = {{0}};
 	php_uv_t *uv = (php_uv_t*)req->data;
 
 	uv = (php_uv_t*)req->data;
@@ -1723,7 +1722,7 @@ static void php_uv_after_work_cb(uv_work_t* req, int status)
 static void php_uv_fs_cb(uv_fs_t* req)
 {
 	zval params[3] = {{{0}}};
-	zval retval;
+	zval retval = {{0}};
 	php_uv_t *uv = (php_uv_t*)req->data;
 	int argc = 2, i = 0;
 	TSRMLS_FETCH_FROM_CTX(uv->thread_ctx);
@@ -1848,7 +1847,7 @@ static void php_uv_fs_cb(uv_fs_t* req)
 static void php_uv_fs_event_cb(uv_fs_event_t* req, const char* filename, int events, int status)
 {
 	zval params[4] = {{{0}}};
-	zval retval;
+	zval retval = {{0}};
 	php_uv_t *uv = (php_uv_t*)req->data;
 	TSRMLS_FETCH_FROM_CTX(uv->thread_ctx);
 
@@ -1904,7 +1903,7 @@ static zval php_uv_stat_to_zval(const uv_stat_t *stat)
 static void php_uv_fs_poll_cb(uv_fs_poll_t* handle, int status, const uv_stat_t* prev, const uv_stat_t* curr)
 {
 	zval params[4] = {{{0}}};
-	zval retval;
+	zval retval = {{0}};
 	php_uv_t *uv = (php_uv_t*)handle->data;
 	TSRMLS_FETCH_FROM_CTX(uv->thread_ctx);
 
@@ -1927,7 +1926,7 @@ static void php_uv_fs_poll_cb(uv_fs_poll_t* handle, int status, const uv_stat_t*
 static void php_uv_poll_cb(uv_poll_t* handle, int status, int events)
 {
 	zval params[4] = {{{0}}};
-	zval retval;
+	zval retval = {{0}};
 	php_uv_t *uv = (php_uv_t*)handle->data;
 	TSRMLS_FETCH_FROM_CTX(uv->thread_ctx);
 
@@ -1956,7 +1955,7 @@ static void php_uv_poll_cb(uv_poll_t* handle, int status, int events)
 static void php_uv_udp_recv_cb(uv_udp_t* handle, ssize_t nread, const uv_buf_t* buf, const struct sockaddr* addr, unsigned flags)
 {
 	/* TODO: is this correctly implmented? */
-	zval retval;
+	zval retval = {{0}};
 	zval params[3] = {{{0}}};
 	php_uv_t *uv = (php_uv_t*)handle->data;
 	TSRMLS_FETCH_FROM_CTX(uv->thread_ctx);
@@ -1988,7 +1987,7 @@ static void php_uv_read_alloc(uv_handle_t* handle, size_t suggested_size, uv_buf
 
 static void php_uv_close_cb(uv_handle_t *handle)
 {
-	zval retval;
+	zval retval = {{0}};
 	zval params[1] = {{{0}}};
 
 	php_uv_t *uv = (php_uv_t*)handle->data;
@@ -2007,7 +2006,7 @@ static void php_uv_close_cb(uv_handle_t *handle)
 
 static void php_uv_idle_cb(uv_timer_t *handle)
 {
-	zval retval;
+	zval retval = {{0}};
 	zval params[1] = {{{0}}};
 
 	php_uv_t *uv = (php_uv_t*)handle->data;
@@ -2024,7 +2023,7 @@ static void php_uv_idle_cb(uv_timer_t *handle)
 
 static void php_uv_getaddrinfo_cb(uv_getaddrinfo_t* handle, int status, struct addrinfo* res)
 {
-	zval retval;
+	zval retval = {{0}};
 	zval params[2] = {{{0}}};
 	struct addrinfo *address;
 	char ip[INET6_ADDRSTRLEN];
@@ -2074,7 +2073,7 @@ static void php_uv_getaddrinfo_cb(uv_getaddrinfo_t* handle, int status, struct a
 
 static void php_uv_timer_cb(uv_timer_t *handle)
 {
-	zval retval;
+	zval retval = {{0}};
 	zval params[1] = {{{0}}};
 	php_uv_t *uv = (php_uv_t*)handle->data;
 	TSRMLS_FETCH_FROM_CTX(uv->thread_ctx);
@@ -2090,7 +2089,7 @@ static void php_uv_timer_cb(uv_timer_t *handle)
 
 static void php_uv_signal_cb(uv_signal_t *handle, int sig_num)
 {
-	zval retval;
+	zval retval = {{0}};
 	zval params[2] = {{{0}}};
 	php_uv_t *uv = (php_uv_t*)handle->data;
 	TSRMLS_FETCH_FROM_CTX(uv->thread_ctx);
@@ -2158,7 +2157,7 @@ static inline uv_stream_t* php_uv_get_current_stream(php_uv_t *uv)
 		default: {
 			TSRMLS_FETCH();
 			php_error_docref(NULL, E_ERROR, "unexpected type found");
-			break;
+			return NULL;
 		}
 	}
 
@@ -2191,7 +2190,7 @@ static void php_uv_ip_common(int ip_type, INTERNAL_FUNCTION_PARAMETERS)
 		return;
 	}
 
-	ZEND_FETCH_RESOURCE(addr, php_uv_sockaddr_t *, address, -1, PHP_UV_SOCKADDR_RESOURCE_NAME, uv_sockaddr_handle);
+	addr = (php_uv_sockaddr_t *) zend_fetch_resource_ex(address, PHP_UV_SOCKADDR_RESOURCE_NAME, uv_sockaddr_handle);
 
 	if (ip_type == 1) {
 		if (!PHP_UV_SOCKADDR_IS_IPV4(addr)) {
@@ -2228,8 +2227,8 @@ static void php_uv_socket_bind(enum php_uv_socket_type ip_type, INTERNAL_FUNCTIO
 		}
 	}
 
-	ZEND_FETCH_RESOURCE(uv, php_uv_t *, resource, -1, PHP_UV_RESOURCE_NAME, uv_resource_handle);
-	ZEND_FETCH_RESOURCE(addr, php_uv_sockaddr_t *, address, -1, PHP_UV_SOCKADDR_RESOURCE_NAME, uv_sockaddr_handle);
+	uv = (php_uv_t *) zend_fetch_resource_ex(resource, PHP_UV_RESOURCE_NAME, uv_resource_handle);
+	addr = (php_uv_sockaddr_t *) zend_fetch_resource_ex(address, PHP_UV_SOCKADDR_RESOURCE_NAME, uv_sockaddr_handle);
 
 	if (ip_type & PHP_UV_TCP && uv->type != IS_UV_TCP) {
 		php_error_docref(NULL, E_WARNING, "expects uv_tcp resource");
@@ -2264,7 +2263,7 @@ static void php_uv_socket_bind(enum php_uv_socket_type ip_type, INTERNAL_FUNCTIO
 		case PHP_UV_UDP:
 		default:
 			php_error_docref(NULL, E_ERROR, "unhandled type");
-			break;
+			return;
 	}
 
 	if (r) {
@@ -2286,8 +2285,7 @@ static void php_uv_socket_getname(int type, INTERNAL_FUNCTION_PARAMETERS)
 		return;
 	}
 
-	ZEND_FETCH_RESOURCE(uv, php_uv_t*, handle, -1, PHP_UV_RESOURCE_NAME, uv_resource_handle);
-
+	uv = (php_uv_t *) zend_fetch_resource_ex(handle, PHP_UV_RESOURCE_NAME, uv_resource_handle);
 
 	switch (type) {
 		case 1:
@@ -2322,7 +2320,7 @@ static void php_uv_socket_getname(int type, INTERNAL_FUNCTION_PARAMETERS)
 
 static void php_uv_udp_send(int type, INTERNAL_FUNCTION_PARAMETERS)
 {
-	zval *z_cli,*z_addr;
+	zval *z_cli, *z_addr;
 	zend_string *data;
 	php_uv_t *client;
 	send_req_t *w;
@@ -2336,8 +2334,8 @@ static void php_uv_udp_send(int type, INTERNAL_FUNCTION_PARAMETERS)
 		return;
 	}
 
-	ZEND_FETCH_RESOURCE(client, php_uv_t *, z_cli, -1, PHP_UV_RESOURCE_NAME, uv_resource_handle);
-	ZEND_FETCH_RESOURCE(addr, php_uv_sockaddr_t *, z_addr, -1, PHP_UV_SOCKADDR_RESOURCE_NAME, uv_sockaddr_handle);
+	client = (php_uv_t *) zend_fetch_resource_ex(z_cli, PHP_UV_RESOURCE_NAME, uv_resource_handle);
+	addr = (php_uv_sockaddr_t *) zend_fetch_resource_ex(z_addr, PHP_UV_SOCKADDR_RESOURCE_NAME, uv_sockaddr_handle);
 
 	PHP_UV_TYPE_CHECK(client, IS_UV_UDP);
 
@@ -2368,8 +2366,8 @@ static void php_uv_tcp_connect(enum php_uv_socket_type type, INTERNAL_FUNCTION_P
 		return;
 	}
 
-	ZEND_FETCH_RESOURCE(uv, php_uv_t *, resource, -1, PHP_UV_RESOURCE_NAME, uv_resource_handle);
-	ZEND_FETCH_RESOURCE(addr, php_uv_sockaddr_t *, address, -1, PHP_UV_SOCKADDR_RESOURCE_NAME, uv_sockaddr_handle);
+	uv = (php_uv_t *) zend_fetch_resource_ex(resource, PHP_UV_RESOURCE_NAME, uv_resource_handle);
+	addr = (php_uv_sockaddr_t *) zend_fetch_resource_ex(address, PHP_UV_SOCKADDR_RESOURCE_NAME, uv_sockaddr_handle);
 
 	if (uv->type != IS_UV_TCP) {
 		php_error_docref(NULL, E_WARNING, "passed uv resource is not initialized for tcp");
@@ -3146,12 +3144,12 @@ PHP_FUNCTION(uv_unref)
 		return;
 	}
 
-	if (ZEND_FETCH_RESOURCE_NO_RETURN(loop, uv_loop_t*, handle, -1, NULL, uv_loop_handle)) {
-		uv_unref((uv_handle_t *)loop);
-	} else if (ZEND_FETCH_RESOURCE_NO_RETURN(uv, php_uv_t*, handle, -1, NULL, uv_resource_handle)) {
-		uv_unref((uv_handle_t *)php_uv_get_current_stream(uv));
+	if ((loop = (uv_loop_t *) zend_fetch_resource_ex(handle, NULL, uv_loop_handle))) {
+		uv_unref((uv_handle_t *) loop);
+	} else if ((uv = (php_uv_t *) zend_fetch_resource_ex(handle, NULL, uv_resource_handle))) {
+		uv_unref((uv_handle_t *) php_uv_get_current_stream(uv));
 	} else {
-		php_error_docref(NULL, E_ERROR, "passes unexpected resource.");
+		php_error_docref(NULL, E_WARNING, "passes unexpected resource.");
 	}
 }
 /* }}} */
@@ -3208,7 +3206,7 @@ PHP_FUNCTION(uv_update_time)
 		"r", &z_loop) == FAILURE) {
 		return;
 	}
-	ZEND_FETCH_RESOURCE(loop, uv_loop_t *, z_loop, -1, PHP_UV_LOOP_RESOURCE_NAME, uv_loop_handle);
+	loop = (uv_loop_t *) zend_fetch_resource_ex(z_loop, PHP_UV_LOOP_RESOURCE_NAME, uv_loop_handle);
 	uv_update_time(loop);
 }
 /* }}} */
@@ -3225,10 +3223,10 @@ PHP_FUNCTION(uv_ref)
 		"r", &handle) == FAILURE) {
 		return;
 	}
-	if (ZEND_FETCH_RESOURCE_NO_RETURN(loop, uv_loop_t*, handle, -1, NULL, uv_loop_handle)) {
+	if ((loop = (uv_loop_t *) zend_fetch_resource_ex(handle, NULL, uv_loop_handle))) {
 		uv_ref((uv_handle_t *)loop);
 		zend_list_delete(Z_RES_P(handle));
-	} else if (ZEND_FETCH_RESOURCE_NO_RETURN(uv, php_uv_t*, handle, -1, NULL, uv_resource_handle)) {
+	} else if ((uv = (php_uv_t *) zend_fetch_resource_ex(handle, NULL, uv_resource_handle))) {
 		uv_ref((uv_handle_t *)php_uv_get_current_stream(uv));
 		GC_REFCOUNT(uv->resource_id)++;
 	} else {
@@ -3308,7 +3306,7 @@ PHP_FUNCTION(uv_signal_start)
 		return;
 	}
 
-	ZEND_FETCH_RESOURCE(uv, php_uv_t *, sig_handle, -1, PHP_UV_RESOURCE_NAME, uv_resource_handle);
+	uv = (php_uv_t *) zend_fetch_resource_ex(sig_handle, PHP_UV_RESOURCE_NAME, uv_resource_handle);
 
 	PHP_UV_TYPE_CHECK(uv, IS_UV_SIGNAL);
 
@@ -3337,7 +3335,7 @@ PHP_FUNCTION(uv_signal_stop)
 		return;
 	}
 
-	ZEND_FETCH_RESOURCE(uv, php_uv_t *, sig_handle, -1, PHP_UV_RESOURCE_NAME, uv_resource_handle);
+	uv = (php_uv_t *) zend_fetch_resource_ex(sig_handle, PHP_UV_RESOURCE_NAME, uv_resource_handle);
 
 	PHP_UV_TYPE_CHECK(uv, IS_UV_SIGNAL);
 
@@ -3448,7 +3446,7 @@ PHP_FUNCTION(uv_write)
 		return;
 	}
 
-	ZEND_FETCH_RESOURCE(uv, php_uv_t *, z_cli, -1, PHP_UV_RESOURCE_NAME, uv_resource_handle);
+	uv = (php_uv_t *) zend_fetch_resource_ex(z_cli, PHP_UV_RESOURCE_NAME, uv_resource_handle);
 
 	if (uv->type != IS_UV_TCP && uv->type != IS_UV_PIPE && uv->type != IS_UV_TTY) {
 		php_error_docref(NULL, E_WARNING, "passed resource does not support yet");
@@ -3488,14 +3486,14 @@ PHP_FUNCTION(uv_write2)
 		return;
 	}
 
-	ZEND_FETCH_RESOURCE(uv, php_uv_t *, z_cli, -1, PHP_UV_RESOURCE_NAME, uv_resource_handle);
+	uv = (php_uv_t *) zend_fetch_resource_ex(z_cli, PHP_UV_RESOURCE_NAME, uv_resource_handle);
 
 	if (uv->type != IS_UV_TCP && uv->type != IS_UV_PIPE && uv->type != IS_UV_TTY) {
 		php_error_docref(NULL, E_WARNING, "passed resource does not support yet");
 		RETURN_FALSE;
 	}
 
-	ZEND_FETCH_RESOURCE(send, php_uv_t *, z_send, -1, PHP_UV_RESOURCE_NAME, uv_resource_handle);
+	send = (php_uv_t *) zend_fetch_resource_ex(z_send, PHP_UV_RESOURCE_NAME, uv_resource_handle);
 	GC_REFCOUNT(uv->resource_id)++;
 
 	php_uv_cb_init(&cb, uv, &fci, &fcc, PHP_UV_WRITE_CB);
@@ -3523,7 +3521,7 @@ PHP_FUNCTION(uv_tcp_nodelay)
 		return;
 	}
 
-	ZEND_FETCH_RESOURCE(client, php_uv_t *, z_cli, -1, PHP_UV_RESOURCE_NAME, uv_resource_handle);
+	client = (php_uv_t *) zend_fetch_resource_ex(z_cli, PHP_UV_RESOURCE_NAME, uv_resource_handle);
 
 	PHP_UV_TYPE_CHECK(client, IS_UV_TCP);
 
@@ -3544,8 +3542,8 @@ PHP_FUNCTION(uv_accept)
 		return;
 	}
 
-	ZEND_FETCH_RESOURCE(server, php_uv_t *, z_svr, -1, PHP_UV_RESOURCE_NAME, uv_resource_handle);
-	ZEND_FETCH_RESOURCE(client, php_uv_t *, z_cli, -1, PHP_UV_RESOURCE_NAME, uv_resource_handle);
+	server = (php_uv_t *) zend_fetch_resource_ex(z_svr, PHP_UV_RESOURCE_NAME, uv_resource_handle);
+	client = (php_uv_t *) zend_fetch_resource_ex(z_cli, PHP_UV_RESOURCE_NAME, uv_resource_handle);
 
 	if ((server->type == IS_UV_TCP && client->type != IS_UV_TCP) || 
 		(server->type == IS_UV_PIPE && client->type != IS_UV_PIPE)
@@ -3580,7 +3578,7 @@ PHP_FUNCTION(uv_shutdown)
 		return;
 	}
 
-	ZEND_FETCH_RESOURCE(uv, php_uv_t *, client, -1, PHP_UV_RESOURCE_NAME, uv_resource_handle);
+	uv = (php_uv_t *) zend_fetch_resource_ex(client, PHP_UV_RESOURCE_NAME, uv_resource_handle);
 #ifndef PHP_WIN32
 	/*  uv_shutdown (unix) only supports uv_handle_t right now */
 	if (uv->type != IS_UV_TCP && uv->type != IS_UV_PIPE) {
@@ -3618,7 +3616,7 @@ PHP_FUNCTION(uv_close)
 		return;
 	}
 
-	ZEND_FETCH_RESOURCE(uv, php_uv_t *, client, -1, PHP_UV_RESOURCE_NAME, uv_resource_handle);
+	uv = (php_uv_t *) zend_fetch_resource_ex(client, PHP_UV_RESOURCE_NAME, uv_resource_handle);
 
 	switch (uv->type) {
 		/* TODO: use libuv enum */
@@ -3667,7 +3665,7 @@ PHP_FUNCTION(uv_read_start)
 		return;
 	}
 
-	ZEND_FETCH_RESOURCE(uv, php_uv_t *, client, -1, PHP_UV_RESOURCE_NAME, uv_resource_handle);
+	uv = (php_uv_t *) zend_fetch_resource_ex(client, PHP_UV_RESOURCE_NAME, uv_resource_handle);
 
 	if (uv->type != IS_UV_TCP && uv->type != IS_UV_PIPE && uv->type != IS_UV_TTY) {
 		php_error_docref(NULL, E_WARNING, "passed resource didn't intialize for uv_tcp, uv_pipe or uv_tty.");
@@ -3717,7 +3715,7 @@ PHP_FUNCTION(uv_read2_start)
 		return;
 	}
 
-	ZEND_FETCH_RESOURCE(uv, php_uv_t *, client, -1, PHP_UV_RESOURCE_NAME, uv_resource_handle);
+	uv = (php_uv_t *) zend_fetch_resource_ex(client, PHP_UV_RESOURCE_NAME, uv_resource_handle);
 
 	if (uv->type != IS_UV_TCP && uv->type != IS_UV_PIPE && uv->type != IS_UV_TTY) {
 		php_error_docref(NULL, E_WARNING, "passed resource didn't intialize for uv_tcp, uv_pipe or uv_tty.");
@@ -3758,7 +3756,7 @@ PHP_FUNCTION(uv_read_stop)
 		return;
 	}
 
-	ZEND_FETCH_RESOURCE(uv, php_uv_t *, server, -1, PHP_UV_RESOURCE_NAME, uv_resource_handle);
+	uv = (php_uv_t *) zend_fetch_resource_ex(server, PHP_UV_RESOURCE_NAME, uv_resource_handle);
 
 	if (uv->type != IS_UV_TCP && uv->type != IS_UV_PIPE && uv->type != IS_UV_TTY) {
 		php_error_docref(NULL, E_WARNING, "passed resource didn't intialize for uv_tcp, uv_pipe or uv_tty.");
@@ -3788,8 +3786,8 @@ PHP_FUNCTION(uv_ip4_addr)
 	/* TODO: is this right?! */
 	uv_ip4_addr(address->val, port, &PHP_UV_SOCKADDR_IPV4(sockaddr));
 
-	ZEND_REGISTER_RESOURCE(return_value, sockaddr, uv_sockaddr_handle);
-	sockaddr->resource_id = Z_RES_P(return_value);
+	sockaddr->resource_id = zend_register_resource(sockaddr, uv_sockaddr_handle);
+	ZVAL_RES(return_value, sockaddr->resource_id);
 }
 /* }}} */
 
@@ -3811,8 +3809,8 @@ PHP_FUNCTION(uv_ip6_addr)
 	/* TODO: is this right?! */
 	uv_ip6_addr(address->val, port, &PHP_UV_SOCKADDR_IPV6(sockaddr));
 
-	ZEND_REGISTER_RESOURCE(return_value, sockaddr, uv_sockaddr_handle);
-	sockaddr->resource_id = Z_RES_P(return_value);
+	sockaddr->resource_id = zend_register_resource(sockaddr, uv_sockaddr_handle);
+	ZVAL_RES(return_value, sockaddr->resource_id);
 }
 /* }}} */
 
@@ -3834,7 +3832,7 @@ PHP_FUNCTION(uv_listen)
 		return;
 	}
 
-	ZEND_FETCH_RESOURCE(uv, php_uv_t *, resource, -1, PHP_UV_RESOURCE_NAME, uv_resource_handle);
+	uv = (php_uv_t *) zend_fetch_resource_ex(resource, PHP_UV_RESOURCE_NAME, uv_resource_handle);
 
 	switch (uv->type) {
 		case IS_UV_TCP:
@@ -3913,7 +3911,7 @@ PHP_FUNCTION(uv_timer_start)
 		return;
 	}
 
-	ZEND_FETCH_RESOURCE(uv, php_uv_t *, timer, -1, PHP_UV_RESOURCE_NAME, uv_resource_handle);
+	uv = (php_uv_t *) zend_fetch_resource_ex(timer, PHP_UV_RESOURCE_NAME, uv_resource_handle);
 
 	PHP_UV_TYPE_CHECK(uv, IS_UV_TIMER);
 
@@ -3952,7 +3950,7 @@ PHP_FUNCTION(uv_timer_stop)
 		return;
 	}
 
-	ZEND_FETCH_RESOURCE(uv, php_uv_t *, timer, -1, PHP_UV_RESOURCE_NAME, uv_resource_handle);
+	uv = (php_uv_t *) zend_fetch_resource_ex(timer, PHP_UV_RESOURCE_NAME, uv_resource_handle);
 
 	PHP_UV_TYPE_CHECK(uv, IS_UV_TIMER);
 
@@ -3979,7 +3977,7 @@ PHP_FUNCTION(uv_timer_again)
 		return;
 	}
 
-	ZEND_FETCH_RESOURCE(uv, php_uv_t *, timer, -1, PHP_UV_RESOURCE_NAME, uv_resource_handle);
+	uv = (php_uv_t *) zend_fetch_resource_ex(timer, PHP_UV_RESOURCE_NAME, uv_resource_handle);
 
 	PHP_UV_TYPE_CHECK(uv, IS_UV_TIMER);
 
@@ -4005,7 +4003,7 @@ PHP_FUNCTION(uv_timer_set_repeat)
 		return;
 	}
 
-	ZEND_FETCH_RESOURCE(uv, php_uv_t *, timer, -1, PHP_UV_RESOURCE_NAME, uv_resource_handle);
+	uv = (php_uv_t *) zend_fetch_resource_ex(timer, PHP_UV_RESOURCE_NAME, uv_resource_handle);
 
 	PHP_UV_TYPE_CHECK(uv, IS_UV_TIMER);
 
@@ -4026,7 +4024,7 @@ PHP_FUNCTION(uv_timer_get_repeat)
 		return;
 	}
 
-	ZEND_FETCH_RESOURCE(uv, php_uv_t *, timer, -1, PHP_UV_RESOURCE_NAME, uv_resource_handle);
+	uv = (php_uv_t *) zend_fetch_resource_ex(timer, PHP_UV_RESOURCE_NAME, uv_resource_handle);
 
 	PHP_UV_TYPE_CHECK(uv, IS_UV_TIMER);
 
@@ -4070,7 +4068,7 @@ PHP_FUNCTION(uv_idle_start)
 		return;
 	}
 
-	ZEND_FETCH_RESOURCE(uv, php_uv_t *, idle, -1, PHP_UV_RESOURCE_NAME, uv_resource_handle);
+	uv = (php_uv_t *) zend_fetch_resource_ex(idle, PHP_UV_RESOURCE_NAME, uv_resource_handle);
 
 	PHP_UV_TYPE_CHECK(uv, IS_UV_IDLE);
 
@@ -4102,7 +4100,7 @@ PHP_FUNCTION(uv_idle_stop)
 		return;
 	}
 
-	ZEND_FETCH_RESOURCE(uv, php_uv_t *, idle, -1, PHP_UV_RESOURCE_NAME, uv_resource_handle);
+	uv = (php_uv_t *) zend_fetch_resource_ex(idle, PHP_UV_RESOURCE_NAME, uv_resource_handle);
 
 	PHP_UV_TYPE_CHECK(uv, IS_UV_IDLE);
 
@@ -4135,7 +4133,7 @@ PHP_FUNCTION(uv_getaddrinfo)
 		return;
 	}
 
-	ZEND_FETCH_RESOURCE(loop, uv_loop_t *, z_loop, -1, PHP_UV_LOOP_RESOURCE_NAME, uv_loop_handle);
+	loop = (uv_loop_t *) zend_fetch_resource_ex(z_loop, PHP_UV_RESOURCE_NAME, uv_loop_handle);
 
 	if (Z_TYPE_P(hints) == IS_ARRAY) {
 		HashTable *h;
@@ -4190,7 +4188,7 @@ PHP_FUNCTION(uv_tcp_init)
 PHP_FUNCTION(uv_default_loop)
 {
 	/* TODO: implement this correctly */
-	ZEND_REGISTER_RESOURCE(return_value, php_uv_default_loop(), uv_loop_handle);
+	ZVAL_RES(return_value, zend_register_resource(php_uv_default_loop(), uv_loop_handle));
 }
 /* }}} */
 
@@ -4203,7 +4201,7 @@ PHP_FUNCTION(uv_loop_new)
 
 	//loop = uv_loop_new();
 
-	ZEND_REGISTER_RESOURCE(return_value, loop, uv_loop_handle);
+	ZVAL_RES(return_value, zend_register_resource(loop, uv_loop_handle));
 }
 /* }}} */
 
@@ -4257,7 +4255,7 @@ PHP_FUNCTION(uv_udp_recv_start)
 		return;
 	}
 
-	ZEND_FETCH_RESOURCE(uv, php_uv_t *, client, -1, PHP_UV_RESOURCE_NAME, uv_resource_handle);
+	uv = (php_uv_t *) zend_fetch_resource_ex(client, PHP_UV_RESOURCE_NAME, uv_resource_handle);
 	PHP_UV_TYPE_CHECK(uv, IS_UV_UDP);
 
 	if (uv_is_active((uv_handle_t*)&uv->uv.udp)) {
@@ -4288,7 +4286,7 @@ PHP_FUNCTION(uv_udp_recv_stop)
 		"r", &client) == FAILURE) {
 		return;
 	}
-	ZEND_FETCH_RESOURCE(uv, php_uv_t *, client, -1, PHP_UV_RESOURCE_NAME, uv_resource_handle);
+	uv = (php_uv_t *) zend_fetch_resource_ex(client, PHP_UV_RESOURCE_NAME, uv_resource_handle);
 	PHP_UV_TYPE_CHECK(uv, IS_UV_UDP);
 
 	if (!uv_is_active((uv_handle_t*)&uv->uv.udp)) {
@@ -4315,7 +4313,7 @@ PHP_FUNCTION(uv_udp_set_membership)
 		return;
 	}
 
-	ZEND_FETCH_RESOURCE(uv, php_uv_t *, client, -1, PHP_UV_RESOURCE_NAME, uv_resource_handle);
+	uv = (php_uv_t *) zend_fetch_resource_ex(client, PHP_UV_RESOURCE_NAME, uv_resource_handle);
 	PHP_UV_TYPE_CHECK(uv, IS_UV_UDP);
 
 	error = uv_udp_set_membership((uv_udp_t*)&uv->uv.udp, (const char*)multicast_addr->val, (const char*)interface_addr->val, (int)membership);
@@ -4339,7 +4337,7 @@ PHP_FUNCTION(uv_udp_set_multicast_loop)
 		return;
 	}
 
-	ZEND_FETCH_RESOURCE(uv, php_uv_t *, client, -1, PHP_UV_RESOURCE_NAME, uv_resource_handle);
+	uv = (php_uv_t *) zend_fetch_resource_ex(client, PHP_UV_RESOURCE_NAME, uv_resource_handle);
 	PHP_UV_TYPE_CHECK(uv, IS_UV_UDP);
 
 	r = uv_udp_set_multicast_loop((uv_udp_t*)&uv->uv.udp, enabled);
@@ -4363,7 +4361,7 @@ PHP_FUNCTION(uv_udp_set_multicast_ttl)
 		return;
 	}
 
-	ZEND_FETCH_RESOURCE(uv, php_uv_t *, client, -1, PHP_UV_RESOURCE_NAME, uv_resource_handle);
+	uv = (php_uv_t *) zend_fetch_resource_ex(client, PHP_UV_RESOURCE_NAME, uv_resource_handle);
 	PHP_UV_TYPE_CHECK(uv, IS_UV_UDP);
 
 	if (ttl > 255) {
@@ -4395,7 +4393,7 @@ PHP_FUNCTION(uv_udp_set_broadcast)
 		return;
 	}
 
-	ZEND_FETCH_RESOURCE(uv, php_uv_t *, client, -1, PHP_UV_RESOURCE_NAME, uv_resource_handle);
+	uv = (php_uv_t *) zend_fetch_resource_ex(client, PHP_UV_RESOURCE_NAME, uv_resource_handle);
 	PHP_UV_TYPE_CHECK(uv, IS_UV_UDP);
 
 	r = uv_udp_set_broadcast((uv_udp_t*)&uv->uv.udp, enabled);
@@ -4434,7 +4432,7 @@ PHP_FUNCTION(uv_is_active)
 		return;
 	}
 
-	ZEND_FETCH_RESOURCE(uv, php_uv_t *, handle, -1, PHP_UV_RESOURCE_NAME, uv_resource_handle);
+	uv = (php_uv_t *) zend_fetch_resource_ex(handle, PHP_UV_RESOURCE_NAME, uv_resource_handle);
 
 	r = uv_is_active((uv_handle_t*)php_uv_get_current_stream(uv));
 	RETURN_BOOL(r);
@@ -4454,7 +4452,7 @@ PHP_FUNCTION(uv_is_readable)
 		return;
 	}
 
-	ZEND_FETCH_RESOURCE(uv, php_uv_t *, handle, -1, PHP_UV_RESOURCE_NAME, uv_resource_handle);
+	uv = (php_uv_t *) zend_fetch_resource_ex(handle, PHP_UV_RESOURCE_NAME, uv_resource_handle);
 
 	r = uv_is_readable((uv_stream_t*)php_uv_get_current_stream(uv));
 	RETURN_BOOL(r);
@@ -4474,7 +4472,7 @@ PHP_FUNCTION(uv_is_writable)
 		return;
 	}
 
-	ZEND_FETCH_RESOURCE(uv, php_uv_t *, handle, -1, PHP_UV_RESOURCE_NAME, uv_resource_handle);
+	uv = (php_uv_t *) zend_fetch_resource_ex(handle, PHP_UV_RESOURCE_NAME, uv_resource_handle);
 
 	r = uv_is_writable((uv_stream_t*)php_uv_get_current_stream(uv));
 	RETURN_BOOL(r);
@@ -4538,7 +4536,8 @@ PHP_FUNCTION(uv_handle_type)
 		"r", &handle) == FAILURE) {
 		return;
 	}
-	ZEND_FETCH_RESOURCE(uv, php_uv_t *, handle, -1, PHP_UV_RESOURCE_NAME, uv_resource_handle);
+
+	uv = (php_uv_t *) zend_fetch_resource_ex(handle, PHP_UV_RESOURCE_NAME, uv_resource_handle);
 
 	RETURN_LONG(uv->type);
 }
@@ -4580,8 +4579,8 @@ PHP_FUNCTION(uv_pipe_init)
 	PHP_UV_INIT_ZVALS(uv)
 	TSRMLS_SET_CTX(uv->thread_ctx);
 
-	ZEND_REGISTER_RESOURCE(return_value, uv, uv_resource_handle);
-	uv->resource_id = Z_RES_P(return_value);
+	uv->resource_id = zend_register_resource(uv, uv_resource_handle);
+	ZVAL_RES(return_value, uv->resource_id);
 }
 /* }}} */
 
@@ -4597,7 +4596,8 @@ PHP_FUNCTION(uv_pipe_open)
 		"rl", &handle, &pipe) == FAILURE) {
 		return;
 	}
-	ZEND_FETCH_RESOURCE(uv, php_uv_t *, handle, -1, PHP_UV_RESOURCE_NAME, uv_resource_handle);
+
+	uv = (php_uv_t *) zend_fetch_resource_ex(handle, PHP_UV_RESOURCE_NAME, uv_resource_handle);
 
 	PHP_UV_TYPE_CHECK(uv, IS_UV_PIPE);
 
@@ -4624,7 +4624,7 @@ PHP_FUNCTION(uv_pipe_bind)
 		return;
 	}
 
-	ZEND_FETCH_RESOURCE(uv, php_uv_t *, handle, -1, PHP_UV_RESOURCE_NAME, uv_resource_handle);
+	uv = (php_uv_t *) zend_fetch_resource_ex(handle, PHP_UV_RESOURCE_NAME, uv_resource_handle);
 
 	PHP_UV_TYPE_CHECK(uv, IS_UV_PIPE);
 
@@ -4654,7 +4654,7 @@ PHP_FUNCTION(uv_pipe_connect)
 		return;
 	}
 
-	ZEND_FETCH_RESOURCE(uv, php_uv_t *, resource, -1, PHP_UV_RESOURCE_NAME, uv_resource_handle);
+	uv = (php_uv_t *) zend_fetch_resource_ex(resource, PHP_UV_RESOURCE_NAME, uv_resource_handle);
 
 	PHP_UV_TYPE_CHECK(uv, IS_UV_PIPE);
 
@@ -4680,7 +4680,8 @@ PHP_FUNCTION(uv_pipe_pending_instances)
 		"rl", &handle, &count) == FAILURE) {
 		return;
 	}
-	ZEND_FETCH_RESOURCE(uv, php_uv_t *, handle, -1, PHP_UV_RESOURCE_NAME, uv_resource_handle);
+
+	uv = (php_uv_t *) zend_fetch_resource_ex(handle, PHP_UV_RESOURCE_NAME, uv_resource_handle);
 
 	PHP_UV_TYPE_CHECK(uv, IS_UV_PIPE);
 
@@ -4700,7 +4701,8 @@ PHP_FUNCTION(uv_pipe_pending_count)
 		"r", &handle) == FAILURE) {
 		return;
 	}
-	ZEND_FETCH_RESOURCE(uv, php_uv_t *, handle, -1, PHP_UV_RESOURCE_NAME, uv_resource_handle);
+
+	uv = (php_uv_t *) zend_fetch_resource_ex(handle, PHP_UV_RESOURCE_NAME, uv_resource_handle);
 
 	PHP_UV_TYPE_CHECK(uv, IS_UV_PIPE);
 
@@ -4721,7 +4723,8 @@ PHP_FUNCTION(uv_pipe_pending_type)
 		"r", &handle) == FAILURE) {
 		return;
 	}
-	ZEND_FETCH_RESOURCE(uv, php_uv_t *, handle, -1, PHP_UV_RESOURCE_NAME, uv_resource_handle);
+
+	uv = (php_uv_t *) zend_fetch_resource_ex(handle, PHP_UV_RESOURCE_NAME, uv_resource_handle);
 
 	PHP_UV_TYPE_CHECK(uv, IS_UV_PIPE);
 
@@ -4753,13 +4756,13 @@ PHP_FUNCTION(uv_stdio_new)
 	} else if (Z_TYPE_P(handle) == IS_LONG) {
 		fd = Z_LVAL_P(handle);
 	} else if (Z_TYPE_P(handle) == IS_RESOURCE) {
-		if (ZEND_FETCH_RESOURCE_NO_RETURN(stream, php_stream*, handle, -1, NULL, php_file_le_stream())) {
+		if ((stream = (php_stream *) zend_fetch_resource_ex(handle, NULL, php_file_le_stream()))) {
 			if (php_stream_cast(stream, PHP_STREAM_AS_FD | PHP_STREAM_CAST_INTERNAL, (void*)&fd, 1) != SUCCESS || fd < 0) {
 				fd = -1;
 			}
-		} else if (ZEND_FETCH_RESOURCE_NO_RETURN(socket, php_socket *, handle, -1, NULL, php_sockets_le_socket())) {
+		} else if ((socket = (php_socket *) zend_fetch_resource_ex(handle, NULL, php_sockets_le_socket()))) {
 			fd = socket->bsd_socket;
-		} else if (ZEND_FETCH_RESOURCE_NO_RETURN(uv, php_uv_t*, handle, -1, NULL, uv_resource_handle)) {
+		} else if ((uv = (php_uv_t *) zend_fetch_resource_ex(handle, NULL, uv_resource_handle))) {
 			fd = -1;
 		} else {
 			php_error_docref(NULL, E_WARNING, "passed unexpected resource");
@@ -4778,8 +4781,8 @@ PHP_FUNCTION(uv_stdio_new)
 		Z_ADDREF_P(handle);
 	}
 
-	ZEND_REGISTER_RESOURCE(return_value, stdio, uv_stdio_handle);
-	stdio->resource_id = Z_RES_P(return_value);
+	stdio->resource_id = zend_register_resource(stdio, uv_stdio_handle);
+	ZVAL_RES(return_value, stdio->resource_id);
 }
 /* }}} */
 
@@ -5014,7 +5017,7 @@ PHP_FUNCTION(uv_spawn)
 				php_error_docref(NULL, E_ERROR, "must be uv_stdio resource");
 			}
 
-			ZEND_FETCH_RESOURCE(stdio_tmp, php_uv_stdio_t*, value, -1, PHP_UV_STDIO_RESOURCE_NAME, uv_stdio_handle);
+			stdio_tmp = (php_uv_stdio_t *) zend_fetch_resource_ex(value, PHP_UV_STDIO_RESOURCE_NAME, uv_stdio_handle);
 
 			stdio[x].flags = stdio_tmp->flags;
 
@@ -5025,7 +5028,7 @@ PHP_FUNCTION(uv_spawn)
 				zval passed_id;
 				ZVAL_RES(&passed_id, stdio_tmp->stream);
 
-				ZEND_FETCH_RESOURCE(uv_pipe, php_uv_t*, &passed_id, -1, PHP_UV_RESOURCE_NAME, uv_resource_handle);
+				uv_pipe = (php_uv_t *) zend_fetch_resource_ex(&passed_id, PHP_UV_RESOURCE_NAME, uv_resource_handle);
 				stdio[x].data.stream = (uv_stream_t*)&uv_pipe->uv.pipe;
 			} else {
 				php_error_docref(NULL, E_WARNING, "passes unexpected stdio flags");
@@ -5113,8 +5116,8 @@ PHP_FUNCTION(uv_spawn)
 	proc->type = IS_UV_PROCESS;
 	proc->uv.process.data = proc;
 
-	ZEND_REGISTER_RESOURCE(return_value, proc, uv_resource_handle);
-	proc->resource_id = Z_RES_P(return_value);
+	proc->resource_id = zend_register_resource(proc, uv_resource_handle);
+	ZVAL_RES(return_value, proc->resource_id);
 	zval_copy_ctor(return_value);
 
 	uv_spawn(loop, &proc->uv.process, &options);
@@ -5150,7 +5153,7 @@ PHP_FUNCTION(uv_process_kill)
 		return;
 	}
 
-	ZEND_FETCH_RESOURCE(uv, php_uv_t *, handle, -1, PHP_UV_RESOURCE_NAME, uv_resource_handle);
+	uv = (php_uv_t *) zend_fetch_resource_ex(handle, PHP_UV_RESOURCE_NAME, uv_resource_handle);
 	if (uv->type != IS_UV_PROCESS) {
 		php_error_docref(NULL, E_WARNING, "passed resource didn't initialize for uv_process");
 	}
@@ -5365,7 +5368,7 @@ PHP_FUNCTION(uv_prepare_start)
 		return;
 	}
 
-	ZEND_FETCH_RESOURCE(uv, php_uv_t *, handle, -1, PHP_UV_RESOURCE_NAME, uv_resource_handle);
+	uv = (php_uv_t *) zend_fetch_resource_ex(handle, PHP_UV_RESOURCE_NAME, uv_resource_handle);
 
 	PHP_UV_TYPE_CHECK(uv, IS_UV_PREPARE);
 
@@ -5398,6 +5401,8 @@ PHP_FUNCTION(uv_prepare_stop)
 		return;
 	}
 
+	uv = (php_uv_t *) zend_fetch_resource_ex(handle, PHP_UV_RESOURCE_NAME, uv_resource_handle);
+
 	PHP_UV_TYPE_CHECK(uv, IS_UV_PREPARE);
 
 	if (!uv_is_active((uv_handle_t*)&uv->uv.prepare)) {
@@ -5405,7 +5410,6 @@ PHP_FUNCTION(uv_prepare_stop)
 		RETURN_FALSE;
 	}
 
-	ZEND_FETCH_RESOURCE(uv, php_uv_t *, handle, -1, PHP_UV_RESOURCE_NAME, uv_resource_handle);
 	r = uv_prepare_stop((uv_prepare_t*)php_uv_get_current_stream(uv));
 	PHP_UV_DEBUG_RESOURCE_REFCOUNT(uv_prepare_stop, uv->resource_id);
 
@@ -5449,7 +5453,7 @@ PHP_FUNCTION(uv_check_start)
 		return;
 	}
 
-	ZEND_FETCH_RESOURCE(uv, php_uv_t *, handle, -1, PHP_UV_RESOURCE_NAME, uv_resource_handle);
+	uv = (php_uv_t *) zend_fetch_resource_ex(handle, PHP_UV_RESOURCE_NAME, uv_resource_handle);
 
 	PHP_UV_TYPE_CHECK(uv, IS_UV_CHECK);
 
@@ -5482,7 +5486,7 @@ PHP_FUNCTION(uv_check_stop)
 		return;
 	}
 
-	ZEND_FETCH_RESOURCE(uv, php_uv_t *, handle, -1, PHP_UV_RESOURCE_NAME, uv_resource_handle);
+	uv = (php_uv_t *) zend_fetch_resource_ex(handle, PHP_UV_RESOURCE_NAME, uv_resource_handle);
 
 	PHP_UV_TYPE_CHECK(uv, IS_UV_CHECK);
 
@@ -5543,7 +5547,7 @@ PHP_FUNCTION(uv_async_send)
 		return;
 	}
 
-	ZEND_FETCH_RESOURCE(uv, php_uv_t *, handle, -1, PHP_UV_RESOURCE_NAME, uv_resource_handle);
+	uv = (php_uv_t *) zend_fetch_resource_ex(handle, PHP_UV_RESOURCE_NAME, uv_resource_handle);
 	PHP_UV_TYPE_CHECK(uv, IS_UV_ASYNC)
 
 	uv_async_send((uv_async_t*)php_uv_get_current_stream(uv));
@@ -5892,7 +5896,7 @@ PHP_FUNCTION(uv_tty_get_winsize)
 		return;
 	}
 
-	ZEND_FETCH_RESOURCE(uv, php_uv_t*, handle, -1, PHP_UV_RESOURCE_NAME, uv_resource_handle);
+	uv = (php_uv_t *) zend_fetch_resource_ex(handle, PHP_UV_RESOURCE_NAME, uv_resource_handle);
 
 	if (uv->type != IS_UV_TTY) {
 		php_error_docref(NULL, E_WARNING, "passed resource doesn't initialize for uv_tty");
@@ -5925,7 +5929,7 @@ PHP_FUNCTION(uv_tty_set_mode)
 		return;
 	}
 
-	ZEND_FETCH_RESOURCE(uv, php_uv_t*, handle, -1, PHP_UV_RESOURCE_NAME, uv_resource_handle);
+	uv = (php_uv_t *) zend_fetch_resource_ex(handle, PHP_UV_RESOURCE_NAME, uv_resource_handle);
 
 	if (uv->type != IS_UV_TTY) {
 		php_error_docref(NULL, E_WARNING, "passed resource doesn't initialize for uv_tty");
@@ -5962,7 +5966,7 @@ PHP_FUNCTION(uv_tcp_simultaneous_accepts)
 		return;
 	}
 
-	ZEND_FETCH_RESOURCE(uv, php_uv_t*, handle, -1, PHP_UV_RESOURCE_NAME, uv_resource_handle);
+	uv = (php_uv_t *) zend_fetch_resource_ex(handle, PHP_UV_RESOURCE_NAME, uv_resource_handle);
 	if (uv->type != IS_UV_TCP) {
 		php_error_docref(NULL, E_WARNING, "passed resource doesn't initialize for uv_tcp");
 		RETURN_FALSE;
@@ -6111,7 +6115,7 @@ PHP_FUNCTION(uv_poll_start)
 		return;
 	}
 
-	ZEND_FETCH_RESOURCE(uv, php_uv_t *, handle, -1, PHP_UV_RESOURCE_NAME, uv_resource_handle);
+	uv = (php_uv_t *) zend_fetch_resource_ex(handle, PHP_UV_RESOURCE_NAME, uv_resource_handle);
 
 	if (uv->type != IS_UV_POLL) {
 		php_error_docref(NULL, E_WARNING, "passed resource didn't initialize for uv_poll");
@@ -6143,7 +6147,7 @@ PHP_FUNCTION(uv_poll_stop)
 		return;
 	}
 
-	ZEND_FETCH_RESOURCE(uv, php_uv_t *, poll, -1, PHP_UV_RESOURCE_NAME, uv_resource_handle);
+	uv = (php_uv_t *) zend_fetch_resource_ex(poll, PHP_UV_RESOURCE_NAME, uv_resource_handle);
 
 	if (uv->type != IS_UV_POLL) {
 		php_error_docref(NULL, E_WARNING, "passed resource didn't initialize for uv_poll");
@@ -6200,7 +6204,7 @@ PHP_FUNCTION(uv_fs_poll_start)
 		return;
 	}
 
-	ZEND_FETCH_RESOURCE(uv, php_uv_t *, handle, -1, PHP_UV_RESOURCE_NAME, uv_resource_handle);
+	uv = (php_uv_t *) zend_fetch_resource_ex(handle, PHP_UV_RESOURCE_NAME, uv_resource_handle);
 
 	if (uv->type != IS_UV_FS_POLL) {
 		php_error_docref(NULL, E_WARNING, "passed uv resource didn't initialize for uv_fs_poll");
@@ -6231,7 +6235,7 @@ PHP_FUNCTION(uv_fs_poll_stop)
 		return;
 	}
 
-	ZEND_FETCH_RESOURCE(uv, php_uv_t *, poll, -1, PHP_UV_RESOURCE_NAME, uv_resource_handle);
+	uv = (php_uv_t *) zend_fetch_resource_ex(poll, PHP_UV_RESOURCE_NAME, uv_resource_handle);
 
 	if (uv->type != IS_UV_FS_POLL) {
 		php_error_docref(NULL, E_WARNING, "passed uv resource didn't initialize for uv_fs_poll");
