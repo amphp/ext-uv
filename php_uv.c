@@ -2154,6 +2154,9 @@ static inline uv_stream_t* php_uv_get_current_stream(php_uv_t *uv)
 		case IS_UV_POLL:
 			stream = (uv_stream_t*)&uv->uv.poll;
 		break;
+		case IS_UV_SIGNAL:
+			stream = (uv_stream_t*)&uv->uv.signal;
+		break;
 		default: {
 			TSRMLS_FETCH();
 			php_error_docref(NULL, E_ERROR, "unexpected type found");
