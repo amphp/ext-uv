@@ -1764,11 +1764,15 @@ static void php_uv_fs_cb(uv_fs_t* req)
 		}
 		case UV_FS_SCANDIR:
 		{
-			uv_dirent_t dent;
+			if (Z_RES(params[0]) && req->ptr != NULL) {
+				uv_dirent_t dent;
 
-			array_init(&params[1]);
-			while (UV_EOF != uv_fs_scandir_next(req, &dent)) {
-				add_next_index_string(&params[1], dent.name);
+				array_init(&params[1]);
+				while (UV_EOF != uv_fs_scandir_next(req, &dent)) {
+					add_next_index_string(&params[1], dent.name);
+				}
+			} else {
+				ZVAL_NULL(&params[1]);
 			}
 			break;
 		}
