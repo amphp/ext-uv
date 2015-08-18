@@ -1120,6 +1120,27 @@ static zval php_uv_make_stat(const uv_stat_t *s)
 	return tmp;
 }
 
+static inline zend_bool php_uv_closeable_type(php_uv_t *uv) {
+	switch (uv->type) {
+		/* TODO: use libuv enum */
+		case IS_UV_PIPE:
+		case IS_UV_TTY:
+		case IS_UV_TCP:
+		case IS_UV_UDP:
+		case IS_UV_PREPARE:
+		case IS_UV_CHECK:
+		case IS_UV_IDLE:
+		case IS_UV_ASYNC:
+		case IS_UV_TIMER:
+		case IS_UV_PROCESS:
+		case IS_UV_FS_EVENT:
+		case IS_UV_POLL:
+		case IS_UV_FS_POLL:
+			return 1;
+	}
+	return 0;
+}
+
 /* destructor */
 
 void static destruct_uv_lock(zend_resource *rsrc)
@@ -1194,10 +1215,6 @@ void static destruct_uv(zend_resource *rsrc)
 	int i = 0;
 	php_uv_t *obj = NULL;
 
-	if (rsrc->ptr == NULL) {
-		return;
-	}
-
 	obj = (php_uv_t *)rsrc->ptr;
 	if (obj == NULL) {
 		return;
@@ -1237,6 +1254,9 @@ void static destruct_uv(zend_resource *rsrc)
 	}
 
 	if (obj != NULL) {
+		if (php_uv_closeable_type(obj) && !uv_is_closing(&obj->uv.handle)) {
+			uv_close(&obj->uv.handle, NULL);
+		}
 		efree(obj);
 		obj = NULL;
 		rsrc->ptr = NULL;
@@ -3625,26 +3645,9 @@ PHP_FUNCTION(uv_close)
 
 	uv = (php_uv_t *) zend_fetch_resource_ex(client, PHP_UV_RESOURCE_NAME, uv_resource_handle);
 
-	switch (uv->type) {
-		/* TODO: use libuv enum */
-		case IS_UV_PIPE:
-		case IS_UV_TTY:
-		case IS_UV_TCP:
-		case IS_UV_UDP:
-		case IS_UV_PREPARE:
-		case IS_UV_CHECK:
-		case IS_UV_IDLE:
-		case IS_UV_ASYNC:
-		case IS_UV_TIMER:
-		case IS_UV_PROCESS:
-		case IS_UV_FS_EVENT:
-		case IS_UV_POLL:
-		case IS_UV_FS_POLL:
-		break;
-		default:
-			php_error_docref(NULL, E_WARNING, "passed resource didn't initialize for uv_close (%d)", uv->type);
-			RETURN_FALSE;
-		break;
+	if (!php_uv_closeable_type(uv)) {
+		php_error_docref(NULL, E_WARNING, "passed resource didn't initialize for uv_close (%d)", uv->type);
+		RETURN_FALSE;
 	}
 
 	php_uv_cb_init(&cb, uv, &fci, &fcc, PHP_UV_CLOSE_CB);
@@ -4162,6 +4165,7 @@ PHP_FUNCTION(uv_getaddrinfo)
 	}
 
 	uv = (php_uv_t *)emalloc(sizeof(php_uv_t));
+	uv->type = -1;
 	PHP_UV_INIT_ZVALS(uv)
 	TSRMLS_SET_CTX(uv->thread_ctx);
 	uv->uv.addrinfo.data = uv;
