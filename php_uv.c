@@ -341,17 +341,20 @@ static php_socket_t php_uv_zval_to_valid_poll_fd(zval *ptr)
 	/* TODO: is this correct on windows platform? */
 	if (Z_TYPE_P(ptr) == IS_RESOURCE) {
 		if ((stream = (php_stream *) zend_fetch_resource_ex(ptr, NULL, php_file_le_stream()))) {
-			/* Some streams (specifically STDIO and encrypted streams) can be cast to FDs */
-			if (php_stream_cast(stream, PHP_STREAM_AS_FD_FOR_SELECT | PHP_STREAM_CAST_INTERNAL, (void*)&fd, 1) == SUCCESS && fd >= 0) {
-				return fd;
-			}
+
+			/* make sure only valid resource streams are passed - plainfiles and most php streams are invalid */
 			if (stream->wrapper) {
-				/* make sure only valid resource streams are passed - plainfiles and most php streams are invalid */
 				if (!strcmp((char *)stream->wrapper->wops->label, check_file) || !strcmp((char *)stream->wrapper->wops->label, check_php)) {
 					php_error_docref(NULL, E_ERROR, "invalid resource passed, this resource is not supported");
 					return -1;
 				}
 			}
+
+			/* Some streams (specifically STDIO and encrypted streams) can be cast to FDs */
+			if (php_stream_cast(stream, PHP_STREAM_AS_FD_FOR_SELECT | PHP_STREAM_CAST_INTERNAL, (void*)&fd, 1) == SUCCESS && fd >= 0) {
+				return fd;
+			}
+
 			fd = -1;
 		} else if ((uv = (php_uv_t *) zend_fetch_resource_ex(ptr, NULL, uv_resource_handle))) {
 			php_error_docref(NULL, E_WARNING, "uv resource does not support yet");
