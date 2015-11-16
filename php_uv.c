@@ -344,7 +344,7 @@ static php_socket_t php_uv_zval_to_valid_poll_fd(zval *ptr)
 
 			/* make sure only valid resource streams are passed - plainfiles and most php streams are invalid */
 			if (stream->wrapper) {
-				if (!strcmp((char *)stream->wrapper->wops->label, check_file) || !strcmp((char *)stream->wrapper->wops->label, check_php)) {
+				if (!strcmp((char *)stream->wrapper->wops->label, check_file) && !strcmp((char *)stream->wrapper->wops->label, check_php)) {
 					php_error_docref(NULL, E_ERROR, "invalid resource passed, this resource is not supported");
 					return -1;
 				}
