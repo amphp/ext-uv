@@ -3,11 +3,12 @@ set -e
 set -o pipefail
 
 # install 'libuv'
-git clone --recursive --branch v1.0.0 --depth 1 https://github.com/joyent/libuv.git
-pushd libuv
-./autogen.sh && ./configure && make && sudo make install
-popd
+mkdir libuv
+curl -L https://github.com/libuv/libuv/archive/v1.6.1.tar.gz | tar xzf -
+cd libuv-1.6.1 && ./autogen.sh && ./configure --prefix=$(readlink -f `pwd`/../libuv) && make && make install
+cd ..
 
 #install 'php-uv'
-phpize && ./configure --with-uv --enable-httpparser && make && sudo make install
-echo "extension=uv.so" >> `php --ini | grep "Loaded Configuration" | sed -e "s|.*:\s*||"`
+#phpize && ./configure --with-uv=$(readlink -f `pwd`/libuv) --enable-httpparser && make && make install
+phpize && ./configure --with-uv=$(readlink -f `pwd`/libuv) && make && make install
+echo "extension = uv.so" >> ~/.phpenv/versions/$(phpenv version-name)/etc/php.ini
