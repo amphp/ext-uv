@@ -997,7 +997,7 @@ static void php_uv_fs_common(uv_fs_type fs_type, INTERNAL_FUNCTION_PARAMETERS)
 
 			PHP_UV_FS_PARSE_PARAMETERS("rrllf", &zloop, &zstream, &offset, &length, &fci, &fcc);
 			if (length <= 0) {
-				length = -1;
+				length = 0;
 			}
 			if (offset < 0) {
 				offset = 0;
@@ -1005,8 +1005,8 @@ static void php_uv_fs_common(uv_fs_type fs_type, INTERNAL_FUNCTION_PARAMETERS)
 			PHP_UV_FS_SETUP()
 			PHP_UV_ZVAL_TO_FD(fd, zstream);
 
-			uv->buffer = (char*) emalloc(length+1);
-			buf = uv_buf_init(uv->buffer, length+1);
+			uv->buffer = (char*) emalloc(length);
+			buf = uv_buf_init(uv->buffer, length);
 
 			PHP_UV_FS_ASYNC(loop, read, fd, &buf, 1, offset);
 			break;
@@ -1824,7 +1824,7 @@ static void php_uv_fs_cb(uv_fs_t* req)
 		{
 			argc = 3;
 
-			if (uv->uv.fs.result > 0) {
+			if (uv->uv.fs.result >= 0) {
 				ZVAL_STRINGL(&params[2], uv->buffer, uv->uv.fs.result);
 			} else {
 				ZVAL_NULL(&params[2]);
