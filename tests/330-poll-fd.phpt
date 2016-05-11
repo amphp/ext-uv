@@ -17,4 +17,6 @@ uv_run($loop);
 fwrite($fd, 'hello');
 
 --EXPECTF--
-Fatal error: uv_poll_init(): invalid resource passed, this resource is not supported in %s on line %d
+Warning: uv_poll_init(): invalid resource passed, this resource is not supported in %s on line %d
+
+Fatal error: uv_poll_init(): uv_poll_init failed in %s on line %d
