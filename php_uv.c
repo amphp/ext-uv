@@ -1183,7 +1183,9 @@ void static destruct_uv_lock(zend_resource *rsrc)
 void static clean_uv_handle(php_uv_t *obj) {
 	int i;
 
-	obj->in_free = 1;
+	if (obj->in_free == 0) {
+		obj->in_free = 1;
+	}
 
 	/* for now */
 	for (i = 0; i < PHP_UV_CB_MAX; i++) {
@@ -1268,14 +1270,12 @@ void static destruct_uv(zend_resource *rsrc)
 
 	clean_uv_handle(obj);
 
-	if (obj != NULL) {
-		if (php_uv_closeable_type(obj) && !uv_is_closing(&obj->uv.handle)) {
-			uv_close(&obj->uv.handle, php_uv_close_cb);
-		} else {
-			efree(obj);
-		}
-		rsrc->ptr = NULL;
+	if (obj->in_free < 0 || !php_uv_closeable_type(obj)) {
+		efree(obj);
+	} else if (!uv_is_closing(&obj->uv.handle)) {
+		uv_close(&obj->uv.handle, php_uv_close_cb);
 	}
+	rsrc->ptr = NULL;
 }
 
 /* callback */
@@ -2041,8 +2041,13 @@ static void php_uv_close_cb(uv_handle_t *handle)
 
 	PHP_UV_DEBUG_RESOURCE_REFCOUNT(uv_close_cb, uv->resource_id);
 
+	uv->in_free = -1;
+
+	if (GC_REFCOUNT(uv->resource_id) > 1) { /* may have been freed inside close callback; avoid double free */
+		zend_list_delete(uv->resource_id);
+	}
+
 	zval_ptr_dtor(&params[0]); /* call destruct_uv */
-	zend_list_delete(uv->resource_id);
 }
 
 
@@ -6187,7 +6192,9 @@ PHP_FUNCTION(uv_poll_start)
 	}
 
 	php_uv_cb_init(&cb, uv, &fci, &fcc, PHP_UV_POLL_CB);
-	GC_REFCOUNT(uv->resource_id)++;
+	if (!uv_is_active((uv_handle_t *) &uv->uv.poll)) {
+		GC_REFCOUNT(uv->resource_id)++;
+	}
 
 	error = uv_poll_start(&uv->uv.poll, events, php_uv_poll_cb);
 	if (error) {
