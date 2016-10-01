@@ -767,7 +767,6 @@ static void php_uv_fs_common(uv_fs_type fs_type, INTERNAL_FUNCTION_PARAMETERS)
 	PHP_UV_INIT_UV(uv, IS_UV_FS); \
 	PHP_UV_FETCH_UV_DEFAULT_LOOP(loop, zloop); \
 	php_uv_cb_init(&cb, uv, &fci, &fcc, PHP_UV_FS_CB); \
-	GC_REFCOUNT(uv->resource_id)++; \
 	uv->uv.fs.data = uv; \
 
 #define PHP_UV_FS_SETUP_AND_EXECUTE(command, ...) \
@@ -1183,13 +1182,9 @@ void static destruct_uv_lock(zend_resource *rsrc)
 void static clean_uv_handle(php_uv_t *obj) {
 	int i;
 
-	if (obj->in_free == 0) {
-		obj->in_free = 1;
-	}
-
 	/* for now */
 	for (i = 0; i < PHP_UV_CB_MAX; i++) {
-		php_uv_cb_t *cb =  obj->callback[i];
+		php_uv_cb_t *cb = obj->callback[i];
 		if (cb != NULL) {
 			zval_dtor(&cb->fci.function_name);
 
@@ -1200,6 +1195,10 @@ void static clean_uv_handle(php_uv_t *obj) {
 			efree(cb);
 			cb = NULL;
 		}
+	}
+
+	if (obj->in_free == 0) {
+		obj->in_free = 1;
 	}
 
 	if (obj->fs_fd != NULL) {
@@ -1227,10 +1226,11 @@ void static destruct_uv_loop(zend_resource *rsrc)
 {
 	uv_loop_t *loop = (uv_loop_t *)rsrc->ptr;
 	if (loop != _php_uv_default_loop) {
+		uv_stop(loop); /* in case we haven't stopped the loop yet otherwise ... */
+		uv_run(loop, UV_RUN_DEFAULT); /* invalidate the stop ;-) */
+
 		/* for proper destruction: close all handles, let libuv call close callback and then close and free the loop */
-		uv_stop(loop); /* in case we longjmp()'ed ... */
 		uv_walk(loop, destruct_uv_loop_walk_cb, NULL);
-		uv_run(loop, UV_RUN_DEFAULT); /* the stop ;-) */
 		uv_run(loop, UV_RUN_DEFAULT);
 		uv_loop_close(loop);
 		efree(loop);
@@ -1270,8 +1270,12 @@ void static destruct_uv(zend_resource *rsrc)
 
 	clean_uv_handle(obj);
 
-	if (obj->in_free < 0 || !php_uv_closeable_type(obj)) {
+	if (obj->in_free < 0) {
 		efree(obj);
+	} else if (!php_uv_closeable_type(obj)) {
+		if (uv_cancel(&obj->uv.req) != UV_EBUSY) {
+			efree(obj);
+		}
 	} else if (!uv_is_closing(&obj->uv.handle)) {
 		uv_close(&obj->uv.handle, php_uv_close_cb);
 	}
@@ -1762,6 +1766,13 @@ static void php_uv_fs_cb(uv_fs_t* req)
 
 	PHP_UV_DEBUG_PRINT("# php_uv_fs_cb %p\n", uv->resource_id);
 
+	if (uv->resource_id == NULL) {
+		uv_fs_req_cleanup(req);
+
+		efree(uv);
+		return;
+	}
+
 	if (uv->fs_fd != NULL) {
 		GC_REFCOUNT(uv->fs_fd)++;
 		ZVAL_RES(&params[0], uv->fs_fd);
@@ -1879,6 +1890,9 @@ static void php_uv_fs_cb(uv_fs_t* req)
 	}
 
 	uv_fs_req_cleanup(req);
+
+	uv->in_free = -1;
+	zend_list_delete(uv->resource_id);
 }
 
 static void php_uv_fs_event_cb(uv_fs_event_t* req, const char* filename, int events, int status)
@@ -2114,8 +2128,9 @@ static void php_uv_getaddrinfo_cb(uv_getaddrinfo_t* handle, int status, struct a
 	zval_ptr_dtor(&params[0]);
 	zval_ptr_dtor(&params[1]);
 
-	zend_list_delete(uv->resource_id);
 	uv_freeaddrinfo(res);
+	uv->in_free = -1;
+	zend_list_delete(uv->resource_id);
 }
 
 static void php_uv_timer_cb(uv_timer_t *handle)

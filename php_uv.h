@@ -151,6 +151,7 @@ typedef struct {
 		uv_async_t async;
 		uv_loop_t loop;
 		uv_handle_t handle;
+		uv_req_t req;
 		uv_stream_t stream;
 		uv_getaddrinfo_t addrinfo;
 		uv_prepare_t prepare;
