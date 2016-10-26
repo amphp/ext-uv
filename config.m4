@@ -1,9 +1,6 @@
 PHP_ARG_WITH(uv, Whether to include "uv" support,
 [ --with-uv[=DIR]        Include "uv" support])
 
-PHP_ARG_ENABLE(httpparser, Whether to enable the "httpparser" module,
-    [ --enable-httpparser     Enable "httpparser" module support], no, no)
-
 PHP_ARG_ENABLE(uv-debug, for uv debug support,
     [ --enable-uv-debug       Enable enable uv debug support], no, no)
 
@@ -43,18 +40,9 @@ fi
 if test $PHP_UV != "no"; then
     SOURCES=""
 
-    if test $PHP_HTTPPARSER != "no"; then
-        SOURCES=" uv_http_parser.c http-parser/http_parser.c"
-        AC_DEFINE([ENABLE_HTTPPARSER], [1], [ Enable http parser])
-    fi
-
     PHP_NEW_EXTENSION(uv, php_uv.c uv.c $SOURCES, $ext_shared)
 
     PHP_ADD_EXTENSION_DEP(uv, sockets, true)
-
-    if test $PHP_HTTPPARSER != "no"; then
-        PHP_ADD_INCLUDE([$ext_srcdir/http-parser])
-    fi
 
     SEARCH_PATH="/usr/local /usr"
     SEARCH_FOR="/include/uv.h"
