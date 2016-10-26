@@ -339,7 +339,6 @@ static php_socket_t php_uv_zval_to_valid_poll_fd(zval *ptr)
 	/* TODO: is this correct on windows platform? */
 	if (Z_TYPE_P(ptr) == IS_RESOURCE) {
 		if ((stream = (php_stream *) zend_fetch_resource_ex(ptr, NULL, php_file_le_stream()))) {
-
 			/* make sure only valid resource streams are passed - plainfiles and most php streams are invalid */
 			if (stream->wrapper) {
 				if (!strcmp((char *)stream->wrapper->wops->label, "plainfile") || (!strcmp((char *)stream->wrapper->wops->label, "PHP") && (!stream->orig_path || (strncmp(stream->orig_path, "php://std", sizeof("php://std") - 1) && strncmp(stream->orig_path, "php://fd/", sizeof("php://fd") - 1))))) {
@@ -3170,11 +3169,6 @@ ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_fs_poll_stop, 0, 0, 1)
 ZEND_END_ARG_INFO()
 
 ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_poll_init, 0, 0, 2)
-	ZEND_ARG_INFO(0, loop)
-	ZEND_ARG_INFO(0, fd)
-ZEND_END_ARG_INFO()
-
-ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_poll_init_socket, 0, 0, 2)
 	ZEND_ARG_INFO(0, loop)
 	ZEND_ARG_INFO(0, fd)
 ZEND_END_ARG_INFO()
@@ -6134,43 +6128,14 @@ PHP_FUNCTION(uv_poll_init)
 	PHP_UV_FETCH_UV_DEFAULT_LOOP(loop, zloop);
 	PHP_UV_ZVAL_TO_VALID_POLL_FD(fd, zstream);
 
+#ifdef PHP_WIN32
+	error = uv_poll_init_socket(loop, &uv->uv.poll, (uv_os_sock_t)fd);
+#else
 	error = uv_poll_init(loop, &uv->uv.poll, fd);
+#endif
 	if (error) {
 		PHP_UV_DEINIT_UV();
 		php_error_docref(NULL, E_ERROR, "uv_poll_init failed");
-		return;
-	}
-
-	uv->uv.poll.data = uv;
-	uv->sock = fd;
-	ZVAL_RES(return_value, uv->resource_id);
-}
-
-/* }}} */
-
-/* {{{ proto uv uv_poll_init_socket([resource $uv_loop], zval fd)
-*/
-PHP_FUNCTION(uv_poll_init_socket)
-{
-	zval *zstream, *zloop = NULL;
-	uv_loop_t *loop;
-	php_uv_t *uv;
-	int error;
-	unsigned long fd = 0;
-
-	if (zend_parse_parameters(ZEND_NUM_ARGS(),
-		"rr", &zloop, &zstream) == FAILURE) {
-		return;
-	}
-
-	PHP_UV_INIT_UV(uv, IS_UV_POLL);
-	PHP_UV_FETCH_UV_DEFAULT_LOOP(loop, zloop);
-	PHP_UV_ZVAL_TO_FD(fd, zstream);
-
-	error = uv_poll_init_socket(loop, &uv->uv.poll, fd);
-	if (error) {
-		PHP_UV_DEINIT_UV();
-		php_error_docref(NULL, E_ERROR, "uv_poll_init_socket failed");
 		return;
 	}
 
@@ -6411,7 +6376,7 @@ static zend_function_entry uv_functions[] = {
 	PHP_FE(uv_udp_set_membership,       arginfo_uv_udp_set_membership)
 	/* poll */
 	PHP_FE(uv_poll_init,                arginfo_uv_poll_init)
-	PHP_FE(uv_poll_init_socket,         arginfo_uv_poll_init_socket)
+	PHP_FALIAS(uv_poll_init_socket,     uv_poll_init,  arginfo_uv_poll_init)
 	PHP_FE(uv_poll_start,               arginfo_uv_poll_start)
 	PHP_FE(uv_poll_stop,                arginfo_uv_poll_stop)
 	PHP_FE(uv_fs_poll_init,             arginfo_uv_fs_poll_init)
