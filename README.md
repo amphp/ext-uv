@@ -11,6 +11,8 @@ or move to extension all together so do not rely to much on them you have been w
 
 # Install
 
+## \*nix
+
 ````
 git clone https://github.com/bwoebi/php-uv.git --recursive
 cd php-uv
@@ -20,6 +22,10 @@ make
 make install
 # add `extension=uv.so` to your php.ini
 ````
+
+## Windows
+
+Windows builds for PHP 7.0 and PHP 7.1 are available [here](http://dl.daverandom.com/php-uv/).
 
 # Examples
 
@@ -2839,10 +2845,7 @@ $poll = uv_poll_init(uv_default_loop(), $fd);
 
 ##### *Note*
 
-* if you want to use a socket. please use uv_poll_init_socket instead of this. Windows can't handle socket with this function.
 * some platform doesn't support file descriptor on these method.
-
-### uv uv_poll_init_socket([resource $uv_loop], zval fd)
 
 
 ### uv uv_poll_start(resource $handle, $events, $callback)
