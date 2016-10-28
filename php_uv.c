@@ -6503,7 +6503,7 @@ PHP_MINFO_FUNCTION(uv)
 	php_printf("PHP libuv Extension\n");
 	php_info_print_table_start();
 	php_info_print_table_header(2,"libuv Support",  "enabled");
-	php_info_print_table_row(2,"Version", PHP_UV_EXTVER);
+	php_info_print_table_row(2,"Version", PHP_UV_VERSION);
 	php_info_print_table_row(2,"libuv Version", uv_version);
 //	php_info_print_table_row(2,"http-parser Version", http_parser_version);
 	php_info_print_table_end();
@@ -6518,7 +6518,7 @@ zend_module_entry uv_module_entry = {
 	NULL,					/* RINIT */
 	PHP_RSHUTDOWN(uv),		/* RSHUTDOWN */
 	PHP_MINFO(uv),	/* MINFO */
-	PHP_UV_EXTVER,
+	PHP_UV_VERSION,
 	STANDARD_MODULE_PROPERTIES
 };
 
