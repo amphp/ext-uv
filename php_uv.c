@@ -6509,8 +6509,15 @@ PHP_MINFO_FUNCTION(uv)
 	php_info_print_table_end();
 }
 
+static zend_module_dep uv_module_deps[] = {
+	ZEND_MOD_REQUIRED("sockets")
+	ZEND_MOD_END
+};
+
 zend_module_entry uv_module_entry = {
-	STANDARD_MODULE_HEADER,
+	STANDARD_MODULE_HEADER_EX,
+	NULL,
+	uv_module_deps,
 	"uv",
 	uv_functions,					/* Functions */
 	PHP_MINIT(uv),	/* MINIT */
