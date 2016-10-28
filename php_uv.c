@@ -6510,7 +6510,9 @@ PHP_MINFO_FUNCTION(uv)
 }
 
 static zend_module_dep uv_module_deps[] = {
+#if !defined(PHP_WIN32) && defined(HAVE_SOCKETS)
 	ZEND_MOD_REQUIRED("sockets")
+#endif
 	ZEND_MOD_END
 };
 
