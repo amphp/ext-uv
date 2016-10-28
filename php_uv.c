@@ -2098,11 +2098,9 @@ static void php_uv_getaddrinfo_cb(uv_getaddrinfo_t* handle, int status, struct a
 	address = res;
 	while (address) {
 		if (address->ai_family == AF_INET) {
-			const char *c;
-
 			addr = (char*) &((struct sockaddr_in*) address->ai_addr)->sin_addr;
-			c = uv_inet_ntop(address->ai_family, addr, ip, INET6_ADDRSTRLEN);
-			add_next_index_string(&params[1], c);
+			uv_inet_ntop(address->ai_family, addr, ip, INET6_ADDRSTRLEN);
+			add_next_index_string(&params[1], ip);
 		}
 
 		address = address->ai_next;
@@ -2111,11 +2109,9 @@ static void php_uv_getaddrinfo_cb(uv_getaddrinfo_t* handle, int status, struct a
 	address = res;
 	while (address) {
 		if (address->ai_family == AF_INET6) {
-			const char *c;
-
 			addr = (char*) &((struct sockaddr_in6*) address->ai_addr)->sin6_addr;
-			c = uv_inet_ntop(address->ai_family, addr, ip, INET6_ADDRSTRLEN);
-			add_next_index_string(&params[1], c);
+			uv_inet_ntop(address->ai_family, addr, ip, INET6_ADDRSTRLEN);
+			add_next_index_string(&params[1], ip);
 		}
 
 		address = address->ai_next;
