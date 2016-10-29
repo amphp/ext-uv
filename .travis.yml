@@ -4,10 +4,17 @@ php:
   - 7.0
   - nightly
 
+env:
+  global:
+    - REPORT_EXIT_STATUS=1
+
 before_install:
   - chmod +x travis-install.sh
 
 install: ./travis-install.sh
+
+script:
+  - php run-tests.php -p `which php` --offline --show-diff --set-timeout 120
 
 notifications:
   email: false
