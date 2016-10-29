@@ -39,7 +39,7 @@
 #include "php_network.h"
 #include "php_streams.h"
 
-#ifdef HAVE_SOCKETS
+#if defined(HAVE_SOCKETS) && !defined(COMPILE_DL_SOCKETS)
 #include "ext/sockets/php_sockets.h"
 #elif !defined(PHP_WIN32)
 typedef struct {

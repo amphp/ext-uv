@@ -205,7 +205,7 @@
 #define UV_EG_ALL(ls) UV_FETCH_ALL(ls, executor_globals_id, zend_executor_globals*)
 #endif
 
-#if !defined(PHP_WIN32) && !defined(HAVE_SOCKETS)
+#if !defined(PHP_WIN32) && !(defined(HAVE_SOCKETS) && !defined(COMPILE_DL_SOCKETS))
 int (*php_sockets_le_socket)(void) = NULL;
 #endif
 extern void php_uv_init();
@@ -2481,7 +2481,7 @@ PHP_MINIT_FUNCTION(uv)
 	register_httpparser(module_number);
 #endif
 
-#if !defined(PHP_WIN32) && !defined(HAVE_SOCKETS)
+#if !defined(PHP_WIN32) && !(defined(HAVE_SOCKETS) && !defined(COMPILE_DL_SOCKETS))
 	{
 		zend_module_entry *sockets;
 		if ((sockets = zend_hash_str_find_ptr(&module_registry, ZEND_STRL("sockets")))) {
