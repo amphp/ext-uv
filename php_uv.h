@@ -67,6 +67,20 @@ typedef struct {
 extern zend_module_entry uv_module_entry;
 #define phpext_uv_ptr &uv_module_entry
 
+ZEND_BEGIN_MODULE_GLOBALS(uv)
+	uv_loop_t *default_loop;
+ZEND_END_MODULE_GLOBALS(uv)
+
+#ifdef ZTS
+#ifdef COMPILE_DL_UV
+ZEND_TSRMLS_CACHE_EXTERN()
+#endif
+
+#define UV_G(v) TSRMG(uv_globals_id, zend_uv_globals *, v)
+#else
+#define UV_G(v) (uv_globals.v)
+#endif
+
 extern zend_class_entry *uv_class_entry;
 
 enum php_uv_lock_type{

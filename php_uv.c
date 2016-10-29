@@ -35,7 +35,13 @@
 #define TSRMLS_CC , TSRMLS_C
 #define TSRMLS_D void *tsrm_ls
 #define TSRMLS_DC , TSRMLS_D
+
+#ifdef COMPILE_DL_UV
+ZEND_TSRMLS_CACHE_DEFINE()
 #endif
+#endif
+
+ZEND_DECLARE_MODULE_GLOBALS(uv);
 
 #define PHP_UV_INIT_UV(uv, uv_type) \
 	uv = (php_uv_t *)emalloc(sizeof(php_uv_t)); \
@@ -228,10 +234,6 @@ enum php_uv_socket_type {
 	PHP_UV_UDP_IPV6 = 32,
 	PHP_UV_UDP      = 48,
 };
-
-/* static variables */
-
-static uv_loop_t *_php_uv_default_loop;
 
 /* resources */
 
@@ -1216,6 +1218,7 @@ static void destruct_uv_loop_walk_cb(uv_handle_t* handle, void* arg)
 	if (obj->in_free == 0) {
 		clean_uv_handle(obj);
 	}
+
 	if (!uv_is_closing(handle)) {
 		uv_close(handle, php_uv_close_cb);
 	}
@@ -1224,7 +1227,7 @@ static void destruct_uv_loop_walk_cb(uv_handle_t* handle, void* arg)
 void static destruct_uv_loop(zend_resource *rsrc)
 {
 	uv_loop_t *loop = (uv_loop_t *)rsrc->ptr;
-	if (loop != _php_uv_default_loop) {
+	if (loop != UV_G(default_loop)) {
 		uv_stop(loop); /* in case we haven't stopped the loop yet otherwise ... */
 		uv_run(loop, UV_RUN_DEFAULT); /* invalidate the stop ;-) */
 
@@ -1244,11 +1247,11 @@ void static destruct_uv_sockaddr(zend_resource *rsrc)
 
 static uv_loop_t *php_uv_default_loop()
 {
-	if (_php_uv_default_loop == NULL) {
-		_php_uv_default_loop = uv_default_loop();
+	if (UV_G(default_loop) == NULL) {
+		UV_G(default_loop) = uv_default_loop();
 	}
 
-	return _php_uv_default_loop;
+	return UV_G(default_loop);
 }
 
 void static destruct_uv(zend_resource *rsrc)
@@ -1316,10 +1319,10 @@ static int php_uv_do_callback(zval *retval_ptr, zval *callback, zval *params, in
 static int php_uv_do_callback2(zval *retval_ptr, php_uv_t *uv, zval *params, int param_count, enum php_uv_callback_type type TSRMLS_DC)
 {
 	int error = 0;
+
 #ifdef ZTS
 	void *old = tsrm_set_interpreter_context(tsrm_ls);
 #endif
-
 	if (ZEND_FCI_INITIALIZED(uv->callback[type]->fci)) {
 		uv->callback[type]->fci.params        = params;
 		uv->callback[type]->fci.retval        = retval_ptr;
@@ -1341,15 +1344,14 @@ static int php_uv_do_callback2(zval *retval_ptr, php_uv_t *uv, zval *params, int
 	return error;
 }
 
-/* unused
 #ifdef ZTS
 
 static int php_uv_do_callback3(zval *retval_ptr, php_uv_t *uv, zval *params, int param_count, enum php_uv_callback_type type)
 {
 	int error = 0;
-//	zend_executor_globals *ZEG = NULL;
 	void *tsrm_ls, *old;
-	zend_op_array *old_rtc;
+	zend_op_array *ops;
+	zend_function fn, *old_fn;
 
 	if (ZEND_FCI_INITIALIZED(uv->callback[type]->fci)) {
 		tsrm_ls = tsrm_new_interpreter_context();
@@ -1359,7 +1361,6 @@ static int php_uv_do_callback3(zval *retval_ptr, php_uv_t *uv, zval *params, int
 		PG(auto_globals_jit) = 0;
 
 		php_request_startup();
-//		ZEG = UV_EG_ALL(tsrm_ls);
 		EG(current_execute_data) = NULL;
 		EG(current_module) = phpext_uv_ptr;
 
@@ -1374,8 +1375,19 @@ static int php_uv_do_callback3(zval *retval_ptr, php_uv_t *uv, zval *params, int
 		uv->callback[type]->fcc.called_scope = NULL;
 		uv->callback[type]->fcc.object = NULL;
 
-		old_rtc = uv->callback[type]->fcc.function_handler->op_array.run_time_cache;
-		uv->callback[type]->fcc.function_handler->op_array.run_time_cache = NULL;
+		if (!ZEND_USER_CODE(uv->callback[type]->fcc.function_handler->type)) {
+			return error = -2;
+		}
+
+		fn = *(old_fn = uv->callback[type]->fcc.function_handler);
+		uv->callback[type]->fcc.function_handler = &fn;
+
+		ops = &fn.op_array;
+		ops->run_time_cache = NULL;
+		if (ops->fn_flags) {
+			ops->fn_flags &= ~ZEND_ACC_CLOSURE;
+			ops->prototype = NULL;
+		}
 
 		zend_try {
 			if (zend_call_function(&uv->callback[type]->fci, &uv->callback[type]->fcc) != SUCCESS) {
@@ -1385,14 +1397,11 @@ static int php_uv_do_callback3(zval *retval_ptr, php_uv_t *uv, zval *params, int
 			error = -1;
 		} zend_end_try();
 
-		{
-			zend_op_array *ops = &uv->callback[type]->fcc.function_handler->op_array;
-			if (ops->run_time_cache) {
-				efree(ops->run_time_cache);
-				ops->run_time_cache = NULL;
-			}
-			ops->run_time_cache = old_rtc;
+		if (ops->run_time_cache && !ops->function_name) {
+			efree(ops->run_time_cache);
 		}
+
+		uv->callback[type]->fcc.function_handler = old_fn;
 
 		php_request_shutdown(NULL);
 		tsrm_set_interpreter_context(old);
@@ -1405,13 +1414,7 @@ static int php_uv_do_callback3(zval *retval_ptr, php_uv_t *uv, zval *params, int
 
 	return error;
 }
-#else
-static int php_uv_do_callback3(zval *retval_ptr, php_uv_t *uv, zval *params, int param_count, enum php_uv_callback_type type)
-{
-	return 0;
-}
 #endif
-*/
 
 static void php_uv_tcp_connect_cb(uv_connect_t *req, int status)
 {
@@ -1734,7 +1737,7 @@ static void php_uv_async_cb(uv_async_t* handle)
 	PHP_UV_DEBUG_RESOURCE_REFCOUNT(uv_async_cb, uv->resource_id);
 }
 
-/* unused
+#ifdef ZTS
 static void php_uv_work_cb(uv_work_t* req)
 {
 	zval retval = {{0}};
@@ -1748,23 +1751,25 @@ static void php_uv_work_cb(uv_work_t* req)
 
 	PHP_UV_DEBUG_RESOURCE_REFCOUNT(uv_work_cb, uv->resource_id);
 }
-*/
 
-/* unused
 static void php_uv_after_work_cb(uv_work_t* req, int status)
 {
 	zval retval = {{0}};
 	php_uv_t *uv = (php_uv_t*)req->data;
+	TSRMLS_FETCH_FROM_CTX(uv->thread_ctx);
 
 	uv = (php_uv_t*)req->data;
 
 	PHP_UV_DEBUG_PRINT("after_work_cb\n");
 
-	php_uv_do_callback3(&retval, uv, NULL, 0, PHP_UV_AFTER_WORK_CB);
+	php_uv_do_callback2(&retval, uv, NULL, 0, PHP_UV_AFTER_WORK_CB TSRMLS_CC);
 
 	PHP_UV_DEBUG_RESOURCE_REFCOUNT(uv_work_cb, uv->resource_id);
+
+	zend_list_delete(uv->resource_id);
+	efree(uv); /* uv_cancel inside destruct_uv will return EBUSY here as were still in the work callback, but freeing is safe here */
 }
-*/
+#endif
 
 static void php_uv_fs_cb(uv_fs_t* req)
 {
@@ -2515,13 +2520,17 @@ PHP_MINIT_FUNCTION(uv)
 
 PHP_RSHUTDOWN_FUNCTION(uv)
 {
-	uv_loop_t *loop = php_uv_default_loop();
+	uv_loop_t *loop = UV_G(default_loop);
 
-	/* for proper destruction: close all handles, let libuv call close callback and then close and free the loop */
-	uv_stop(loop); /* in case we longjmp()'ed ... */
-	uv_walk(loop, destruct_uv_loop_walk_cb, NULL);
-	uv_run(loop, UV_RUN_DEFAULT);
-	uv_run(loop, UV_RUN_DEFAULT); /* the stop ;-) */
+	if (loop) {
+		/* for proper destruction: close all handles, let libuv call close callback and then close and free the loop */
+		uv_stop(loop); /* in case we longjmp()'ed ... */
+		uv_run(loop, UV_RUN_DEFAULT); /* invalidate the stop ;-) */
+
+		uv_walk(loop, destruct_uv_loop_walk_cb, NULL);
+		uv_run(loop, UV_RUN_DEFAULT);
+		uv_loop_close(loop);
+	}
 
 	return SUCCESS;
 }
@@ -3447,7 +3456,7 @@ PHP_FUNCTION(uv_loop_delete)
 
 	PHP_UV_FETCH_UV_DEFAULT_LOOP(loop, zloop);
 
-	if (loop != _php_uv_default_loop) {
+	if (loop != UV_G(default_loop)) {
 		/* uv_loop_delete deprecated with libuv 1.0 */
 		//uv_loop_delete(loop);
 		uv_loop_close(loop);
@@ -6505,6 +6514,14 @@ PHP_MINFO_FUNCTION(uv)
 	php_info_print_table_end();
 }
 
+static PHP_GINIT_FUNCTION(uv)
+{
+#if defined(COMPILE_DL_UV) && defined(ZTS)
+	ZEND_TSRMLS_CACHE_UPDATE();
+#endif
+	uv_globals->default_loop = NULL;
+}
+
 zend_module_entry uv_module_entry = {
 	STANDARD_MODULE_HEADER,
 	"uv",
@@ -6515,7 +6532,11 @@ zend_module_entry uv_module_entry = {
 	PHP_RSHUTDOWN(uv),		/* RSHUTDOWN */
 	PHP_MINFO(uv),	/* MINFO */
 	PHP_UV_VERSION,
-	STANDARD_MODULE_PROPERTIES
+	PHP_MODULE_GLOBALS(uv),
+	PHP_GINIT(uv),
+	NULL,
+	NULL,
+	STANDARD_MODULE_PROPERTIES_EX
 };
 
 
