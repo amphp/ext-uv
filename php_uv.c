@@ -281,7 +281,7 @@ static void php_uv_fs_cb(uv_fs_t* req);
  * @param int param_count
  * @return int (maybe..)
  */
-static int php_uv_do_callback(zval *retval_ptr, zval *callback, zval *params, int param_count TSRMLS_DC);
+/* unused: static int php_uv_do_callback(zval *retval_ptr, zval *callback, zval *params, int param_count TSRMLS_DC); */
 
 void static destruct_uv(zend_resource *rsrc);
 
@@ -291,13 +291,13 @@ static void php_uv_write_cb(uv_write_t* req, int status);
 
 static void php_uv_listen_cb(uv_stream_t* server, int status);
 
-static void php_uv_close_cb2(uv_handle_t *handle);
+/* unused: static void php_uv_close_cb2(uv_handle_t *handle); */
 
 static void php_uv_shutdown_cb(uv_shutdown_t* req, int status);
 
 static void php_uv_read_cb(uv_stream_t* handle, ssize_t nread,const uv_buf_t* buf);
 
-static void php_uv_read2_cb(uv_pipe_t* handle, ssize_t nread, uv_buf_t buf, uv_handle_type pending);
+/* unused: static void php_uv_read2_cb(uv_pipe_t* handle, ssize_t nread, uv_buf_t buf, uv_handle_type pending); */
 
 static void php_uv_read_alloc(uv_handle_t* handle, size_t suggested_size, uv_buf_t* buf);
 
@@ -549,8 +549,8 @@ static void php_uv_cb_init(php_uv_cb_t **result, php_uv_t *uv, zend_fcall_info *
 
 static void php_uv_lock_init(enum php_uv_lock_type lock_type, INTERNAL_FUNCTION_PARAMETERS)
 {
-	php_uv_lock_t *lock;
-	int error;
+	php_uv_lock_t *lock = NULL;
+	int error = 0;
 
 	switch (lock_type) {
 		case IS_UV_RWLOCK:
@@ -1283,6 +1283,7 @@ void static destruct_uv(zend_resource *rsrc)
 
 /* callback */
 
+/* unused
 static int php_uv_do_callback(zval *retval_ptr, zval *callback, zval *params, int param_count TSRMLS_DC)
 {
 	zend_fcall_info fci;
@@ -1310,6 +1311,7 @@ static int php_uv_do_callback(zval *retval_ptr, zval *callback, zval *params, in
 
 	return error;
 }
+*/
 
 static int php_uv_do_callback2(zval *retval_ptr, php_uv_t *uv, zval *params, int param_count, enum php_uv_callback_type type TSRMLS_DC)
 {
@@ -1339,6 +1341,7 @@ static int php_uv_do_callback2(zval *retval_ptr, php_uv_t *uv, zval *params, int
 	return error;
 }
 
+/* unused
 #ifdef ZTS
 
 static int php_uv_do_callback3(zval *retval_ptr, php_uv_t *uv, zval *params, int param_count, enum php_uv_callback_type type)
@@ -1408,6 +1411,7 @@ static int php_uv_do_callback3(zval *retval_ptr, php_uv_t *uv, zval *params, int
 	return 0;
 }
 #endif
+*/
 
 static void php_uv_tcp_connect_cb(uv_connect_t *req, int status)
 {
@@ -1558,6 +1562,7 @@ static void php_uv_listen_cb(uv_stream_t* server, int status)
 	zval_ptr_dtor(&retval);
 }
 
+/* unused
 static void php_uv_close_cb2(uv_handle_t *handle)
 {
 	php_uv_t *uv = (php_uv_t*)handle->data;
@@ -1577,6 +1582,7 @@ static void php_uv_close_cb2(uv_handle_t *handle)
 
 	efree(handle);
 }
+*/
 
 static void php_uv_shutdown_cb(uv_shutdown_t* handle, int status)
 {
@@ -1632,6 +1638,7 @@ static void php_uv_read_cb(uv_stream_t* handle, ssize_t nread, const uv_buf_t* b
 	PHP_UV_DEBUG_RESOURCE_REFCOUNT(uv_read_cb, uv->resource_id);
 }
 
+/* unused
 static void php_uv_read2_cb(uv_pipe_t* handle, ssize_t nread, uv_buf_t buf, uv_handle_type pending)
 {
 	zval retval = {{0}};
@@ -1664,6 +1671,7 @@ static void php_uv_read2_cb(uv_pipe_t* handle, ssize_t nread, uv_buf_t buf, uv_h
 	}
 	PHP_UV_DEBUG_RESOURCE_REFCOUNT(uv_read2_cb, uv->resource_id);
 }
+*/
 
 static void php_uv_prepare_cb(uv_prepare_t* handle)
 {
@@ -1726,7 +1734,7 @@ static void php_uv_async_cb(uv_async_t* handle)
 	PHP_UV_DEBUG_RESOURCE_REFCOUNT(uv_async_cb, uv->resource_id);
 }
 
-
+/* unused
 static void php_uv_work_cb(uv_work_t* req)
 {
 	zval retval = {{0}};
@@ -1740,7 +1748,9 @@ static void php_uv_work_cb(uv_work_t* req)
 
 	PHP_UV_DEBUG_RESOURCE_REFCOUNT(uv_work_cb, uv->resource_id);
 }
+*/
 
+/* unused
 static void php_uv_after_work_cb(uv_work_t* req, int status)
 {
 	zval retval = {{0}};
@@ -1754,6 +1764,7 @@ static void php_uv_after_work_cb(uv_work_t* req, int status)
 
 	PHP_UV_DEBUG_RESOURCE_REFCOUNT(uv_work_cb, uv->resource_id);
 }
+*/
 
 static void php_uv_fs_cb(uv_fs_t* req)
 {
@@ -2603,10 +2614,6 @@ ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_idle_stop, 0, 0, 1)
 	ZEND_ARG_INFO(0, idle)
 ZEND_END_ARG_INFO()
 
-ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_again, 0, 0, 1)
-	ZEND_ARG_INFO(0, idle)
-ZEND_END_ARG_INFO()
-
 ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_timer_start, 0, 0, 4)
 	ZEND_ARG_INFO(0, timer)
 	ZEND_ARG_INFO(0, timeout)
@@ -3079,7 +3086,7 @@ ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_sem_trywait, 0, 0, 1)
 	ZEND_ARG_INFO(0, resource)
 ZEND_END_ARG_INFO()
 
-ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_prepare_init, 0, 0, 1)
+ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_prepare_init, 0, 0, 0)
 	ZEND_ARG_INFO(0, loop)
 ZEND_END_ARG_INFO()
 
@@ -3112,18 +3119,6 @@ ZEND_END_ARG_INFO()
 ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_async_init, 0, 0, 2)
 	ZEND_ARG_INFO(0, loop)
 	ZEND_ARG_INFO(0, callback)
-ZEND_END_ARG_INFO()
-
-ZEND_BEGIN_ARG_INFO_EX(arginfo_ares_gethostbyname, 0, 0, 3)
-	ZEND_ARG_INFO(0, handle)
-	ZEND_ARG_INFO(0, name)
-	ZEND_ARG_INFO(0, callback)
-ZEND_END_ARG_INFO()
-
-ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_ares_init_options, 0, 0, 3)
-	ZEND_ARG_INFO(0, loop)
-	ZEND_ARG_INFO(0, options)
-	ZEND_ARG_INFO(0, mask)
 ZEND_END_ARG_INFO()
 
 ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_tcp_getsockname, 0, 0, 1)
@@ -6374,6 +6369,7 @@ static zend_function_entry uv_functions[] = {
 	PHP_FE(uv_udp_recv_start,           arginfo_uv_udp_recv_start)
 	PHP_FE(uv_udp_recv_stop,            arginfo_uv_udp_recv_stop)
 	PHP_FE(uv_udp_set_membership,       arginfo_uv_udp_set_membership)
+	PHP_FE(uv_udp_set_broadcast,        arginfo_uv_udp_set_broadcast)
 	/* poll */
 	PHP_FE(uv_poll_init,                arginfo_uv_poll_init)
 	PHP_FALIAS(uv_poll_init_socket,     uv_poll_init,  arginfo_uv_poll_init)
@@ -6423,7 +6419,7 @@ static zend_function_entry uv_functions[] = {
 	PHP_FE(uv_sem_wait,                 arginfo_uv_sem_wait)
 	PHP_FE(uv_sem_trywait,              arginfo_uv_sem_trywait)
 	/* prepare (before poll hook) */
-	PHP_FE(uv_prepare_init,             NULL)
+	PHP_FE(uv_prepare_init,             arginfo_uv_prepare_init)
 	PHP_FE(uv_prepare_start,            arginfo_uv_prepare_start)
 	PHP_FE(uv_prepare_stop,             arginfo_uv_prepare_stop)
 	/* check (after poll hook) */
@@ -6441,7 +6437,7 @@ static zend_function_entry uv_functions[] = {
 	PHP_FE(uv_fs_write,                 arginfo_uv_fs_write)
 	PHP_FE(uv_fs_close,                 arginfo_uv_fs_close)
 	PHP_FE(uv_fs_fsync,                 arginfo_uv_fs_fsync)
-	PHP_FE(uv_fs_fdatasync,             arginfo_uv_fs_ftruncate)
+	PHP_FE(uv_fs_fdatasync,             arginfo_uv_fs_fdatasync)
 	PHP_FE(uv_fs_ftruncate,             arginfo_uv_fs_ftruncate)
 	PHP_FE(uv_fs_mkdir,                 arginfo_uv_fs_mkdir)
 	PHP_FE(uv_fs_rmdir,                 arginfo_uv_fs_rmdir)
