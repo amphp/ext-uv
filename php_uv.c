@@ -2142,6 +2142,10 @@ static void php_uv_timer_cb(uv_timer_t *handle)
 
 	zval_ptr_dtor(&retval);
 	zval_ptr_dtor(&params[0]);
+
+	if (!handle->repeat) {
+		zend_list_delete(uv->resource_id);
+	}
 }
 
 static void php_uv_signal_cb(uv_signal_t *handle, int sig_num)
