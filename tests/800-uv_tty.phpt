@@ -1,5 +1,11 @@
 --TEST--
 Check for uv_tty
+--SKIPIF--
+<?php
+if (function_exists("posix_isatty") && defined("STDIN") && !posix_isatty(STDIN)) {
+    die("skip test requiring a tty\n");
+}
+?>
 --FILE--
 <?php
 uv_fs_open(uv_default_loop(), "/dev/tty", UV::O_RDONLY, 0, function($r) {

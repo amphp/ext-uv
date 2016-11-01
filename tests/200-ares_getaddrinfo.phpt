@@ -1,5 +1,11 @@
 --TEST--
 Check for ares_getaddrinfo
+--SKIPIF--
+<?php
+if (getenv("SKIP_ONLINE_TESTS")) {
+    die("skip test requiring internet connection\n");
+}
+?>
 --FILE--
 <?php
 uv_getaddrinfo(uv_default_loop(), function($status, $names) {
