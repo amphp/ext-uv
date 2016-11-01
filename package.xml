@@ -1,0 +1,136 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<package packagerversion="1.9.4" version="2.0" xmlns="http://pear.php.net/dtd/package-2.0" xmlns:tasks="http://pear.php.net/dtd/tasks-1.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://pear.php.net/dtd/tasks-1.0 http://pear.php.net/dtd/tasks-1.0.xsd http://pear.php.net/dtd/package-2.0 http://pear.php.net/dtd/package-2.0.xsd">
+ <name>uv</name>
+ <channel>pecl.php.net</channel>
+ <summary>libuv wrapper</summary>
+ <description>uv provides access to underlying libuv functions</description>
+ <lead>
+  <name>Bob Weinand</name>
+  <user>bwoebi</user>
+  <email>bobwei9@hotmail.com</email>
+  <active>yes</active>
+ </lead>
+ <date>2016-11-01</date>
+ <time>16:00:00</time>
+ <version>
+  <release>0.1.0</release>
+  <api>0.1.0</api>
+ </version>
+ <stability>
+  <release>beta</release>
+  <api>beta</api>
+ </stability>
+ <license uri="http://www.php.net/license">PHP License</license>
+ <contents>
+  <dir name="/">
+    <file name="examples/async.php" role="doc" />
+    <file name="examples/check.php" role="doc" />
+    <file name="examples/chmod.php" role="doc" />
+    <file name="examples/debug_timer.php" role="doc" />
+    <file name="examples/fingerd.php" role="doc" />
+    <file name="examples/fs.php" role="doc" />
+    <file name="examples/fs_poll.php" role="doc" />
+    <file name="examples/fs_truncate.php" role="doc" />
+    <file name="examples/fsevevnt.php" role="doc" />
+    <file name="examples/fstat.php" role="doc" />
+    <file name="examples/fsw.php" role="doc" />
+    <file name="examples/getaddrinfo.php" role="doc" />
+    <file name="examples/gethostbyname.php" role="doc" />
+    <file name="examples/idle.php" role="doc" />
+    <file name="examples/lstat.php" role="doc" />
+    <file name="examples/mkdir.php" role="doc" />
+    <file name="examples/pipe.php" role="doc" />
+    <file name="examples/pipe_bind_connect.php" role="doc" />
+    <file name="examples/poll.php" role="doc" />
+    <file name="examples/prepare.php" role="doc" />
+    <file name="examples/queue.php" role="doc" />
+    <file name="examples/readdir.php" role="doc" />
+    <file name="examples/readlink.php" role="doc" />
+    <file name="examples/rename.php" role="doc" />
+    <file name="examples/request.php" role="doc" />
+    <file name="examples/rmdir.php" role="doc" />
+    <file name="examples/run_once.php" role="doc" />
+    <file name="examples/sendfile.php" role="doc" />
+    <file name="examples/spawn.php" role="doc" />
+    <file name="examples/spawn_fd.php" role="doc" />
+    <file name="examples/stat.php" role="doc" />
+    <file name="examples/tcp_bind.php" role="doc" />
+    <file name="examples/tcp_bind6.php" role="doc" />
+    <file name="examples/timer.php" role="doc" />
+    <file name="examples/tty.php" role="doc" />
+    <file name="examples/udp_bind.php" role="doc" />
+    <file name="examples/unlink.php" role="doc" />
+    <file name="examples/utime.php" role="doc" />
+    <file name="tests/000-load.phpt" role="test" />
+    <file name="tests/001-constants.phpt" role="test" />
+    <file name="tests/010-uv_ip4_addr.phpt" role="test" />
+    <file name="tests/010-uv_ip4_name.phpt" role="test" />
+    <file name="tests/010-uv_ip6_addr.phpt" role="test" />
+    <file name="tests/010-uv_ip6_name.phpt" role="test" />
+    <file name="tests/010-uv_loop_new.phpt" role="test" />
+    <file name="tests/100-uv_async.phpt" role="test" />
+    <file name="tests/100-uv_check.phpt" role="test" />
+    <file name="tests/100-uv_prepare.phpt" role="test" />
+    <file name="tests/100-uv_stop.phpt" role="test" />
+    <file name="tests/100-uv_timer.phpt" role="test" />
+    <file name="tests/101-uv-idle.phpt" role="test" />
+    <file name="tests/200-ares_getaddrinfo.phpt" role="test" />
+    <file name="tests/300-fs.phpt" role="test" />
+    <file name="tests/300-fs_close.phpt" role="test" />
+    <file name="tests/310-fs-mkdir.phpt" role="test" />
+    <file name="tests/311-fs-rmdir.phpt" role="test" />
+    <file name="tests/320-fs-event.phpt" role="test" />
+    <file name="tests/320-fs-poll.phpt" role="test" />
+    <file name="tests/320-fs-sendfile.phpt" role="test" />
+    <file name="tests/330-poll-fd.phpt" role="test" />
+    <file name="tests/330-poll-pipe.phpt" role="test" />
+    <file name="tests/330-poll.phpt" role="test" />
+    <file name="tests/399-fs-stat-regression-no14.phpt" role="test" />
+    <file name="tests/400-tcp_bind.phpt" role="test" />
+    <file name="tests/400-tcp_bind6.phpt" role="test" />
+    <file name="tests/500-udp_bind.phpt" role="test" />
+    <file name="tests/500-udp_bind6.phpt" role="test" />
+    <file name="tests/600-pipe_bind.phpt" role="test" />
+    <file name="tests/700-uv_rwlock.phpt" role="test" />
+    <file name="tests/700-uv_wrlock.phpt" role="test" />
+    <file name="tests/701-uv_mutex.phpt" role="test" />
+    <file name="tests/800-uv_queue_work.phpt" role="test" />
+    <file name="tests/800-uv_spawn-issue59.phpt" role="test" />
+    <file name="tests/800-uv_tty.phpt" role="test" />
+    <file name="tests/999-uv_chdir.phpt" role="test" />
+    <file name="tests/999-uv_cpu_info.phpt" role="test" />
+    <file name="tests/999-uv_cpuinfo.phpt" role="test" />
+    <file name="tests/999-uv_cwd.phpt" role="test" />
+    <file name="tests/999-uv_exepath.phpt" role="test" />
+    <file name="tests/999-uv_get_free_memory.phpt" role="test" />
+    <file name="tests/999-uv_get_total_memory.phpt" role="test" />
+    <file name="tests/999-uv_hrtime.phpt" role="test" />
+    <file name="tests/999-uv_loadavg.phpt" role="test" />
+    <file name="tests/999-uv_resident_set_memory.phpt" role="test" />
+    <file name="tests/999-uv_uptime.phpt" role="test" />
+    <file name="tests/fixtures/hello.data" role="test" />
+    <file name="tests/fixtures/poll" role="test" />
+    <file name="tests/fixtures/proc.php" role="test" />
+    <file name="config.m4" role="src" />
+    <file name="config.w32" role="src" />
+    <file name="LICENSE" role="doc" />
+    <file name="php_uv.c" role="src" />
+    <file name="php_uv.h" role="src" />
+    <file name="phpuv_dtrace.d" role="src" />
+    <file name="README.md" role="doc" />
+    <file name="uv.c" role="src" />
+  </dir>
+ </contents>
+ <dependencies>
+  <required>
+   <php>
+    <min>7.0.0</min>
+   </php>
+   <pearinstaller>
+    <min>1.4.0b1</min>
+   </pearinstaller>
+  </required>
+ </dependencies>
+ <providesextension>uv</providesextension>
+ <extsrcrelease />
+</package>

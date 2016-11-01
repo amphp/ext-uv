@@ -9,7 +9,7 @@ Interface to libuv for php.
 ## \*nix
 
 ````
-git clone https://github.com/bwoebi/php-uv.git --recursive
+git clone https://github.com/bwoebi/php-uv.git
 cd php-uv
 phpize
 ./configure

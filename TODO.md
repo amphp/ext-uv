@@ -1,23 +1,17 @@
 # TODO
 
 * implement all test cases.
-* improve source code.(avoids copy and paste)
+* improve source code. (avoids copy and paste)
 * more error handling
 * buffer allocator
 * documents
 
-# Known Issues
-
-* something wrong on OSX box. (corrupted queue, fs event...)
-* windows support (currently, this can build. but not fully tested).
-
 # functions (not implemented or not tested)
 
 * UV_EXTERN int uv_write2(uv_write_t* req, uv_stream_t* handle, uv_buf_t bufs[],int bufcnt, uv_stream_t* send_handle, uv_write_cb cb);
-* UV_EXTERN int uv_queue_work(uv_loop_t* loop, uv_work_t* req, uv_work_cb work_cb, uv_after_work_cb after_work_cb);
 * UV_EXTERN int uv_is_closing(const uv_handle_t* handle);
 
-# Not support
+# Not supported
 
 * UV_EXTERN void uv_once(uv_once_t* guard, void (*callback)(void));
 we don't support thread. so this function does not need.
