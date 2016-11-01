@@ -611,14 +611,26 @@ static void php_uv_lock_lock(enum php_uv_lock_type lock_type, INTERNAL_FUNCTION_
 		case IS_UV_RWLOCK:
 		case IS_UV_RWLOCK_RD:
 		{
+			if (lock->locked == 0x01) {
+				zend_error(E_WARNING, "Cannot acquire a read lock while holding a write lock");
+				RETURN_FALSE;
+			}
+
 			uv_rwlock_rdlock(PHP_UV_LOCK_RWLOCK_P(lock));
-			lock->locked = 0x01;
+			if (!lock->locked++) {
+				lock->locked = 0x02;
+			}
 		}
 		break;
 		case IS_UV_RWLOCK_WR:
 		{
+			if (lock->locked) {
+				zend_error(E_WARNING, "Cannot acquire a write lock when already holding a lock");
+				RETURN_FALSE;
+			}
+
 			uv_rwlock_wrlock(PHP_UV_LOCK_RWLOCK_P(lock));
-			lock->locked = 0x02;
+			lock->locked = 0x01;
 		}
 		break;
 		case IS_UV_MUTEX:
@@ -654,15 +666,17 @@ static void php_uv_lock_unlock(enum php_uv_lock_type  lock_type, INTERNAL_FUNCTI
 		case IS_UV_RWLOCK:
 		case IS_UV_RWLOCK_RD:
 		{
-			if (lock->locked == 0x01) {
+			if (lock->locked > 0x01) {
 				uv_rwlock_rdunlock(PHP_UV_LOCK_RWLOCK_P(lock));
-				lock->locked = 0x00;
+				if (--lock->locked == 0x01) {
+					lock->locked = 0x00;
+				}
 			}
 		}
 		break;
 		case IS_UV_RWLOCK_WR:
 		{
-			if (lock->locked == 0x02) {
+			if (lock->locked == 0x01) {
 				uv_rwlock_wrunlock(PHP_UV_LOCK_RWLOCK_P(lock));
 				lock->locked = 0x00;
 			}
@@ -704,9 +718,16 @@ static void php_uv_lock_trylock(enum php_uv_lock_type lock_type, INTERNAL_FUNCTI
 		case IS_UV_RWLOCK:
 		case IS_UV_RWLOCK_RD:
 		{
+			if (lock->locked == 0x01) {
+				zend_error(E_WARNING, "Cannot acquire a read lock while holding a write lock");
+				RETURN_FALSE;
+			}
+
 			error = uv_rwlock_tryrdlock(PHP_UV_LOCK_RWLOCK_P(lock));
 			if (error == 0) {
-				lock->locked = 0x01;
+				if (!lock->locked++) {
+					lock->locked = 0x02;
+				}
 				RETURN_TRUE;
 			} else {
 				RETURN_FALSE;
@@ -715,9 +736,14 @@ static void php_uv_lock_trylock(enum php_uv_lock_type lock_type, INTERNAL_FUNCTI
 		break;
 		case IS_UV_RWLOCK_WR:
 		{
+			if (lock->locked) {
+				zend_error(E_WARNING, "Cannot acquire a write lock when already holding a lock");
+				RETURN_FALSE;
+			}
+
 			error = uv_rwlock_trywrlock(PHP_UV_LOCK_RWLOCK_P(lock));
 			if (error == 0) {
-				lock->locked = 0x02;
+				lock->locked = 0x01;
 				RETURN_TRUE;
 			} else {
 				RETURN_FALSE;
@@ -1152,27 +1178,25 @@ void static destruct_uv_lock(zend_resource *rsrc)
 
 	if (lock->type == IS_UV_RWLOCK) {
 		if (lock->locked == 0x01) {
-			php_error_docref(NULL, E_NOTICE, "uv_rwlock: unlocked resoruce detected. force rdunlock resource.");
-			uv_rwlock_rdunlock(PHP_UV_LOCK_RWLOCK_P(lock));
-			lock->locked = 0x00;
-		} else if (lock->locked == 0x02) {
-			php_error_docref(NULL, E_NOTICE, "uv_rwlock: unlocked resoruce detected. force wrunlock resource.");
+			php_error_docref(NULL, E_NOTICE, "uv_rwlock: still locked resource detected; forcing wrunlock");
 			uv_rwlock_wrunlock(PHP_UV_LOCK_RWLOCK_P(lock));
-			lock->locked = 0x00;
+		} else if (lock->locked) {
+			php_error_docref(NULL, E_NOTICE, "uv_rwlock: still locked resource detected; forcing rdunlock");
+			while (--lock->locked > 0) {
+				uv_rwlock_rdunlock(PHP_UV_LOCK_RWLOCK_P(lock));
+			}
 		}
 		uv_rwlock_destroy(PHP_UV_LOCK_RWLOCK_P(lock));
 	} else if (lock->type == IS_UV_MUTEX) {
 		if (lock->locked == 0x01) {
-			php_error_docref(NULL, E_NOTICE, "uv_mutex: unlocked resoruce detected. force unlock resource.");
+			php_error_docref(NULL, E_NOTICE, "uv_mutex: still locked resource detected; forcing unlock");
 			uv_mutex_unlock(PHP_UV_LOCK_MUTEX_P(lock));
-			lock->locked = 0x00;
 		}
 		uv_mutex_destroy(PHP_UV_LOCK_MUTEX_P(lock));
 	} else if (lock->type == IS_UV_SEMAPHORE) {
 		if (lock->locked == 0x01) {
-			php_error_docref(NULL, E_NOTICE, "uv_sem: unlocked resoruce detected. force unlock resource.");
+			php_error_docref(NULL, E_NOTICE, "uv_sem: still locked resource detected; forcing unlock");
 			uv_sem_post(PHP_UV_LOCK_SEM_P(lock));
-			lock->locked = 0x00;
 		}
 		uv_sem_destroy(PHP_UV_LOCK_SEM_P(lock));
 	}

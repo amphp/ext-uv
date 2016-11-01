@@ -1,5 +1,7 @@
 --TEST--
 Check for uv_rwlock
+--INI--
+track_errors=0
 --FILE--
 <?php
 $lock = uv_rwlock_init();
@@ -21,3 +23,5 @@ uv_rwlock_rdunlock($lock);
 --EXPECT--
 OK
 OK
+
+Notice: Unknown: uv_rwlock: still locked resource detected; forcing rdunlock in Unknown on line 0
