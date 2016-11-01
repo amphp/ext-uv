@@ -62,12 +62,12 @@ if test $PHP_UV != "no"; then
 
     PHP_CHECK_LIBRARY(uv, uv_version,
     [
-      PHP_ADD_LIBRARY_WITH_PATH(uv, $UV_DIR/lib, UV_SHARED_LIBADD)
+      PHP_ADD_LIBRARY_WITH_PATH(uv, $UV_DIR/$PHP_LIBDIR, UV_SHARED_LIBADD)
       AC_DEFINE(HAVE_UVLIB,1,[ ])
     ],[
       AC_MSG_ERROR([wrong uv library version or library not found])
     ],[
-      -L$UV_DIR/lib -lm
+      -L$UV_DIR/$PHP_LIBDIR -lm
     ])
 
 	case $host in
