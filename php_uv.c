@@ -2096,10 +2096,6 @@ static void php_uv_close_cb(uv_handle_t *handle)
 
 	uv->in_free = -1;
 
-	if (GC_REFCOUNT(uv->resource_id) > 1) { /* may have been freed inside close callback; avoid double free */
-		zend_list_delete(uv->resource_id);
-	}
-
 	zval_ptr_dtor(&params[0]); /* call destruct_uv */
 }
 
@@ -3318,10 +3314,8 @@ PHP_FUNCTION(uv_ref)
 	}
 	if ((loop = (uv_loop_t *) zend_fetch_resource_ex(handle, NULL, uv_loop_handle))) {
 		uv_ref((uv_handle_t *)loop);
-		zend_list_delete(Z_RES_P(handle));
 	} else if ((uv = (php_uv_t *) zend_fetch_resource_ex(handle, NULL, uv_resource_handle))) {
 		uv_ref((uv_handle_t *)php_uv_get_current_stream(uv));
-		GC_REFCOUNT(uv->resource_id)++;
 	} else {
 		php_error_docref(NULL, E_ERROR, "passes unexpected resource.");
 	}
