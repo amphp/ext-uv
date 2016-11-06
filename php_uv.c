@@ -195,7 +195,7 @@ ZEND_DECLARE_MODULE_GLOBALS(uv);
 #if PHP_UV_DEBUG>=1
 #define PHP_UV_DEBUG_RESOURCE_REFCOUNT(name, resource_id) \
 	{ \
-		printf("# %s del(%p): %u->%u\n", #name, resource_id, GC_REFCOUNT(resource_id), GC_REFCOUNT(resource_id) - 1); \
+		PHP_UV_DEBUG_PRINT("# %s del(%p): %u->%u\n", #name, resource_id, GC_REFCOUNT(resource_id), GC_REFCOUNT(resource_id) - 1); \
 	}
 #else
 #define PHP_UV_DEBUG_RESOURCE_REFCOUNT(name, resource_id)
@@ -1232,7 +1232,8 @@ void static clean_uv_handle(php_uv_t *obj) {
 	}
 
 	if (obj->resource_id) {
-		obj->resource_id = 0;
+		obj->resource_id->ptr = NULL;
+		obj->resource_id = NULL;
 	}
 }
 
@@ -6160,6 +6161,8 @@ PHP_FUNCTION(uv_poll_init)
 
 	uv->uv.poll.data = uv;
 	uv->sock = fd;
+	PHP_UV_DEBUG_PRINT("uv_poll_init: resource: %p\n", uv->resource_id);
+
 	ZVAL_RES(return_value, uv->resource_id);
 }
 
