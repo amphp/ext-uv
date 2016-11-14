@@ -10,11 +10,11 @@
   <email>bobwei9@hotmail.com</email>
   <active>yes</active>
  </lead>
- <date>2016-11-01</date>
- <time>16:00:00</time>
+ <date>2016-11-14</date>
+ <time>13:00:00</time>
  <version>
-  <release>0.1.0</release>
-  <api>0.1.0</api>
+  <release>0.1.1</release>
+  <api>0.1.1</api>
  </version>
  <stability>
   <release>beta</release>
@@ -22,7 +22,8 @@
  </stability>
  <license uri="http://www.php.net/license">PHP License</license>
  <notes>
-- initial pecl release
+- A few fixes regarding refcounting of uv resources
+- A better config.m4
  </notes>
  <contents>
   <dir name="/">
