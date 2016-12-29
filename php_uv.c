@@ -3473,10 +3473,7 @@ PHP_FUNCTION(uv_loop_delete)
 	PHP_UV_FETCH_UV_DEFAULT_LOOP(loop, zloop);
 
 	if (loop != UV_G(default_loop)) {
-		/* uv_loop_delete deprecated with libuv 1.0 */
-		//uv_loop_delete(loop);
-		uv_loop_close(loop);
-		efree(loop);
+		zend_list_close(Z_RES_P(zloop));
 	}
 }
 /* }}} */
@@ -3713,12 +3710,15 @@ PHP_FUNCTION(uv_close)
 		RETURN_FALSE;
 	}
 
+	if (uv_is_closing(&uv->uv.handle)) {
+		php_error_docref(NULL, E_WARNING, "passed resource is already closing");
+		RETURN_FALSE;
+	}
+
 	GC_REFCOUNT(uv->resource_id)++;
 	php_uv_cb_init(&cb, uv, &fci, &fcc, PHP_UV_CLOSE_CB);
 
-	if (!uv_is_closing(&uv->uv.handle)) {
-		uv_close((uv_handle_t*)php_uv_get_current_stream(uv), (uv_close_cb)php_uv_close_cb);
-	}
+	uv_close((uv_handle_t*)php_uv_get_current_stream(uv), (uv_close_cb)php_uv_close_cb);
 }
 /* }}} */
 
