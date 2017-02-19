@@ -100,7 +100,7 @@ ZEND_DECLARE_MODULE_GLOBALS(uv);
 	w = emalloc(sizeof(write_req_t)); \
 	w->req.data = uv; \
 	w->buf = uv_buf_init(estrndup(str, strlen), strlen); \
-    w->cb = cb; \
+	w->cb = cb; \
 
 #define PHP_UV_INIT_SEND_REQ(w, uv, str, strlen) \
 	w = emalloc(sizeof(send_req_t)); \
@@ -220,7 +220,7 @@ extern void php_uv_init();
 typedef struct {
 	uv_write_t req;
 	uv_buf_t buf;
-    php_uv_cb_t *cb;
+	php_uv_cb_t *cb;
 } write_req_t;
 
 typedef struct {
@@ -538,7 +538,7 @@ static php_uv_cb_t* php_uv_cb_init_dynamic(
 		}
 	}
 
-    return cb;
+	return cb;
 }
 
 static void php_uv_cb_init(php_uv_cb_t **result, php_uv_t *uv, zend_fcall_info *fci, zend_fcall_info_cache *fcc, enum php_uv_callback_type type)
@@ -1340,16 +1340,16 @@ static int php_uv_do_callback(zval *retval_ptr, php_uv_cb_t *callback, zval *par
 	void *old = tsrm_set_interpreter_context(tsrm_ls);
 #endif
 
-    if (ZEND_FCI_INITIALIZED(callback->fci)) {
-        callback->fci.params = params;
-        callback->fci.retval = retval_ptr;
-        callback->fci.param_count = param_count;
-        callback->fci.no_separation = 1;
+	if (ZEND_FCI_INITIALIZED(callback->fci)) {
+		callback->fci.params = params;
+		callback->fci.retval = retval_ptr;
+		callback->fci.param_count = param_count;
+		callback->fci.no_separation = 1;
 
-        error = zend_call_function(&callback->fci, &callback->fcc);
-    } else {
-        error = -1;
-    }
+		error = zend_call_function(&callback->fci, &callback->fcc);
+	} else {
+		error = -1;
+	}
 
 #ifdef ZTS
 	tsrm_set_interpreter_context(old);
@@ -1549,7 +1549,7 @@ static void php_uv_write_cb(uv_write_t* req, int status)
 	ZVAL_RES(&params[0], uv->resource_id);
 	ZVAL_LONG(&params[1], status);
 
-    php_uv_do_callback(&retval, wr->cb, params, 2 TSRMLS_CC);
+	php_uv_do_callback(&retval, wr->cb, params, 2 TSRMLS_CC);
 
 	zval_ptr_dtor(&retval);
 
@@ -1560,7 +1560,7 @@ static void php_uv_write_cb(uv_write_t* req, int status)
 		efree(wr->buf.base);
 	}
 
-    if (wr->cb && wr->cb->fci.size > 0) {
+	if (wr->cb && wr->cb->fci.size > 0) {
 		zval_ptr_dtor(&wr->cb->fci.function_name);
 		if (wr->cb->fci.object) {
 			zval tmp;
@@ -1570,8 +1570,8 @@ static void php_uv_write_cb(uv_write_t* req, int status)
 		}
 		wr->cb->fci.size = 0;
 
-        efree(wr->cb);
-    }
+		efree(wr->cb);
+	}
 
 	efree(wr);
 
