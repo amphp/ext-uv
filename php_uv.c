@@ -1560,7 +1560,21 @@ static void php_uv_write_cb(uv_write_t* req, int status)
 		efree(wr->buf.base);
 	}
 
+    if (wr->cb && wr->cb->fci.size > 0) {
+		zval_ptr_dtor(&wr->cb->fci.function_name);
+		if (wr->cb->fci.object) {
+			zval tmp;
+
+			ZVAL_OBJ(&tmp, wr->cb->fci.object);
+			zval_ptr_dtor(&tmp);
+		}
+		wr->cb->fci.size = 0;
+
+        efree(wr->cb);
+    }
+
 	efree(wr);
+
 	PHP_UV_DEBUG_RESOURCE_REFCOUNT(uv_write_cb, uv->resource_id);
 }
 
