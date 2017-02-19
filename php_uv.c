@@ -96,10 +96,11 @@ ZEND_DECLARE_MODULE_GLOBALS(uv);
 	req = (uv_connect_t*)emalloc(sizeof(uv_connect_t)); \
 	req->data = uv;
 
-#define PHP_UV_INIT_WRITE_REQ(w, uv, str, strlen) \
+#define PHP_UV_INIT_WRITE_REQ(w, uv, str, strlen, cb) \
 	w = emalloc(sizeof(write_req_t)); \
 	w->req.data = uv; \
 	w->buf = uv_buf_init(estrndup(str, strlen), strlen); \
+    w->cb = cb; \
 
 #define PHP_UV_INIT_SEND_REQ(w, uv, str, strlen) \
 	w = emalloc(sizeof(send_req_t)); \
@@ -219,6 +220,7 @@ extern void php_uv_init();
 typedef struct {
 	uv_write_t req;
 	uv_buf_t buf;
+    php_uv_cb_t *cb;
 } write_req_t;
 
 typedef struct {
@@ -278,12 +280,12 @@ static void php_uv_fs_cb(uv_fs_t* req);
  * execute callback
  *
  * @param zval* retval_ptr non-initialized pointer. this will be allocate from zend_call_function
- * @param zval* callback callable object
+ * @param php_uv_cb_t* callback callable object
  * @param zval* params parameters.
  * @param int param_count
  * @return int (maybe..)
  */
-/* unused: static int php_uv_do_callback(zval *retval_ptr, zval *callback, zval *params, int param_count TSRMLS_DC); */
+static int php_uv_do_callback(zval *retval_ptr, php_uv_cb_t *callback, zval *params, int param_count TSRMLS_DC);
 
 void static destruct_uv(zend_resource *rsrc);
 
@@ -517,6 +519,26 @@ static inline int php_uv_common_init(php_uv_t **result, uv_loop_t *loop, enum ph
 cleanup:
 	efree(uv);
 	return r;
+}
+
+static php_uv_cb_t* php_uv_cb_init_dynamic(
+		php_uv_t *uv,
+		zend_fcall_info *fci,
+		zend_fcall_info_cache *fcc
+) {
+	php_uv_cb_t *cb = emalloc(sizeof(php_uv_cb_t));
+
+	memcpy(&cb->fci, fci, sizeof(zend_fcall_info));
+	memcpy(&cb->fcc, fcc, sizeof(zend_fcall_info_cache));
+
+	if (ZEND_FCI_INITIALIZED(*fci)) {
+		Z_TRY_ADDREF(cb->fci.function_name);
+		if (fci->object) {
+			GC_REFCOUNT(cb->fci.object)++;
+		}
+	}
+
+    return cb;
 }
 
 static void php_uv_cb_init(php_uv_cb_t **result, php_uv_t *uv, zend_fcall_info *fci, zend_fcall_info_cache *fcc, enum php_uv_callback_type type)
@@ -1310,28 +1332,24 @@ void static destruct_uv(zend_resource *rsrc)
 }
 
 /* callback */
-
-/* unused
-static int php_uv_do_callback(zval *retval_ptr, zval *callback, zval *params, int param_count TSRMLS_DC)
+static int php_uv_do_callback(zval *retval_ptr, php_uv_cb_t *callback, zval *params, int param_count TSRMLS_DC)
 {
-	zend_fcall_info fci;
-	zend_fcall_info_cache fcc;
-	char *is_callable_error = NULL;
 	int error;
+
 #ifdef ZTS
 	void *old = tsrm_set_interpreter_context(tsrm_ls);
 #endif
 
-	if(zend_fcall_info_init(callback, 0, &fci, &fcc, NULL, &is_callable_error) == SUCCESS) {
-		if (is_callable_error) {
-			php_error_docref(NULL, E_ERROR, "to be a valid callback");
-		}
-	}
-	fci.retval = retval_ptr;
-	fci.params = params;
-	fci.param_count = param_count;
+    if (ZEND_FCI_INITIALIZED(callback->fci)) {
+        callback->fci.params = params;
+        callback->fci.retval = retval_ptr;
+        callback->fci.param_count = param_count;
+        callback->fci.no_separation = 1;
 
-	error = zend_call_function(&fci, &fcc);
+        error = zend_call_function(&callback->fci, &callback->fcc);
+    } else {
+        error = -1;
+    }
 
 #ifdef ZTS
 	tsrm_set_interpreter_context(old);
@@ -1339,7 +1357,6 @@ static int php_uv_do_callback(zval *retval_ptr, zval *callback, zval *params, in
 
 	return error;
 }
-*/
 
 static int php_uv_do_callback2(zval *retval_ptr, php_uv_t *uv, zval *params, int param_count, enum php_uv_callback_type type TSRMLS_DC)
 {
@@ -1532,7 +1549,7 @@ static void php_uv_write_cb(uv_write_t* req, int status)
 	ZVAL_RES(&params[0], uv->resource_id);
 	ZVAL_LONG(&params[1], status);
 
-	php_uv_do_callback2(&retval, uv, params, 2, PHP_UV_WRITE_CB TSRMLS_CC);
+    php_uv_do_callback(&retval, wr->cb, params, 2 TSRMLS_CC);
 
 	zval_ptr_dtor(&retval);
 
@@ -3542,9 +3559,8 @@ PHP_FUNCTION(uv_write)
 
 	GC_REFCOUNT(uv->resource_id)++;
 
-	php_uv_cb_init(&cb, uv, &fci, &fcc, PHP_UV_WRITE_CB);
-
-	PHP_UV_INIT_WRITE_REQ(w, uv, data->val, data->len)
+	cb = php_uv_cb_init_dynamic(uv, &fci, &fcc);
+	PHP_UV_INIT_WRITE_REQ(w, uv, data->val, data->len, cb)
 
 	r = uv_write(&w->req, (uv_stream_t*)php_uv_get_current_stream(uv), &w->buf, 1, php_uv_write_cb);
 	if (r) {
@@ -3584,7 +3600,7 @@ PHP_FUNCTION(uv_write2)
 	GC_REFCOUNT(uv->resource_id)++;
 
 	php_uv_cb_init(&cb, uv, &fci, &fcc, PHP_UV_WRITE_CB);
-	PHP_UV_INIT_WRITE_REQ(w, uv, data->val, data->len)
+	PHP_UV_INIT_WRITE_REQ(w, uv, data->val, data->len, cb);
 
 	r = uv_write2(&w->req, (uv_stream_t*)php_uv_get_current_stream(uv), &w->buf, 1, (uv_stream_t*)php_uv_get_current_stream(send), php_uv_write_cb);
 	if (r) {
