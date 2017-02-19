@@ -3613,7 +3613,7 @@ PHP_FUNCTION(uv_write2)
 	send = (php_uv_t *) zend_fetch_resource_ex(z_send, PHP_UV_RESOURCE_NAME, uv_resource_handle);
 	GC_REFCOUNT(uv->resource_id)++;
 
-	php_uv_cb_init(&cb, uv, &fci, &fcc, PHP_UV_WRITE_CB);
+    cb = php_uv_cb_init_dynamic(uv, &fci, &fcc);
 	PHP_UV_INIT_WRITE_REQ(w, uv, data->val, data->len, cb);
 
 	r = uv_write2(&w->req, (uv_stream_t*)php_uv_get_current_stream(uv), &w->buf, 1, (uv_stream_t*)php_uv_get_current_stream(send), php_uv_write_cb);
