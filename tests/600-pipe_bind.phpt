@@ -11,6 +11,10 @@ uv_listen($a, 8192, function($stream) {
     $pipe = uv_pipe_init(uv_default_loop(), 0);
     uv_accept($stream, $pipe);
     uv_read_start($pipe,function($pipe, $nread, $buffer) use ($stream) {
+        if ($nread === \UV::EOF) {
+            return;
+        }
+
         echo $buffer;
         uv_read_stop($pipe);
         uv_close($stream, function() {
