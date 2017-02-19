@@ -25,13 +25,13 @@ class TestCase {
 }
 
 $t = new TestCase;
-$memory = memory_get_usage(true);
+$memory = memory_get_usage();
 
 $t->run();
 echo $t->counter, PHP_EOL;
 unset($t);
 
-echo $memory - memory_get_usage(true), PHP_EOL;
+echo memory_get_usage() - $memory, PHP_EOL;
 --EXPECTF--
 1000
 0
