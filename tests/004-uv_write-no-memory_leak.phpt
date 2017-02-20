@@ -9,7 +9,7 @@ class TestCase {
         $loop = uv_loop_new();
 
         $handler = uv_pipe_init($loop, false);
-        uv_pipe_open($handler, (int) STDIN);
+        uv_pipe_open($handler, (int) STDOUT);
 
         $a = 0;
 

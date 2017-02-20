@@ -5,7 +5,7 @@ Check for uv_write multiple call with different callbacks
 $loop = uv_loop_new();
 
 $handler = uv_pipe_init($loop, false);
-uv_pipe_open($handler, (int) STDIN);
+uv_pipe_open($handler, (int) STDOUT);
 
 uv_write($handler, 'A', function () { echo 'A'; });
 uv_write($handler, 'B', function () { echo 'B'; });
