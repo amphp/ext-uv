@@ -4667,13 +4667,14 @@ PHP_FUNCTION(uv_pipe_init)
 }
 /* }}} */
 
-/* {{{ proto void uv_pipe_open(resource $handle, long $pipe)
+/* {{{ proto int|false uv_pipe_open(resource $handle, long $pipe)
 */
 PHP_FUNCTION(uv_pipe_open)
 {
 	php_uv_t *uv;
 	zval *handle;
 	long pipe = -1; // file handle
+	int error;
 
 	if (zend_parse_parameters(ZEND_NUM_ARGS(),
 		"rl", &handle, &pipe) == FAILURE) {
@@ -4689,7 +4690,13 @@ PHP_FUNCTION(uv_pipe_open)
 		RETURN_FALSE;
 	}
 
-	uv_pipe_open(&uv->uv.pipe, pipe);
+	error = uv_pipe_open(&uv->uv.pipe, pipe);
+
+	if (error) {
+		php_error_docref(NULL, E_WARNING, "%s", php_uv_strerror(error));
+	}
+
+	RETURN_LONG(error);
 }
 /* }}} */
 
