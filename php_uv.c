@@ -1585,7 +1585,8 @@ static void php_uv_listen_cb(uv_stream_t* server, int status)
 
 	php_uv_do_callback2(&retval, uv, params, 2, PHP_UV_LISTEN_CB TSRMLS_CC);
 
-	zval_ptr_dtor(&params[0]);
+	PHP_UV_DEBUG_RESOURCE_REFCOUNT(uv_listen_cb, uv->resource_id);
+
 	zval_ptr_dtor(&params[1]);
 	zval_ptr_dtor(&retval);
 }
