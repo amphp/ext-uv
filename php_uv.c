@@ -2097,6 +2097,10 @@ static void php_uv_close_cb(uv_handle_t *handle)
 
 	uv->in_free = -1;
 
+	if (GC_REFCOUNT(uv->resource_id) > 1) {
+		zend_list_delete(uv->resource_id);
+	}
+
 	zval_ptr_dtor(&params[0]); /* call destruct_uv */
 }
 
@@ -5623,6 +5627,7 @@ PHP_FUNCTION(uv_async_init)
 
 	ZVAL_RES(return_value, uv->resource_id);
 	GC_REFCOUNT(uv->resource_id)++;
+	PHP_UV_DEBUG_RESOURCE_REFCOUNT(uv_async_init, uv->resource_id);
 }
 /* }}} */
 
