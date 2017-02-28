@@ -2096,7 +2096,29 @@ static void php_uv_close_cb(uv_handle_t *handle)
 
 	PHP_UV_DEBUG_RESOURCE_REFCOUNT(uv_close_cb, uv->resource_id);
 
+	switch (uv->type) {
+		case IS_UV_SIGNAL:
+		case IS_UV_TIMER:
+		case IS_UV_IDLE:
+		case IS_UV_UDP:
+		case IS_UV_TCP:
+		case IS_UV_TTY:
+		case IS_UV_PIPE:
+		case IS_UV_PREPARE:
+		case IS_UV_CHECK:
+		case IS_UV_POLL:
+		case IS_UV_FS_POLL:
+			if (!uv_is_active(&uv->uv.handle)) {
+				break;
+			}
+		case IS_UV_ASYNC:
+			--GC_REFCOUNT(uv->resource_id);
+			break;
+
+	}
+
 	uv->in_free = -1;
+	zend_list_close(uv->resource_id);
 
 	zval_ptr_dtor(&params[0]); /* call destruct_uv */
 }
@@ -5624,6 +5646,7 @@ PHP_FUNCTION(uv_async_init)
 
 	ZVAL_RES(return_value, uv->resource_id);
 	GC_REFCOUNT(uv->resource_id)++;
+	PHP_UV_DEBUG_RESOURCE_REFCOUNT(uv_async_init, uv->resource_id);
 }
 /* }}} */
 
