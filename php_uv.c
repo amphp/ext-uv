@@ -56,7 +56,7 @@ ZEND_DECLARE_MODULE_GLOBALS(uv);
 	}
 
 #define PHP_UV_DEINIT_UV() \
-	uv->in_free = 1; \
+	uv->in_free = -1; \
 	zend_list_delete(uv->resource_id); \
 	efree(uv);
 
@@ -96,10 +96,11 @@ ZEND_DECLARE_MODULE_GLOBALS(uv);
 	req = (uv_connect_t*)emalloc(sizeof(uv_connect_t)); \
 	req->data = uv;
 
-#define PHP_UV_INIT_WRITE_REQ(w, uv, str, strlen) \
+#define PHP_UV_INIT_WRITE_REQ(w, uv, str, strlen, cb) \
 	w = emalloc(sizeof(write_req_t)); \
 	w->req.data = uv; \
 	w->buf = uv_buf_init(estrndup(str, strlen), strlen); \
+	w->cb = cb; \
 
 #define PHP_UV_INIT_SEND_REQ(w, uv, str, strlen) \
 	w = emalloc(sizeof(send_req_t)); \
@@ -219,6 +220,7 @@ extern void php_uv_init();
 typedef struct {
 	uv_write_t req;
 	uv_buf_t buf;
+	php_uv_cb_t *cb;
 } write_req_t;
 
 typedef struct {
@@ -278,12 +280,12 @@ static void php_uv_fs_cb(uv_fs_t* req);
  * execute callback
  *
  * @param zval* retval_ptr non-initialized pointer. this will be allocate from zend_call_function
- * @param zval* callback callable object
+ * @param php_uv_cb_t* callback callable object
  * @param zval* params parameters.
  * @param int param_count
  * @return int (maybe..)
  */
-/* unused: static int php_uv_do_callback(zval *retval_ptr, zval *callback, zval *params, int param_count TSRMLS_DC); */
+static int php_uv_do_callback(zval *retval_ptr, php_uv_cb_t *callback, zval *params, int param_count TSRMLS_DC);
 
 void static destruct_uv(zend_resource *rsrc);
 
@@ -303,7 +305,7 @@ static void php_uv_read_cb(uv_stream_t* handle, ssize_t nread,const uv_buf_t* bu
 
 static void php_uv_read_alloc(uv_handle_t* handle, size_t suggested_size, uv_buf_t* buf);
 
-static void php_uv_close_cb(uv_handle_t *handle);
+static void php_uv_close(php_uv_t *uv);
 
 static void php_uv_timer_cb(uv_timer_t *handle);
 
@@ -517,6 +519,26 @@ static inline int php_uv_common_init(php_uv_t **result, uv_loop_t *loop, enum ph
 cleanup:
 	efree(uv);
 	return r;
+}
+
+static php_uv_cb_t* php_uv_cb_init_dynamic(
+		php_uv_t *uv,
+		zend_fcall_info *fci,
+		zend_fcall_info_cache *fcc
+) {
+	php_uv_cb_t *cb = emalloc(sizeof(php_uv_cb_t));
+
+	memcpy(&cb->fci, fci, sizeof(zend_fcall_info));
+	memcpy(&cb->fcc, fcc, sizeof(zend_fcall_info_cache));
+
+	if (ZEND_FCI_INITIALIZED(*fci)) {
+		Z_TRY_ADDREF(cb->fci.function_name);
+		if (fci->object) {
+			GC_REFCOUNT(cb->fci.object)++;
+		}
+	}
+
+	return cb;
 }
 
 static void php_uv_cb_init(php_uv_cb_t **result, php_uv_t *uv, zend_fcall_info *fci, zend_fcall_info_cache *fcc, enum php_uv_callback_type type)
@@ -1204,48 +1226,11 @@ void static destruct_uv_lock(zend_resource *rsrc)
 	efree(lock);
 }
 
-void static clean_uv_handle(php_uv_t *obj) {
-	int i;
-
-	/* for now */
-	for (i = 0; i < PHP_UV_CB_MAX; i++) {
-		php_uv_cb_t *cb = obj->callback[i];
-		if (cb != NULL) {
-			zval_dtor(&cb->fci.function_name);
-
-			if (cb->fci.object != NULL) {
-				OBJ_RELEASE(cb->fci.object);
-			}
-
-			efree(cb);
-			cb = NULL;
-		}
-	}
-
-	if (obj->in_free == 0) {
-		obj->in_free = 1;
-	}
-
-	if (obj->fs_fd != NULL) {
-		zend_list_delete(obj->fs_fd);
-		obj->fs_fd = NULL;
-	}
-
-	if (obj->resource_id) {
-		obj->resource_id->ptr = NULL;
-		obj->resource_id = NULL;
-	}
-}
-
 static void destruct_uv_loop_walk_cb(uv_handle_t* handle, void* arg) 
 {
-	php_uv_t *obj = (php_uv_t *) handle->data;
-	if (obj->in_free == 0) {
-		clean_uv_handle(obj);
-	}
-
-	if (!uv_is_closing(handle)) {
-		uv_close(handle, php_uv_close_cb);
+	php_uv_t *uv = (php_uv_t *) handle->data;
+	if (uv->in_free == 0) { // otherwise we're already closing
+		zend_list_close(uv->resource_id);
 	}
 }
 
@@ -1279,6 +1264,39 @@ static uv_loop_t *php_uv_default_loop()
 	return UV_G(default_loop);
 }
 
+void static clean_uv_handle(php_uv_t *obj) {
+	int i;
+
+	/* for now */
+	for (i = 0; i < PHP_UV_CB_MAX; i++) {
+		php_uv_cb_t *cb = obj->callback[i];
+		if (cb != NULL) {
+			zval_dtor(&cb->fci.function_name);
+
+			if (cb->fci.object != NULL) {
+				OBJ_RELEASE(cb->fci.object);
+			}
+
+			efree(cb);
+			cb = NULL;
+		}
+	}
+
+	if (obj->in_free == 0) {
+		obj->in_free = 1;
+	}
+
+	if (obj->fs_fd != NULL) {
+		zend_list_delete(obj->fs_fd);
+		obj->fs_fd = NULL;
+	}
+
+	if (obj->resource_id) {
+		obj->resource_id->ptr = NULL;
+		obj->resource_id = NULL;
+	}
+}
+
 void static destruct_uv(zend_resource *rsrc)
 {
 	php_uv_t *obj = NULL;
@@ -1290,48 +1308,43 @@ void static destruct_uv(zend_resource *rsrc)
 
 	PHP_UV_DEBUG_PRINT("# will be free: (resource_id: %p)\n", obj->resource_id);
 
-	if (obj->in_free > 0) {
-		PHP_UV_DEBUG_PRINT("# resource_id: %p is freeing. prevent double free.\n", obj->resource_id);
-		return;
-	}
-
-	clean_uv_handle(obj);
+	ZEND_ASSERT(obj->in_free <= 0);
 
 	if (obj->in_free < 0) {
+		clean_uv_handle(obj);
 		efree(obj);
 	} else if (!php_uv_closeable_type(obj)) {
+		clean_uv_handle(obj);
 		if (uv_cancel(&obj->uv.req) != UV_EBUSY) {
 			efree(obj);
 		}
 	} else if (!uv_is_closing(&obj->uv.handle)) {
-		uv_close(&obj->uv.handle, php_uv_close_cb);
+		php_uv_close(obj);
+		zend_list_delete(rsrc);
+		clean_uv_handle(obj);
 	}
 	rsrc->ptr = NULL;
 }
 
 /* callback */
-
-/* unused
-static int php_uv_do_callback(zval *retval_ptr, zval *callback, zval *params, int param_count TSRMLS_DC)
+static int php_uv_do_callback(zval *retval_ptr, php_uv_cb_t *callback, zval *params, int param_count TSRMLS_DC)
 {
-	zend_fcall_info fci;
-	zend_fcall_info_cache fcc;
-	char *is_callable_error = NULL;
 	int error;
+
 #ifdef ZTS
 	void *old = tsrm_set_interpreter_context(tsrm_ls);
 #endif
 
-	if(zend_fcall_info_init(callback, 0, &fci, &fcc, NULL, &is_callable_error) == SUCCESS) {
-		if (is_callable_error) {
-			php_error_docref(NULL, E_ERROR, "to be a valid callback");
-		}
-	}
-	fci.retval = retval_ptr;
-	fci.params = params;
-	fci.param_count = param_count;
+	if (ZEND_FCI_INITIALIZED(callback->fci)) {
+		callback->fci.params = params;
+		callback->fci.retval = retval_ptr;
+		callback->fci.param_count = param_count;
+		callback->fci.no_separation = 1;
 
-	error = zend_call_function(&fci, &fcc);
+		error = zend_call_function(&callback->fci, &callback->fcc);
+	} else {
+		error = -1;
+	}
 
 #ifdef ZTS
 	tsrm_set_interpreter_context(old);
@@ -1339,7 +1352,6 @@ static int php_uv_do_callback(zval *retval_ptr, zval *callback, zval *params, in
 
 	return error;
 }
-*/
 
 static int php_uv_do_callback2(zval *retval_ptr, php_uv_t *uv, zval *params, int param_count, enum php_uv_callback_type type TSRMLS_DC)
 {
@@ -1532,7 +1544,7 @@ static void php_uv_write_cb(uv_write_t* req, int status)
 	ZVAL_RES(&params[0], uv->resource_id);
 	ZVAL_LONG(&params[1], status);
 
-	php_uv_do_callback2(&retval, uv, params, 2, PHP_UV_WRITE_CB TSRMLS_CC);
+	php_uv_do_callback(&retval, wr->cb, params, 2 TSRMLS_CC);
 
 	zval_ptr_dtor(&retval);
 
@@ -1543,7 +1555,21 @@ static void php_uv_write_cb(uv_write_t* req, int status)
 		efree(wr->buf.base);
 	}
 
+	if (wr->cb && wr->cb->fci.size > 0) {
+		zval_ptr_dtor(&wr->cb->fci.function_name);
+		if (wr->cb->fci.object) {
+			zval tmp;
+
+			ZVAL_OBJ(&tmp, wr->cb->fci.object);
+			zval_ptr_dtor(&tmp);
+		}
+		wr->cb->fci.size = 0;
+
+		efree(wr->cb);
+	}
+
 	efree(wr);
+
 	PHP_UV_DEBUG_RESOURCE_REFCOUNT(uv_write_cb, uv->resource_id);
 }
 
@@ -2076,7 +2102,6 @@ static void php_uv_read_alloc(uv_handle_t* handle, size_t suggested_size, uv_buf
 	//return uv_buf_init(emalloc(suggested_size), suggested_size);
 }
 
-
 static void php_uv_close_cb(uv_handle_t *handle)
 {
 	zval retval = {{0}};
@@ -2096,7 +2121,15 @@ static void php_uv_close_cb(uv_handle_t *handle)
 
 	PHP_UV_DEBUG_RESOURCE_REFCOUNT(uv_close_cb, uv->resource_id);
 
+	zend_list_close(uv->resource_id); /* call destruct_uv */
+
+	zval_ptr_dtor(&params[0]);
+}
+
+static void php_uv_close(php_uv_t *uv) {
 	switch (uv->type) {
+		case IS_UV_ASYNC:
+			break;
 		case IS_UV_SIGNAL:
 		case IS_UV_TIMER:
 		case IS_UV_IDLE:
@@ -2108,21 +2141,16 @@ static void php_uv_close_cb(uv_handle_t *handle)
 		case IS_UV_CHECK:
 		case IS_UV_POLL:
 		case IS_UV_FS_POLL:
-			if (!uv_is_active(&uv->uv.handle)) {
+			if (uv_is_active(&uv->uv.handle)) {
 				break;
 			}
-		case IS_UV_ASYNC:
-			--GC_REFCOUNT(uv->resource_id);
-			break;
-
+		default:
+			++GC_REFCOUNT(uv->resource_id);
 	}
 
+	uv_close(&uv->uv.handle, php_uv_close_cb);
 	uv->in_free = -1;
-	zend_list_close(uv->resource_id);
-
-	zval_ptr_dtor(&params[0]); /* call destruct_uv */
 }
-
 
 static void php_uv_idle_cb(uv_timer_t *handle)
 {
@@ -3565,9 +3593,8 @@ PHP_FUNCTION(uv_write)
 
 	GC_REFCOUNT(uv->resource_id)++;
 
-	php_uv_cb_init(&cb, uv, &fci, &fcc, PHP_UV_WRITE_CB);
-
-	PHP_UV_INIT_WRITE_REQ(w, uv, data->val, data->len)
+	cb = php_uv_cb_init_dynamic(uv, &fci, &fcc);
+	PHP_UV_INIT_WRITE_REQ(w, uv, data->val, data->len, cb)
 
 	r = uv_write(&w->req, (uv_stream_t*)php_uv_get_current_stream(uv), &w->buf, 1, php_uv_write_cb);
 	if (r) {
@@ -3606,8 +3633,8 @@ PHP_FUNCTION(uv_write2)
 	send = (php_uv_t *) zend_fetch_resource_ex(z_send, PHP_UV_RESOURCE_NAME, uv_resource_handle);
 	GC_REFCOUNT(uv->resource_id)++;
 
-	php_uv_cb_init(&cb, uv, &fci, &fcc, PHP_UV_WRITE_CB);
-	PHP_UV_INIT_WRITE_REQ(w, uv, data->val, data->len)
+    cb = php_uv_cb_init_dynamic(uv, &fci, &fcc);
+	PHP_UV_INIT_WRITE_REQ(w, uv, data->val, data->len, cb);
 
 	r = uv_write2(&w->req, (uv_stream_t*)php_uv_get_current_stream(uv), &w->buf, 1, (uv_stream_t*)php_uv_get_current_stream(send), php_uv_write_cb);
 	if (r) {
@@ -3738,10 +3765,9 @@ PHP_FUNCTION(uv_close)
 		RETURN_FALSE;
 	}
 
-	GC_REFCOUNT(uv->resource_id)++;
 	php_uv_cb_init(&cb, uv, &fci, &fcc, PHP_UV_CLOSE_CB);
 
-	uv_close((uv_handle_t*)php_uv_get_current_stream(uv), (uv_close_cb)php_uv_close_cb);
+	php_uv_close(uv);
 }
 /* }}} */
 
