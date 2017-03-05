@@ -23,7 +23,7 @@
 #include "ext/standard/info.h"
 
 #ifndef PHP_UV_DEBUG
-#define PHP_UV_DEBUG 0
+#define PHP_UV_DEBUG 1
 #endif
 
 #ifdef ZTS
@@ -160,7 +160,8 @@ ZEND_DECLARE_MODULE_GLOBALS(uv);
 		for (ix = 0; ix < PHP_UV_CB_MAX; ix++) {\
 			uv->callback[ix] = NULL;\
 		} \
-		uv->fs_fd   = NULL; \
+		uv->fs_fd = NULL; \
+		uv->fs_fd_alt = NULL; \
 		uv->in_free = 0;\
 	}
 
@@ -185,7 +186,7 @@ ZEND_DECLARE_MODULE_GLOBALS(uv);
 #define PHP_UV_LOCK_MUTEX_P(resource) &resource->lock.mutex
 #define PHP_UV_LOCK_SEM_P(resource) &resource->lock.semaphore
 
-#define PHP_UV_FD_TO_ZVAL(zv, fd) { php_stream *_stream = php_stream_fopen_from_fd(fd, "w+", NULL); zval *_z = (zv); php_stream_to_zval(_stream, _z); Z_ADDREF_P(_z); }
+#define PHP_UV_FD_TO_ZVAL(zv, fd) { php_stream *_stream = php_stream_fopen_from_fd(fd, "w+", NULL); zval *_z = (zv); php_stream_to_zval(_stream, _z); }
 
 #if PHP_UV_DEBUG>=1
 #define PHP_UV_DEBUG_PRINT(format, ...) fprintf(stderr, format, ## __VA_ARGS__)
@@ -858,6 +859,8 @@ static void php_uv_fs_common(uv_fs_type fs_type, INTERNAL_FUNCTION_PARAMETERS)
 			PHP_UV_FS_PARSE_PARAMETERS("rrllf!", &zloop, &zstream, &mode, &fci, &fcc);
 			PHP_UV_FS_SETUP();
 			PHP_UV_ZVAL_TO_FD(fd, zstream);
+			uv->fs_fd = Z_RES_P(zstream);
+			++GC_REFCOUNT(uv->fs_fd);
 			PHP_UV_FS_ASYNC(loop, fchmod, fd, mode);
 			break;
 		}
@@ -903,6 +906,8 @@ static void php_uv_fs_common(uv_fs_type fs_type, INTERNAL_FUNCTION_PARAMETERS)
 			PHP_UV_FS_PARSE_PARAMETERS("rrlf", &zloop, &zstream, &offset, &fci, &fcc);
 			PHP_UV_FS_SETUP()
 			PHP_UV_ZVAL_TO_FD(fd, zstream);
+			uv->fs_fd = Z_RES_P(zstream);
+			++GC_REFCOUNT(uv->fs_fd);
 			PHP_UV_FS_ASYNC(loop, ftruncate, fd, offset);
 			break;
 		}
@@ -914,6 +919,8 @@ static void php_uv_fs_common(uv_fs_type fs_type, INTERNAL_FUNCTION_PARAMETERS)
 			PHP_UV_FS_PARSE_PARAMETERS("rrf", &zloop, &zstream, &fci, &fcc);
 			PHP_UV_FS_SETUP()
 			PHP_UV_ZVAL_TO_FD(fd, zstream);
+			uv->fs_fd = Z_RES_P(zstream);
+			++GC_REFCOUNT(uv->fs_fd);
 			PHP_UV_FS_ASYNC(loop, fdatasync, fd);
 			break;
 		}
@@ -925,6 +932,8 @@ static void php_uv_fs_common(uv_fs_type fs_type, INTERNAL_FUNCTION_PARAMETERS)
 			PHP_UV_FS_PARSE_PARAMETERS("rrf!", &zloop, &zstream, &fci, &fcc);
 			PHP_UV_FS_SETUP()
 			PHP_UV_ZVAL_TO_FD(fd, zstream);
+			uv->fs_fd = Z_RES_P(zstream);
+			++GC_REFCOUNT(uv->fs_fd);
 			PHP_UV_FS_ASYNC(loop, fsync, fd);
 			break;
 		}
@@ -936,6 +945,8 @@ static void php_uv_fs_common(uv_fs_type fs_type, INTERNAL_FUNCTION_PARAMETERS)
 			PHP_UV_FS_PARSE_PARAMETERS("rrf", &zloop, &zstream, &fci, &fcc);
 			PHP_UV_FS_SETUP()
 			PHP_UV_ZVAL_TO_FD(fd, zstream);
+			uv->fs_fd = Z_RES_P(zstream);
+			++GC_REFCOUNT(uv->fs_fd);
 			PHP_UV_FS_ASYNC(loop, close, fd);
 			break;
 		}
@@ -957,6 +968,8 @@ static void php_uv_fs_common(uv_fs_type fs_type, INTERNAL_FUNCTION_PARAMETERS)
 			PHP_UV_FS_PARSE_PARAMETERS("rrllf!", &zloop, &zstream, &uid, &gid, &fci, &fcc);
 			PHP_UV_FS_SETUP()
 			PHP_UV_ZVAL_TO_FD(fd, zstream);
+			uv->fs_fd = Z_RES_P(zstream);
+			++GC_REFCOUNT(uv->fs_fd);
 			PHP_UV_FS_ASYNC(loop, fchown, fd, uid, gid);
 			break;
 		}
@@ -994,6 +1007,8 @@ static void php_uv_fs_common(uv_fs_type fs_type, INTERNAL_FUNCTION_PARAMETERS)
 			PHP_UV_FS_PARSE_PARAMETERS("rrf", &zloop, &zstream, &fci, &fcc);
 			PHP_UV_FS_SETUP()
 			PHP_UV_ZVAL_TO_FD(fd, zstream);
+			uv->fs_fd = Z_RES_P(zstream);
+			++GC_REFCOUNT(uv->fs_fd);
 			PHP_UV_FS_ASYNC(loop, fstat, fd);
 			break;
 		}
@@ -1023,6 +1038,8 @@ static void php_uv_fs_common(uv_fs_type fs_type, INTERNAL_FUNCTION_PARAMETERS)
 			PHP_UV_FS_PARSE_PARAMETERS("rrllf", &zloop, &zstream, &utime, &atime, &fci, &fcc);
 			PHP_UV_FS_SETUP()
 			PHP_UV_ZVAL_TO_FD(fd, zstream);
+			uv->fs_fd = Z_RES_P(zstream);
+			++GC_REFCOUNT(uv->fs_fd);
 			PHP_UV_FS_ASYNC(loop, futime, fd, utime, atime);
 			break;
 		}
@@ -1051,6 +1068,8 @@ static void php_uv_fs_common(uv_fs_type fs_type, INTERNAL_FUNCTION_PARAMETERS)
 			}
 			PHP_UV_FS_SETUP()
 			PHP_UV_ZVAL_TO_FD(fd, zstream);
+			uv->fs_fd = Z_RES_P(zstream);
+			++GC_REFCOUNT(uv->fs_fd);
 
 			uv->buffer = (char*) emalloc(length);
 			buf = uv_buf_init(uv->buffer, length);
@@ -1069,6 +1088,10 @@ static void php_uv_fs_common(uv_fs_type fs_type, INTERNAL_FUNCTION_PARAMETERS)
 			/* TODO */
 			PHP_UV_ZVAL_TO_FD(in_fd, z_instream);
 			PHP_UV_ZVAL_TO_FD(out_fd, z_outstream);
+			uv->fs_fd = Z_RES_P(z_outstream);
+			++GC_REFCOUNT(uv->fs_fd);
+			uv->fs_fd_alt = Z_RES_P(z_instream);
+			++GC_REFCOUNT(uv->fs_fd_alt);
 			PHP_UV_FS_ASYNC(loop, sendfile, in_fd, out_fd, offset, length);
 			break;
 		}
@@ -1082,6 +1105,8 @@ static void php_uv_fs_common(uv_fs_type fs_type, INTERNAL_FUNCTION_PARAMETERS)
 			PHP_UV_FS_PARSE_PARAMETERS("rrSlf", &zloop, &zstream, &buffer, &offset, &fci, &fcc);
 			PHP_UV_FS_SETUP();
 			PHP_UV_ZVAL_TO_FD(fd, zstream);
+			uv->fs_fd = Z_RES_P(zstream);
+			++GC_REFCOUNT(uv->fs_fd);
 			uv->buffer = estrndup(buffer->val, buffer->len);
 
 			/* TODO: is this right?! */
@@ -1289,6 +1314,9 @@ void static clean_uv_handle(php_uv_t *obj) {
 	if (obj->fs_fd != NULL) {
 		zend_list_delete(obj->fs_fd);
 		obj->fs_fd = NULL;
+		if (obj->fs_fd_alt != NULL) {
+			zend_list_delete(obj->fs_fd_alt);
+		}
 	}
 
 	if (obj->resource_id) {
@@ -1828,7 +1856,7 @@ static void php_uv_fs_cb(uv_fs_t* req)
 	zval params[3] = {{{0}}};
 	zval retval = {{0}};
 	php_uv_t *uv = (php_uv_t*)req->data;
-	int argc = 2, i = 0;
+	int argc, i = 0;
 	TSRMLS_FETCH_FROM_CTX(uv->thread_ctx);
 
 	PHP_UV_DEBUG_PRINT("# php_uv_fs_cb %p\n", uv->resource_id);
@@ -1841,40 +1869,55 @@ static void php_uv_fs_cb(uv_fs_t* req)
 	}
 
 	if (uv->fs_fd != NULL) {
-		GC_REFCOUNT(uv->fs_fd)++;
-		ZVAL_RES(&params[0], uv->fs_fd);
-	} else {
 		if (uv->uv.fs.result < 0) {
 			ZVAL_FALSE(&params[0]);
+			zend_list_delete(uv->fs_fd);
 		} else {
-			PHP_UV_FD_TO_ZVAL(&params[0], uv->uv.fs.result)
+			ZVAL_RES(&params[0], uv->fs_fd);
 		}
+		uv->fs_fd = NULL;
 	}
 
 	switch (uv->uv.fs.fs_type) {
 		case UV_FS_SYMLINK:
 		case UV_FS_LINK:
 		case UV_FS_CHMOD:
-		case UV_FS_FCHMOD:
 		case UV_FS_RENAME:
 		case UV_FS_UNLINK:
 		case UV_FS_RMDIR:
 		case UV_FS_MKDIR:
+		case UV_FS_CLOSE:
+		case UV_FS_CHOWN:
+		case UV_FS_UTIME:
+		case UV_FS_FUTIME:
+			argc = 1;
+			ZVAL_BOOL(&params[0], uv->uv.fs.result == 0);
+			break;
+
+		case UV_FS_FCHMOD:
+		case UV_FS_FCHOWN:
 		case UV_FS_FTRUNCATE:
 		case UV_FS_FDATASYNC:
 		case UV_FS_FSYNC:
-		case UV_FS_CLOSE:
-		case UV_FS_CHOWN:
-		case UV_FS_FCHOWN:
 			argc = 1;
+			if (uv->uv.fs.result < 0) {
+				zval_ptr_dtor(&params[0]);
+				ZVAL_FALSE(&params[0]);
+			}
 			break;
+
 		case UV_FS_OPEN:
-		{
 			argc = 1;
+			if (uv->uv.fs.result < 0) {
+				ZVAL_FALSE(&params[0]);
+			} else {
+				PHP_UV_FD_TO_ZVAL(&params[0], uv->uv.fs.result)
+				PHP_UV_DEBUG_PRINT("Creating fs handle %p\n", Z_RES(params[0]));
+			}
 			break;
-		}
+
 		case UV_FS_SCANDIR:
-		{
+			argc = 2;
 			if (Z_RES(params[0]) && req->ptr != NULL) {
 				uv_dirent_t dent;
 
@@ -1886,32 +1929,27 @@ static void php_uv_fs_cb(uv_fs_t* req)
 				ZVAL_NULL(&params[1]);
 			}
 			break;
-		}
+
 		case UV_FS_LSTAT:
-		case UV_FS_FSTAT:
 		case UV_FS_STAT:
-		{
-			if (Z_RES(params[0]) && req->ptr != NULL) {
-				params[1] = php_uv_make_stat((const uv_stat_t*)req->ptr);
+			ZVAL_BOOL(&params[0], req->ptr != NULL);
+		case UV_FS_FSTAT:
+			argc = 2;
+			if (req->ptr != NULL) {
+				params[1] = php_uv_make_stat((const uv_stat_t *) req->ptr);
 			} else {
 				ZVAL_NULL(&params[1]);
 			}
 			break;
-		}
-		case UV_FS_UTIME:
-		case UV_FS_FUTIME:
-			argc = 0;
-			zval_dtor(&params[0]);
-			break;
+
 		case UV_FS_READLINK:
-		{
+			argc = 2;
+			ZVAL_BOOL(&params[0], uv->uv.fs.result == 0);
 			ZVAL_STRING(&params[1], req->ptr);
 			break;
-		}
-		case UV_FS_READ:
-		{
-			argc = 3;
 
+		case UV_FS_READ:
+			argc = 3;
 			if (uv->uv.fs.result >= 0) {
 				ZVAL_STRINGL(&params[2], uv->buffer, uv->uv.fs.result);
 			} else {
@@ -1919,31 +1957,25 @@ static void php_uv_fs_cb(uv_fs_t* req)
 			}
 			ZVAL_LONG(&params[1], uv->uv.fs.result);
 			efree(uv->buffer);
-
 			break;
-		}
+
 		case UV_FS_SENDFILE:
-		{
 			argc = 2;
-
 			ZVAL_LONG(&params[1], uv->uv.fs.result);
-
 			break;
-		}
+
 		case UV_FS_WRITE:
-		{
 			argc = 2;
 			ZVAL_LONG(&params[1], uv->uv.fs.result);
-
 			efree(uv->buffer);
 			break;
-		}
+
 		case UV_FS_UNKNOWN:
 		case UV_FS_CUSTOM:
-		default: {
+		default:
+			argc = 0;
 			php_error_docref(NULL, E_ERROR, "type; %d does not support yet.", uv->uv.fs.fs_type);
 			break;
-		}
 	}
 
 	php_uv_do_callback2(&retval, uv, params, argc, PHP_UV_FS_CB TSRMLS_CC);
@@ -1954,6 +1986,10 @@ static void php_uv_fs_cb(uv_fs_t* req)
 
 	for (i = 0; i < argc; i++) {
 		zval_ptr_dtor(&params[i]);
+	}
+
+	if (uv->fs_fd_alt) {
+		zend_list_delete(uv->fs_fd_alt);
 	}
 
 	uv_fs_req_cleanup(req);

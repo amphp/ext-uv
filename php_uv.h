@@ -177,6 +177,7 @@ typedef struct {
 	} uv;
 	char *buffer;
 	zend_resource *fs_fd;
+	zend_resource *fs_fd_alt;
 	php_uv_cb_t *callback[PHP_UV_CB_MAX];
 } php_uv_t;
 

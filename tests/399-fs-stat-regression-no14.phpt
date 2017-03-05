@@ -21,10 +21,10 @@ uv_fs_stat($loop, $filename, function ($result, $stat) {
 $filename = tempnam(sys_get_temp_dir(), 'test-no14');
 
 uv_fs_stat($loop, $filename, function ($result, $stat) {
-    if (is_resource($result)) {
+    if ($result) {
         echo 'OK' . PHP_EOL;
     } else {
-        echo "FAILED: uv_fs_stat should have returned a resource of type stream" . PHP_EOL;
+        echo "FAILED: uv_fs_stat should have returned true" . PHP_EOL;
     }
 
     if(!empty($stat)) {
