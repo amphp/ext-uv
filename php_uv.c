@@ -23,7 +23,7 @@
 #include "ext/standard/info.h"
 
 #ifndef PHP_UV_DEBUG
-#define PHP_UV_DEBUG 1
+#define PHP_UV_DEBUG 0
 #endif
 
 #ifdef ZTS
@@ -56,7 +56,7 @@ ZEND_DECLARE_MODULE_GLOBALS(uv);
 	}
 
 #define PHP_UV_DEINIT_UV() \
-	uv->in_free = -1; \
+	uv->in_free = -2; \
 	zend_list_delete(uv->resource_id); \
 	efree(uv);
 
@@ -1307,7 +1307,7 @@ void static clean_uv_handle(php_uv_t *obj) {
 		}
 	}
 
-	if (obj->in_free == 0) {
+	if (obj->in_free > -2) {
 		obj->in_free = 1;
 	}
 
@@ -1319,18 +1319,15 @@ void static clean_uv_handle(php_uv_t *obj) {
 		}
 	}
 
-	if (obj->resource_id) {
-		obj->resource_id->ptr = NULL;
-		obj->resource_id = NULL;
-	}
+	obj->resource_id = NULL;
 }
 
 void static destruct_uv(zend_resource *rsrc)
 {
-	php_uv_t *obj = NULL;
+	php_uv_t *obj;
 
-	obj = (php_uv_t *)rsrc->ptr;
-	if (obj == NULL) {
+	obj = (php_uv_t *) rsrc->ptr;
+	if (obj == NULL || obj->in_free == -1) {
 		return;
 	}
 
@@ -1338,7 +1335,7 @@ void static destruct_uv(zend_resource *rsrc)
 
 	ZEND_ASSERT(obj->in_free <= 0);
 
-	if (obj->in_free < 0) {
+	if (obj->in_free < -1) {
 		clean_uv_handle(obj);
 		efree(obj);
 	} else if (!php_uv_closeable_type(obj)) {
@@ -1348,10 +1345,9 @@ void static destruct_uv(zend_resource *rsrc)
 		}
 	} else if (!uv_is_closing(&obj->uv.handle)) {
 		php_uv_close(obj);
-		zend_list_delete(rsrc);
+		zend_list_delete(obj->resource_id);
 		clean_uv_handle(obj);
 	}
-	rsrc->ptr = NULL;
 }
 
 /* callback */
@@ -1994,7 +1990,7 @@ static void php_uv_fs_cb(uv_fs_t* req)
 
 	uv_fs_req_cleanup(req);
 
-	uv->in_free = -1;
+	uv->in_free = -2;
 	zend_list_delete(uv->resource_id);
 }
 
@@ -2157,6 +2153,7 @@ static void php_uv_close_cb(uv_handle_t *handle)
 
 	PHP_UV_DEBUG_RESOURCE_REFCOUNT(uv_close_cb, uv->resource_id);
 
+	uv->in_free = -2;
 	zend_list_close(uv->resource_id); /* call destruct_uv */
 
 	zval_ptr_dtor(&params[0]);
@@ -2248,7 +2245,7 @@ static void php_uv_getaddrinfo_cb(uv_getaddrinfo_t* handle, int status, struct a
 	zval_ptr_dtor(&params[1]);
 
 	uv_freeaddrinfo(res);
-	uv->in_free = -1;
+	uv->in_free = -2;
 	zend_list_delete(uv->resource_id);
 }
 
@@ -4150,6 +4147,7 @@ PHP_FUNCTION(uv_timer_again)
 		RETURN_FALSE;
 	}
 
+	GC_REFCOUNT(uv->resource_id)++;
 	uv_timer_again((uv_timer_t*)&uv->uv.timer);
 }
 /* }}} */
