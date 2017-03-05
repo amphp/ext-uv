@@ -1327,6 +1327,7 @@ void static destruct_uv(zend_resource *rsrc)
 	php_uv_t *obj;
 
 	obj = (php_uv_t *) rsrc->ptr;
+	rsrc->ptr = NULL;
 	if (obj == NULL || obj->in_free == -1) {
 		return;
 	}
@@ -2154,7 +2155,9 @@ static void php_uv_close_cb(uv_handle_t *handle)
 	PHP_UV_DEBUG_RESOURCE_REFCOUNT(uv_close_cb, uv->resource_id);
 
 	uv->in_free = -2;
-	zend_list_close(uv->resource_id); /* call destruct_uv */
+	uv->resource_id->type = -1; /* fake zend_list_close() as we need to call destruct_uv() in *any* case, even if reverse destroy already closed it */
+	uv->resource_id->ptr = uv;
+	destruct_uv(uv->resource_id);
 
 	zval_ptr_dtor(&params[0]);
 }
