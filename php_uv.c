@@ -1296,10 +1296,12 @@ void static clean_uv_handle(php_uv_t *obj) {
 	for (i = 0; i < PHP_UV_CB_MAX; i++) {
 		php_uv_cb_t *cb = obj->callback[i];
 		if (cb != NULL) {
-			zval_dtor(&cb->fci.function_name);
+			if (ZEND_FCI_INITIALIZED(cb->fci)) {
+				zval_dtor(&cb->fci.function_name);
 
-			if (cb->fci.object != NULL) {
-				OBJ_RELEASE(cb->fci.object);
+				if (cb->fci.object != NULL) {
+					OBJ_RELEASE(cb->fci.object);
+				}
 			}
 
 			efree(cb);
@@ -1580,15 +1582,13 @@ static void php_uv_write_cb(uv_write_t* req, int status)
 		efree(wr->buf.base);
 	}
 
-	if (wr->cb && wr->cb->fci.size > 0) {
-		zval_ptr_dtor(&wr->cb->fci.function_name);
-		if (wr->cb->fci.object) {
-			zval tmp;
-
-			ZVAL_OBJ(&tmp, wr->cb->fci.object);
-			zval_ptr_dtor(&tmp);
+	if (wr->cb) {
+		if (ZEND_FCI_INITIALIZED(wr->cb->fci)) {
+			zval_ptr_dtor(&wr->cb->fci.function_name);
+			if (wr->cb->fci.object != NULL) {
+				OBJ_RELEASE(wr->cb->fci.object);
+			}
 		}
-		wr->cb->fci.size = 0;
 
 		efree(wr->cb);
 	}
