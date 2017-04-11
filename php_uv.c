@@ -338,7 +338,7 @@ static php_socket_t php_uv_zval_to_valid_poll_fd(zval *ptr)
 
 	/* Validate Checks */
 
-#ifndef PHP_WIN32
+#if !defined(PHP_WIN32) || (defined(HAVE_SOCKETS) && !defined(COMPILE_DL_SOCKETS))
 	php_socket *socket;
 #endif
 	/* TODO: is this correct on windows platform? */
@@ -361,7 +361,7 @@ static php_socket_t php_uv_zval_to_valid_poll_fd(zval *ptr)
 		} else if ((uv = (php_uv_t *) zend_fetch_resource_ex(ptr, NULL, uv_resource_handle))) {
 			php_error_docref(NULL, E_WARNING, "uv resource does not support yet");
 			fd = -1;
-#ifndef PHP_WIN32
+#if !defined(PHP_WIN32) || (defined(HAVE_SOCKETS) && !defined(COMPILE_DL_SOCKETS))
 		} else if (php_sockets_le_socket && (socket = (php_socket *) zend_fetch_resource_ex(ptr, NULL, php_sockets_le_socket()))) {
 			fd = socket->bsd_socket;
 #endif
@@ -379,7 +379,7 @@ static php_socket_t php_uv_zval_to_fd(zval *ptr)
 	php_socket_t fd = -1;
 	php_stream *stream;
 	php_uv_t *uv;
-#ifndef PHP_WIN32
+#if !defined(PHP_WIN32) || (defined(HAVE_SOCKETS) && !defined(COMPILE_DL_SOCKETS))
 	php_socket *socket;
 #endif
 	/* TODO: is this correct on windows platform? */
@@ -391,7 +391,7 @@ static php_socket_t php_uv_zval_to_fd(zval *ptr)
 		} else if ((uv = (php_uv_t *) zend_fetch_resource_ex(ptr, NULL, uv_resource_handle))) {
 			php_error_docref(NULL, E_WARNING, "uv resource does not support yet");
 			fd = -1;
-#ifndef PHP_WIN32
+#if !defined(PHP_WIN32) || (defined(HAVE_SOCKETS) && !defined(COMPILE_DL_SOCKETS))
 		} else if (php_sockets_le_socket && (socket = (php_socket *) zend_fetch_resource_ex(ptr, NULL, php_sockets_le_socket()))) {
 			fd = socket->bsd_socket;
 #endif
@@ -4947,7 +4947,9 @@ PHP_FUNCTION(uv_stdio_new)
 	zval *handle;
 	long flags = 0;
 	php_uv_t *uv;
+#if !defined(PHP_WIN32) || defined(HAVE_SOCKET)
 	php_socket *socket;
+#endif
 	php_socket_t fd = -1;
 	php_stream *stream;
 
@@ -4966,8 +4968,10 @@ PHP_FUNCTION(uv_stdio_new)
 			if (php_stream_cast(stream, PHP_STREAM_AS_FD | PHP_STREAM_CAST_INTERNAL, (void*)&fd, 1) != SUCCESS || fd < 0) {
 				fd = -1;
 			}
+#if !defined(PHP_WIN32) || defined(HAVE_SOCKET)
 		} else if ((socket = (php_socket *) zend_fetch_resource_ex(handle, NULL, php_sockets_le_socket()))) {
 			fd = socket->bsd_socket;
+#endif
 		} else if ((uv = (php_uv_t *) zend_fetch_resource_ex(handle, NULL, uv_resource_handle))) {
 			fd = -1;
 		} else {
