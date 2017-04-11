@@ -2506,6 +2506,35 @@ static void php_uv_socket_getname(int type, INTERNAL_FUNCTION_PARAMETERS)
 	RETURN_ZVAL(&result, 0, 1);
 }
 
+static void php_uv_handle_open(int (*open_cb)(uv_handle_t *, long), enum php_uv_resource_type type, INTERNAL_FUNCTION_PARAMETERS) {
+	php_uv_t *uv;
+	zval *handle;
+	long fd = -1; // file handle
+	int error;
+
+	if (zend_parse_parameters(ZEND_NUM_ARGS(),
+		"rl", &handle, &fd) == FAILURE) {
+		return;
+	}
+
+	uv = (php_uv_t *) zend_fetch_resource_ex(handle, PHP_UV_RESOURCE_NAME, uv_resource_handle);
+
+	PHP_UV_TYPE_CHECK(uv, type);
+
+	if (pipe < 0) {
+		php_error_docref(NULL, E_WARNING, "file descriptor must be unsigned value");
+		RETURN_FALSE;
+	}
+
+	error = open_cb(&uv->uv.handle, fd);
+
+	if (error) {
+		php_error_docref(NULL, E_WARNING, "%s", php_uv_strerror(error));
+	}
+
+	RETURN_LONG(error);
+}
+
 static void php_uv_udp_send(int type, INTERNAL_FUNCTION_PARAMETERS)
 {
 	zval *z_cli, *z_addr;
@@ -2757,6 +2786,11 @@ ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_idle_start, 0, 0, 2)
 	ZEND_ARG_INFO(0, callback)
 ZEND_END_ARG_INFO()
 
+ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_tcp_open, 0, 0, 2)
+	ZEND_ARG_INFO(0, resource)
+	ZEND_ARG_INFO(0, tcpfd)
+ZEND_END_ARG_INFO()
+
 ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_tcp_bind, 0, 0, 2)
 	ZEND_ARG_INFO(0, resource)
 	ZEND_ARG_INFO(0, address)
@@ -2837,6 +2871,11 @@ ZEND_END_ARG_INFO()
 
 ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_udp_init, 0, 0, 1)
 	ZEND_ARG_INFO(0, loop)
+ZEND_END_ARG_INFO()
+
+ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_udp_open, 0, 0, 2)
+	ZEND_ARG_INFO(0, resource)
+	ZEND_ARG_INFO(0, udpfd)
 ZEND_END_ARG_INFO()
 
 ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_udp_bind, 0, 0, 3)
@@ -4352,6 +4391,14 @@ PHP_FUNCTION(uv_tcp_init)
 }
 /* }}} */
 
+/* {{{ proto int|false uv_tcp_open(resource $handle, long $tcpfd)
+*/
+PHP_FUNCTION(uv_tcp_open)
+{
+	php_uv_handle_open((int (*)(uv_handle_t *, long)) uv_tcp_open, IS_UV_TCP, INTERNAL_FUNCTION_PARAM_PASSTHRU);
+}
+/* }}} */
+
 /* {{{ proto resource uv_default_loop()
 */
 PHP_FUNCTION(uv_default_loop)
@@ -4389,6 +4436,14 @@ PHP_FUNCTION(uv_udp_init)
 	}
 	PHP_UV_FETCH_UV_DEFAULT_LOOP(loop, zloop);
 	php_uv_common_init(&uv, loop, IS_UV_UDP, return_value);
+}
+/* }}} */
+
+/* {{{ proto int|false uv_udp_open(resource $handle, long $udpfd)
+*/
+PHP_FUNCTION(uv_udp_open)
+{
+	php_uv_handle_open((int (*)(uv_handle_t *, long)) uv_udp_open, IS_UV_UDP, INTERNAL_FUNCTION_PARAM_PASSTHRU);
 }
 /* }}} */
 
@@ -4757,32 +4812,7 @@ PHP_FUNCTION(uv_pipe_init)
 */
 PHP_FUNCTION(uv_pipe_open)
 {
-	php_uv_t *uv;
-	zval *handle;
-	long pipe = -1; // file handle
-	int error;
-
-	if (zend_parse_parameters(ZEND_NUM_ARGS(),
-		"rl", &handle, &pipe) == FAILURE) {
-		return;
-	}
-
-	uv = (php_uv_t *) zend_fetch_resource_ex(handle, PHP_UV_RESOURCE_NAME, uv_resource_handle);
-
-	PHP_UV_TYPE_CHECK(uv, IS_UV_PIPE);
-
-	if (pipe < 0) {
-		php_error_docref(NULL, E_WARNING, "pipe parameter have to be unsigned value");
-		RETURN_FALSE;
-	}
-
-	error = uv_pipe_open(&uv->uv.pipe, pipe);
-
-	if (error) {
-		php_error_docref(NULL, E_WARNING, "%s", php_uv_strerror(error));
-	}
-
-	RETURN_LONG(error);
+	php_uv_handle_open((int (*)(uv_handle_t *, long)) uv_pipe_open, IS_UV_PIPE, INTERNAL_FUNCTION_PARAM_PASSTHRU);
 }
 /* }}} */
 
@@ -6472,6 +6502,7 @@ static zend_function_entry uv_functions[] = {
 	PHP_FE(uv_timer_get_repeat,         arginfo_uv_timer_get_repeat)
 	/* tcp */
 	PHP_FE(uv_tcp_init,                 arginfo_uv_tcp_init)
+	PHP_FE(uv_tcp_open,                 arginfo_uv_tcp_open)
 	PHP_FE(uv_tcp_nodelay,              arginfo_uv_tcp_nodelay)
 	PHP_FE(uv_tcp_bind,                 arginfo_uv_tcp_bind)
 	PHP_FE(uv_tcp_bind6,                arginfo_uv_tcp_bind6)
@@ -6481,6 +6512,7 @@ static zend_function_entry uv_functions[] = {
 	PHP_FE(uv_tcp_connect6,             arginfo_uv_tcp_connect6)
 	/* udp */
 	PHP_FE(uv_udp_init,                 arginfo_uv_udp_init)
+	PHP_FE(uv_udp_open,                 arginfo_uv_udp_open)
 	PHP_FE(uv_udp_bind,                 arginfo_uv_udp_bind)
 	PHP_FE(uv_udp_bind6,                arginfo_uv_udp_bind6)
 	PHP_FE(uv_udp_set_multicast_loop,   arginfo_uv_udp_set_multicast_loop)
