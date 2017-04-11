@@ -1353,6 +1353,23 @@ void static destruct_uv(zend_resource *rsrc)
 	}
 }
 
+void static php_uv_free_write_req(write_req_t *wr) {
+	if (wr->cb) {
+		if (ZEND_FCI_INITIALIZED(wr->cb->fci)) {
+			zval_ptr_dtor(&wr->cb->fci.function_name);
+			if (wr->cb->fci.object != NULL) {
+				OBJ_RELEASE(wr->cb->fci.object);
+			}
+		}
+
+		efree(wr->cb);
+	}
+	if (wr->buf.base) {
+		efree(wr->buf.base);
+	}
+	efree(wr);
+}
+
 /* callback */
 static int php_uv_do_callback(zval *retval_ptr, php_uv_cb_t *callback, zval *params, int param_count TSRMLS_DC)
 {
@@ -1578,22 +1595,7 @@ static void php_uv_write_cb(uv_write_t* req, int status)
 	zval_ptr_dtor(&params[0]);
 	zval_ptr_dtor(&params[1]);
 
-	if (wr->buf.base) {
-		efree(wr->buf.base);
-	}
-
-	if (wr->cb) {
-		if (ZEND_FCI_INITIALIZED(wr->cb->fci)) {
-			zval_ptr_dtor(&wr->cb->fci.function_name);
-			if (wr->cb->fci.object != NULL) {
-				OBJ_RELEASE(wr->cb->fci.object);
-			}
-		}
-
-		efree(wr->cb);
-	}
-
-	efree(wr);
+	php_uv_free_write_req(wr);
 
 	PHP_UV_DEBUG_RESOURCE_REFCOUNT(uv_write_cb, uv->resource_id);
 }
@@ -3673,6 +3675,7 @@ PHP_FUNCTION(uv_write)
 
 	r = uv_write(&w->req, (uv_stream_t*)php_uv_get_current_stream(uv), &w->buf, 1, php_uv_write_cb);
 	if (r) {
+		php_uv_free_write_req(w);
 		php_error_docref(NULL, E_WARNING, "write failed");
 	}
 
@@ -3708,11 +3711,12 @@ PHP_FUNCTION(uv_write2)
 	send = (php_uv_t *) zend_fetch_resource_ex(z_send, PHP_UV_RESOURCE_NAME, uv_resource_handle);
 	GC_REFCOUNT(uv->resource_id)++;
 
-    cb = php_uv_cb_init_dynamic(uv, &fci, &fcc);
+	cb = php_uv_cb_init_dynamic(uv, &fci, &fcc);
 	PHP_UV_INIT_WRITE_REQ(w, uv, data->val, data->len, cb);
 
 	r = uv_write2(&w->req, (uv_stream_t*)php_uv_get_current_stream(uv), &w->buf, 1, (uv_stream_t*)php_uv_get_current_stream(send), php_uv_write_cb);
 	if (r) {
+		php_uv_free_write_req(w);
 		php_error_docref(NULL, E_ERROR, "write2 failed");
 	}
 
