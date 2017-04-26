@@ -5209,7 +5209,7 @@ PHP_FUNCTION(uv_spawn)
 	zval *zloop, *args, *env, *zoptions = NULL, *zstdio = NULL, *value;
 	char **command_args, **zenv;
 	zend_string *command, *cwd;
-	int uid = 0, gid = 0, stdio_count = 0;
+	int uid = 0, gid = 0, stdio_count = 0, ret;
 	long flags = 0;
 	zend_fcall_info fci       = empty_fcall_info;
 	zend_fcall_info_cache fcc = empty_fcall_info_cache;
@@ -5331,19 +5331,24 @@ PHP_FUNCTION(uv_spawn)
 	options.uid = uid;
 	options.gid = gid;
 
-	proc  = (php_uv_t *)emalloc(sizeof(php_uv_t));
-	PHP_UV_INIT_ZVALS(proc);
-	php_uv_cb_init(&cb, proc, &fci, &fcc, PHP_UV_PROC_CLOSE_CB);
-	TSRMLS_SET_CTX(proc->thread_ctx);
+	proc = (php_uv_t *) emalloc(sizeof(php_uv_t));
+	ret = uv_spawn(loop, &proc->uv.process, &options);
 
-	proc->type = IS_UV_PROCESS;
-	proc->uv.process.data = proc;
+	if (ret) {
+		efree(proc);
+		RETURN_LONG(ret);
+	} else {
+		PHP_UV_INIT_ZVALS(proc);
+		php_uv_cb_init(&cb, proc, &fci, &fcc, PHP_UV_PROC_CLOSE_CB);
+		TSRMLS_SET_CTX(proc->thread_ctx);
 
-	proc->resource_id = zend_register_resource(proc, uv_resource_handle);
-	ZVAL_RES(return_value, proc->resource_id);
-	zval_copy_ctor(return_value);
+		proc->type = IS_UV_PROCESS;
+		proc->uv.process.data = proc;
 
-	uv_spawn(loop, &proc->uv.process, &options);
+		proc->resource_id = zend_register_resource(proc, uv_resource_handle);
+		ZVAL_RES(return_value, proc->resource_id);
+		zval_copy_ctor(return_value);
+	}
 
 	if (zenv != NULL) {
 		char **p = zenv;
