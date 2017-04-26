@@ -345,15 +345,24 @@ static php_socket_t php_uv_zval_to_valid_poll_fd(zval *ptr)
 	if (Z_TYPE_P(ptr) == IS_RESOURCE) {
 		if ((stream = (php_stream *) zend_fetch_resource_ex(ptr, NULL, php_file_le_stream()))) {
 			/* make sure only valid resource streams are passed - plainfiles and most php streams are invalid */
-			if (stream->wrapper) {
-				if (!strcmp((char *)stream->wrapper->wops->label, "plainfile") || (!strcmp((char *)stream->wrapper->wops->label, "PHP") && (!stream->orig_path || (strncmp(stream->orig_path, "php://std", sizeof("php://std") - 1) && strncmp(stream->orig_path, "php://fd", sizeof("php://fd") - 1))))) {
-					php_error_docref(NULL, E_WARNING, "invalid resource passed, this resource is not supported");
-					return -1;
-				}
+			if (stream->wrapper && !strcmp((char *)stream->wrapper->wops->label, "PHP") && (!stream->orig_path || (strncmp(stream->orig_path, "php://std", sizeof("php://std") - 1) && strncmp(stream->orig_path, "php://fd", sizeof("php://fd") - 1)))) {
+				php_error_docref(NULL, E_WARNING, "invalid resource passed, this resource is not supported");
+				return -1;
 			}
 
 			/* Some streams (specifically STDIO and encrypted streams) can be cast to FDs */
 			if (php_stream_cast(stream, PHP_STREAM_AS_FD_FOR_SELECT | PHP_STREAM_CAST_INTERNAL, (void*)&fd, 1) == SUCCESS && fd >= 0) {
+				if (stream->wrapper && !strcmp((char *)stream->wrapper->wops->label, "plainfile")) {
+#ifndef PHP_WIN32
+					struct stat stat;
+					fstat(fd, &stat);
+					if (!S_ISFIFO(stat.st_mode))
+#endif
+					{
+						php_error_docref(NULL, E_WARNING, "invalid resource passed, this plain files are not supported");
+						return -1;
+					}
+				}
 				return fd;
 			}
 
