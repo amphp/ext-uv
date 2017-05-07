@@ -99,7 +99,12 @@ start:
 	return buf.s;
 }
 
+/* gcc complains: sorry, unimplemented: function ‘uv_parse_arg_object’ can never be inlined because it uses variable argument lists */
+#ifdef __clang__
 static zend_always_inline int uv_parse_arg_object(zval *arg, zval **dest, int check_null, zend_class_entry *ce, ...) {
+#else
+static int uv_parse_arg_object(zval *arg, zval **dest, int check_null, zend_class_entry *ce, ...) {
+#endif
 	if (EXPECTED(Z_TYPE_P(arg) == IS_OBJECT)) {
 		va_list va;
 		zend_class_entry *argce = Z_OBJCE_P(arg);
