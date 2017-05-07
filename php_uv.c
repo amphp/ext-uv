@@ -45,9 +45,11 @@ ZEND_TSRMLS_CACHE_DEFINE()
 ZEND_DECLARE_MODULE_GLOBALS(uv);
 
 #if PHP_VERSION_ID < 70100
-	#define zend_wrong_parameter_class_error(throw, ...) zend_wrong_paramer_class_error(__VA_ARGS__)
+	#define uv_zend_wrong_parameter_class_error(throw, ...) zend_wrong_paramer_class_error(__VA_ARGS__)
 #elif PHP_VERSION_ID < 70200
-	#define zend_wrong_parameter_class_error(throw, ...) zend_wrong_parameter_class_error(__VA_ARGS__)
+	#define uv_zend_wrong_parameter_class_error(throw, ...) zend_wrong_parameter_class_error(__VA_ARGS__)
+#else
+	#define uv_zend_wrong_parameter_class_error(...) zend_wrong_parameter_class_error(__VA_ARGS__)
 #endif
 
 #define UV_PARAM_OBJ_EX(dest, type, check_null, ce, ...) \
@@ -57,7 +59,7 @@ ZEND_DECLARE_MODULE_GLOBALS(uv);
 		if (UNEXPECTED(!uv_parse_arg_object(_arg, &zv, check_null, ce, ##__VA_ARGS__, NULL))) { \
 			if (!(_flags & ZEND_PARSE_PARAMS_QUIET)) { \
 				zend_string *names = php_uv_concat_ce_names(ce, ##__VA_ARGS__, NULL); \
-				zend_wrong_parameter_class_error(_flags & ZEND_PARSE_PARAMS_THROW, _i, ZSTR_VAL(names), _arg); \
+				uv_zend_wrong_parameter_class_error(_flags & ZEND_PARSE_PARAMS_THROW, _i, ZSTR_VAL(names), _arg); \
 				zend_string_release(names); \
 			} \
 			error_code = ZPP_ERROR_FAILURE; \
@@ -5419,7 +5421,7 @@ PHP_FUNCTION(uv_queue_work)
 {
 #ifdef ZTS
 	int r;
-	uv_loop_t *loop;
+	php_uv_loop_t *loop;
 	php_uv_t *uv;
 	zend_fcall_info work_fci, after_fci       = empty_fcall_info;
 	zend_fcall_info_cache work_fcc, after_fcc = empty_fcall_info_cache;
@@ -5436,7 +5438,7 @@ PHP_FUNCTION(uv_queue_work)
 	php_uv_cb_init(&work_cb, uv, &work_fci, &work_fcc, PHP_UV_WORK_CB);
 	php_uv_cb_init(&after_cb, uv, &after_fci, &after_fcc, PHP_UV_AFTER_WORK_CB);
 
-	r = uv_queue_work(loop, &uv->uv.work, php_uv_work_cb, php_uv_after_work_cb);
+	r = uv_queue_work(&loop->loop, &uv->uv.work, php_uv_work_cb, php_uv_after_work_cb);
 
 	if (r) {
 		php_error_docref(NULL, E_ERROR, "uv_queue_work failed");
