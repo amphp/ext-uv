@@ -10,11 +10,11 @@
   <email>bobwei9@hotmail.com</email>
   <active>yes</active>
  </lead>
- <date>2017-03-06</date>
- <time>13:00:00</time>
+ <date>2017-05-07</date>
+ <time>21:00:00</time>
  <version>
-  <release>0.1.2</release>
-  <api>0.1.2</api>
+  <release>0.2.0</release>
+  <api>0.2.0</api>
  </version>
  <stability>
   <release>beta</release>
@@ -22,9 +22,8 @@
  </stability>
  <license uri="http://www.php.net/license">PHP License</license>
  <notes>
-- Fix uv_listen()
-- Fix a few memory leaks
-- Fix loop cleanup
+- Move from resource handles to object handles
+- Various smaller fixes
  </notes>
  <contents>
   <dir name="/">

@@ -2039,16 +2039,17 @@ static void php_uv_close_cb(uv_handle_t *handle)
 	php_uv_t *uv = (php_uv_t *) handle->data;
 	TSRMLS_FETCH_FROM_CTX(uv->thread_ctx);
 
-	if (!(GC_FLAGS(&uv->std) & IS_OBJ_DESTRUCTOR_CALLED)) {
+	if (!PHP_UV_IS_DTORED(uv)) {
 		ZVAL_OBJ(&params[0], (zend_object *) uv);
 
 		php_uv_do_callback2(&retval, uv, params, 1, PHP_UV_CLOSE_CB TSRMLS_CC);
 		zval_ptr_dtor(&retval);
+
+		/* manually clean the uv handle to avoid default dtor handling */
+		clean_uv_handle(uv);
 	}
 
 	PHP_UV_DEBUG_OBJ_DEL_REFCOUNT(uv_close_cb, uv);
-	/* manually clean the uv handle to avoid default dtor handling */
-	clean_uv_handle(uv);
 	OBJ_RELEASE(&uv->std);
 }
 
