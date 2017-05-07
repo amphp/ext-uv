@@ -3341,16 +3341,18 @@ PHP_FUNCTION(uv_strerror)
 }
 /* }}} */
 
-/* {{{ proto void uv_update_time(UVLoop $uv_loop)
+/* {{{ proto void uv_update_time([UVLoop $uv_loop])
 */
 PHP_FUNCTION(uv_update_time)
 {
-	php_uv_loop_t *loop;
+	php_uv_loop_t *loop = NULL;
 
-	ZEND_PARSE_PARAMETERS_START(1, 1)
-		UV_PARAM_OBJ(loop, php_uv_loop_t, uv_loop_ce)
+	ZEND_PARSE_PARAMETERS_START(0, 1)
+		Z_PARAM_OPTIONAL
+		UV_PARAM_OBJ_NULL(loop, php_uv_loop_t, uv_loop_ce)
 	ZEND_PARSE_PARAMETERS_END();
 
+	PHP_UV_FETCH_UV_DEFAULT_LOOP(loop);
 	uv_update_time(&loop->loop);
 }
 /* }}} */
@@ -3379,7 +3381,7 @@ PHP_FUNCTION(uv_ref)
 */
 PHP_FUNCTION(uv_run)
 {
-	php_uv_loop_t *loop;
+	php_uv_loop_t *loop = NULL;
 	zend_long run_mode = UV_RUN_DEFAULT;
 
 	ZEND_PARSE_PARAMETERS_START(0, 2)
@@ -3397,7 +3399,7 @@ PHP_FUNCTION(uv_run)
 */
 PHP_FUNCTION(uv_stop)
 {
-	php_uv_loop_t *loop;
+	php_uv_loop_t *loop = NULL;
 
 	ZEND_PARSE_PARAMETERS_START(0, 1)
 		Z_PARAM_OPTIONAL
@@ -3413,7 +3415,7 @@ PHP_FUNCTION(uv_stop)
 */
 PHP_FUNCTION(uv_signal_init)
 {
-	php_uv_loop_t *loop;
+	php_uv_loop_t *loop = NULL;
 	php_uv_t *uv;
 
 	ZEND_PARSE_PARAMETERS_START(0, 1)
@@ -3504,7 +3506,7 @@ PHP_FUNCTION(uv_loop_delete)
 */
 PHP_FUNCTION(uv_now)
 {
-	php_uv_loop_t *loop;
+	php_uv_loop_t *loop = NULL;
 	int64_t now;
 
 	ZEND_PARSE_PARAMETERS_START(0, 1)
@@ -3880,7 +3882,7 @@ PHP_FUNCTION(uv_tcp_connect6)
 */
 PHP_FUNCTION(uv_timer_init)
 {
-	php_uv_loop_t *loop;
+	php_uv_loop_t *loop = NULL;
 	php_uv_t *uv;
 
 	ZEND_PARSE_PARAMETERS_START(0, 1)
@@ -4023,7 +4025,7 @@ PHP_FUNCTION(uv_timer_get_repeat)
 */
 PHP_FUNCTION(uv_idle_init)
 {
-	php_uv_loop_t *loop;
+	php_uv_loop_t *loop = NULL;
 	php_uv_t *uv;
 
 	ZEND_PARSE_PARAMETERS_START(0, 1)
@@ -4148,7 +4150,7 @@ PHP_FUNCTION(uv_getaddrinfo)
 */
 PHP_FUNCTION(uv_tcp_init)
 {
-	php_uv_loop_t *loop;
+	php_uv_loop_t *loop = NULL;
 	php_uv_t *uv;
 
 	ZEND_PARSE_PARAMETERS_START(0, 1)
@@ -4486,12 +4488,12 @@ PHP_FUNCTION(uv_guess_handle)
 /* }}} */
 
 
-/* {{{ proto resource uv_pipe_init(resource $loop, long $ipc)
+/* {{{ proto resource uv_pipe_init([resource $loop, long $ipc])
 */
 PHP_FUNCTION(uv_pipe_init)
 {
 	php_uv_t *uv;
-	php_uv_loop_t *loop;
+	php_uv_loop_t *loop = NULL;
 	zend_bool ipc = 0;
 
 	ZEND_PARSE_PARAMETERS_START(0, 2)
@@ -5215,7 +5217,7 @@ PHP_FUNCTION(uv_sem_trywait)
 */
 PHP_FUNCTION(uv_prepare_init)
 {
-	php_uv_loop_t *loop;
+	php_uv_loop_t *loop = NULL;
 	php_uv_t *uv;
 
 	ZEND_PARSE_PARAMETERS_START(0, 1)
@@ -5292,7 +5294,7 @@ PHP_FUNCTION(uv_prepare_stop)
 */
 PHP_FUNCTION(uv_check_init)
 {
-	php_uv_loop_t *loop;
+	php_uv_loop_t *loop = NULL;
 	php_uv_t *uv;
 
 	ZEND_PARSE_PARAMETERS_START(0, 1)
@@ -5939,7 +5941,7 @@ PHP_FUNCTION(uv_poll_stop)
 */
 PHP_FUNCTION(uv_fs_poll_init)
 {
-	php_uv_loop_t *loop;
+	php_uv_loop_t *loop = NULL;
 	php_uv_t *uv;
 
 	ZEND_PARSE_PARAMETERS_START(0, 1)
