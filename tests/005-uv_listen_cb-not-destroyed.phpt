@@ -34,7 +34,7 @@ class TcpServer
 
     public function close()
     {
-        if (get_resource_type($this->tcp) === 'uv') {
+        if ($this->tcp instanceof UV) {
             uv_close($this->tcp);
         }
     }

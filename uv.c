@@ -19,20 +19,8 @@
 #include "php_uv.h"
 #include <fcntl.h>
 
-void php_uv_init(TSRMLS_D);
-zend_class_entry *uv_class_entry;
-
-/* TODO: will be add soon */
-static zend_function_entry php_uv_methods[] = {
-	{NULL, NULL, NULL}
-};
-
-static int php_uv_class_init(TSRMLS_D)
+void php_uv_init(zend_class_entry *uv_class_entry)
 {
-	zend_class_entry ce;
-	INIT_CLASS_ENTRY(ce, "UV", php_uv_methods);
-	uv_class_entry = zend_register_internal_class(&ce TSRMLS_CC);
-
 	zend_declare_class_constant_long(uv_class_entry, "RUN_DEFAULT",  sizeof("RUN_DEFAULT")-1, UV_RUN_DEFAULT TSRMLS_CC);
 	zend_declare_class_constant_long(uv_class_entry, "RUN_ONCE",  sizeof("RUN_ONCE")-1, UV_RUN_ONCE TSRMLS_CC);
 	zend_declare_class_constant_long(uv_class_entry, "RUN_NOWAIT",  sizeof("RUN_NOWAIT")-1, UV_RUN_NOWAIT TSRMLS_CC);
@@ -198,11 +186,4 @@ static int php_uv_class_init(TSRMLS_D)
 #define PHP_UV_ERRNO_GEN(name, msg_notused) zend_declare_class_constant_long(uv_class_entry, ZEND_STRL(#name), UV_##name);
 	UV_ERRNO_MAP(PHP_UV_ERRNO_GEN)
 #undef PHP_UV_ERRNO_GEN
-
-	return 0;
-}
-
-void php_uv_init(TSRMLS_D)
-{
-	php_uv_class_init(TSRMLS_C);
 }

@@ -63,23 +63,9 @@ typedef struct {
 extern zend_module_entry uv_module_entry;
 #define phpext_uv_ptr &uv_module_entry
 
-ZEND_BEGIN_MODULE_GLOBALS(uv)
-	uv_loop_t *default_loop;
-ZEND_END_MODULE_GLOBALS(uv)
-
-#ifdef ZTS
-#ifdef COMPILE_DL_UV
-ZEND_TSRMLS_CACHE_EXTERN()
-#endif
-
-#define UV_G(v) TSRMG(uv_globals_id, zend_uv_globals *, v)
-#else
-#define UV_G(v) (uv_globals.v)
-#endif
-
 extern zend_class_entry *uv_class_entry;
 
-enum php_uv_lock_type{
+enum php_uv_lock_type {
 	IS_UV_RWLOCK = 1,
 	IS_UV_RWLOCK_RD = 2,
 	IS_UV_RWLOCK_WR = 3,
@@ -145,11 +131,11 @@ typedef struct {
 } php_uv_cb_t;
 
 typedef struct {
-	int in_free;
+	zend_object std;
+
 #ifdef ZTS
 	void ***thread_ctx;
 #endif
-	zend_resource *resource_id;
 	int type;
 	uv_os_sock_t sock;
 	union {
@@ -176,14 +162,15 @@ typedef struct {
 		uv_signal_t signal;
 	} uv;
 	char *buffer;
-	zend_resource *fs_fd;
-	zend_resource *fs_fd_alt;
 	php_uv_cb_t *callback[PHP_UV_CB_MAX];
+	zval gc_data[PHP_UV_CB_MAX * 2];
+	zval fs_fd;
+	zval fs_fd_alt;
 } php_uv_t;
 
 typedef struct {
-	int is_ipv4;
-	zend_resource *resource_id;
+	zend_object std;
+
 	union {
 		struct sockaddr_in ipv4;
 		struct sockaddr_in6 ipv6;
@@ -191,9 +178,10 @@ typedef struct {
 } php_uv_sockaddr_t;
 
 typedef struct {
+	zend_object std;
+
 	int locked;
 	enum php_uv_lock_type type;
-	zend_resource *resource_id;
 	union {
 		uv_rwlock_t rwlock;
 		uv_mutex_t mutex;
@@ -202,23 +190,21 @@ typedef struct {
 } php_uv_lock_t;
 
 typedef struct {
-	zend_resource *resource_id;
+	zend_object std;
+
 	int fd;
 	zend_resource *stream;
 	int flags;
 } php_uv_stdio_t;
 
-#define PHP_UV_RESOURCE_NAME "uv"
-#define PHP_UV_SOCKADDR_RESOURCE_NAME "uv_sockaddr"
-#define PHP_UV_LOOP_RESOURCE_NAME "uv_loop"
-#define PHP_UV_ARES_RESOURCE_NAME "uv_ares"
-#define PHP_UV_LOCK_RESOURCE_NAME "uv_lock"
-#define PHP_UV_MUTEX_RESOURCE_NAME "uv_mutex"
-#define PHP_UV_STDIO_RESOURCE_NAME "uv_stdio"
+typedef struct {
+	zend_object std;
 
+	uv_loop_t loop;
 
-#define PHP_UV_LIST_INSERT(type, handle) Z_RES_P(zend_list_insert(type, handle))
-
+	size_t gc_buffer_size;
+	zval *gc_buffer;
+} php_uv_loop_t;
 
 /* File/directory stat mode constants*/
 #ifdef PHP_WIN32
@@ -231,6 +217,20 @@ typedef struct {
 #ifndef S_IFREG
 #define S_IFREG 0100000
 #endif
+#endif
+
+ZEND_BEGIN_MODULE_GLOBALS(uv)
+	php_uv_loop_t *default_loop;
+ZEND_END_MODULE_GLOBALS(uv)
+
+#ifdef ZTS
+#ifdef COMPILE_DL_UV
+ZEND_TSRMLS_CACHE_EXTERN()
+#endif
+
+#define UV_G(v) TSRMG(uv_globals_id, zend_uv_globals *, v)
+#else
+#define UV_G(v) (uv_globals.v)
 #endif
 
 #endif /* PHP_UV_H */
