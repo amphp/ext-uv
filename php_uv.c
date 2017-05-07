@@ -1964,7 +1964,9 @@ static void php_uv_poll_cb(uv_poll_t* handle, int status, int events)
 	TSRMLS_FETCH_FROM_CTX(uv->thread_ctx);
 
 	ZVAL_OBJ(&params[0], &uv->std);
-	GC_REFCOUNT(&uv->std)++;
+	if (status == 0) {
+		GC_REFCOUNT(&uv->std)++;
+	}
 	PHP_UV_DEBUG_OBJ_ADD_REFCOUNT(uv_poll_cb, uv);
 	ZVAL_LONG(&params[1], status);
 	ZVAL_LONG(&params[2], events);
