@@ -44,6 +44,12 @@ ZEND_TSRMLS_CACHE_DEFINE()
 
 ZEND_DECLARE_MODULE_GLOBALS(uv);
 
+#if PHP_VERSION_ID < 70100
+	#define zend_wrong_parameter_class_error(throw, ...) zend_wrong_paramer_class_error(__VA_ARGS__)
+#elif PHP_VERSION_ID < 70200
+	#define zend_wrong_parameter_class_error(throw, ...) zend_wrong_parameter_class_error(__VA_ARGS__)
+#endif
+
 #define UV_PARAM_OBJ_EX(dest, type, check_null, ce, ...) \
 	{ \
 		zval *zv; \
@@ -5425,7 +5431,6 @@ PHP_FUNCTION(uv_queue_work)
 		Z_PARAM_FUNC(after_fci, after_fcc)
 	ZEND_PARSE_PARAMETERS_END();
 
-	PHP_UV_FETCH_UV_DEFAULT_LOOP(loop);
 	PHP_UV_INIT_UV(uv, uv_work_ce);
 
 	php_uv_cb_init(&work_cb, uv, &work_fci, &work_fcc, PHP_UV_WORK_CB);
