@@ -1242,10 +1242,11 @@ void static destruct_uv(zend_object *obj)
 		if (uv_cancel(&uv->uv.req) == UV_EBUSY) {
 			++GC_REFCOUNT(obj);
 		}
-	} else if (!uv_is_closing(&uv->uv.handle)) {
+		clean_uv_handle(uv);
+	} else {
 		php_uv_close(uv);
+		/* cleaning happens in close_cb */
 	}
-	clean_uv_handle(uv);
 }
 
 void static php_uv_free_write_req(write_req_t *wr) {
@@ -2039,15 +2040,15 @@ static void php_uv_close_cb(uv_handle_t *handle)
 	php_uv_t *uv = (php_uv_t *) handle->data;
 	TSRMLS_FETCH_FROM_CTX(uv->thread_ctx);
 
-	if (!PHP_UV_IS_DTORED(uv)) {
+	if (uv->callback[PHP_UV_CLOSE_CB]) {
 		ZVAL_OBJ(&params[0], (zend_object *) uv);
 
 		php_uv_do_callback2(&retval, uv, params, 1, PHP_UV_CLOSE_CB TSRMLS_CC);
 		zval_ptr_dtor(&retval);
-
-		/* manually clean the uv handle to avoid default dtor handling */
-		clean_uv_handle(uv);
 	}
+
+	/* manually clean the uv handle as dtor will not be called anymore here */
+	clean_uv_handle(uv);
 
 	PHP_UV_DEBUG_OBJ_DEL_REFCOUNT(uv_close_cb, uv);
 	OBJ_RELEASE(&uv->std);
@@ -2059,13 +2060,17 @@ static inline zend_bool php_uv_is_handle_referenced(php_uv_t *uv) {
 	return (ce == uv_signal_ce || ce == uv_timer_ce || ce == uv_idle_ce || ce == uv_udp_ce || ce == uv_tcp_ce || ce == uv_tty_ce || ce == uv_pipe_ce || ce == uv_prepare_ce || ce == uv_check_ce || ce == uv_poll_ce || ce == uv_fs_poll_ce) ? uv_is_active(&uv->uv.handle) : (ce == uv_async_ce);
 }
 
+/* uv handle must not be cleaned or closed before called */
 static void php_uv_close(php_uv_t *uv) {
+	ZEND_ASSERT(!uv_is_closing(&uv->uv.handle));
+
 	if (!php_uv_is_handle_referenced(uv)) {
 		++GC_REFCOUNT(&uv->std);
 		PHP_UV_DEBUG_OBJ_ADD_REFCOUNT(php_uv_close, uv);
 	}
 
 	uv_close(&uv->uv.handle, php_uv_close_cb);
+
 	PHP_UV_SKIP_DTOR(uv);
 }
 

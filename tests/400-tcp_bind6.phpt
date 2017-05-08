@@ -10,9 +10,7 @@ uv_listen($tcp,100, function($server) {
     uv_read_start($client, function($socket, $nread, $buffer) use ($server) {
         echo $buffer . PHP_EOL;
         uv_close($socket);
-        uv_close($server,function() use ($server) {
-            uv_unref($server);
-        });
+        uv_close($server);
     });
 });
 
