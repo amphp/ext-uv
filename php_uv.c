@@ -1696,6 +1696,8 @@ static void php_uv_async_cb(uv_async_t* handle)
 	PHP_UV_DEBUG_PRINT("async_cb\n");
 
 	ZVAL_OBJ(&params[0], &uv->std);
+	GC_REFCOUNT(&uv->std)++;
+	PHP_UV_DEBUG_OBJ_ADD_REFCOUNT(uv_async_cb, uv);
 
 	php_uv_do_callback2(&retval, uv, params, 1, PHP_UV_ASYNC_CB TSRMLS_CC);
 
