@@ -559,7 +559,7 @@ static void php_uv_lock_init(enum php_uv_lock_type lock_type, INTERNAL_FUNCTION_
 			}
 
 			PHP_UV_INIT_LOCK(lock, IS_UV_SEMAPHORE);
-			error = uv_sem_init(PHP_UV_LOCK_SEM_P(lock), val);
+			error = uv_sem_init(PHP_UV_LOCK_SEM_P(lock), (int) val);
 		}
 		break;
 		default:
@@ -1513,8 +1513,10 @@ static void php_uv_udp_send_cb(uv_udp_send_t* req, int status)
 
 	php_uv_do_callback2(&retval, uv, params, 2, PHP_UV_SEND_CB TSRMLS_CC);
 
-	PHP_UV_DEBUG_OBJ_DEL_REFCOUNT(uv_udp_send_cb, uv);
-	zval_ptr_dtor(&params[0]);
+	if (!uv_is_closing(&uv->uv.handle)) { /* send_cb is invoked *before* the handle is marked as inactive - uv_close() will thus *not* increment the refcount and we must then not delete the refcount here */
+		PHP_UV_DEBUG_OBJ_DEL_REFCOUNT(uv_udp_send_cb, uv);
+		zval_ptr_dtor(&params[0]);
+	}
 	zval_ptr_dtor(&params[1]);
 
 	zval_ptr_dtor(&retval);
@@ -1732,7 +1734,7 @@ static void php_uv_after_work_cb(uv_work_t* req, int status)
 
 	/* as uv_cancel inside destruct_uv will return EBUSY here as were still in the work callback, but freeing is safe here */
 	clean_uv_handle(uv); /* this avoids a cancel */
-	OBJ_RELEASE(uv);
+	OBJ_RELEASE(&uv->std);
 }
 #endif
 
@@ -2057,7 +2059,7 @@ static void php_uv_close_cb(uv_handle_t *handle)
 static inline zend_bool php_uv_is_handle_referenced(php_uv_t *uv) {
 	zend_class_entry *ce = uv->std.ce;
 
-	return (ce == uv_signal_ce || ce == uv_timer_ce || ce == uv_idle_ce || ce == uv_udp_ce || ce == uv_tcp_ce || ce == uv_tty_ce || ce == uv_pipe_ce || ce == uv_prepare_ce || ce == uv_check_ce || ce == uv_poll_ce || ce == uv_fs_poll_ce) ? uv_is_active(&uv->uv.handle) : (ce == uv_async_ce);
+	return (ce == uv_signal_ce || ce == uv_timer_ce || ce == uv_idle_ce || ce == uv_udp_ce || ce == uv_tcp_ce || ce == uv_tty_ce || ce == uv_pipe_ce || ce == uv_prepare_ce || ce == uv_check_ce || ce == uv_poll_ce || ce == uv_fs_poll_ce) && uv_is_active(&uv->uv.handle);
 }
 
 /* uv handle must not be cleaned or closed before called */
@@ -2188,9 +2190,7 @@ void static destruct_uv_stdio(zend_object *obj)
 {
 	php_uv_stdio_t *stdio = (php_uv_stdio_t *) obj;
 
-	if (stdio->stream != NULL) {
-		zend_list_delete(stdio->stream);
-	}
+	zval_ptr_dtor(&stdio->stream);
 }
 
 
@@ -2334,6 +2334,7 @@ static void php_uv_udp_send(int type, INTERNAL_FUNCTION_PARAMETERS)
 	ZEND_PARSE_PARAMETERS_END();
 
 	GC_REFCOUNT(&uv->std)++;
+	PHP_UV_DEBUG_OBJ_ADD_REFCOUNT(uv_udp_send, uv);
 
 	PHP_UV_INIT_SEND_REQ(w, uv, data->val, data->len);
 	php_uv_cb_init(&cb, uv, &fci, &fcc, PHP_UV_SEND_CB);
@@ -2362,6 +2363,7 @@ static void php_uv_tcp_connect(enum php_uv_socket_type type, INTERNAL_FUNCTION_P
 	ZEND_PARSE_PARAMETERS_END();
 
 	GC_REFCOUNT(&uv->std)++;
+	PHP_UV_DEBUG_OBJ_ADD_REFCOUNT(uv_tcp_connect, uv);
 
 	PHP_UV_INIT_CONNECT(req, uv)
 	php_uv_cb_init(&cb, uv, &fci, &fcc, PHP_UV_CONNECT_CB);
@@ -2449,6 +2451,15 @@ static HashTable *php_uv_loop_get_gc(zval *object, zval **table, int *n) {
 	return loop->std.properties;
 }
 
+static HashTable *php_uv_stdio_get_gc(zval *object, zval **table, int *n) {
+	php_uv_stdio_t *stdio = (php_uv_stdio_t *) Z_OBJ_P(object);
+
+	*n = 1;
+	*table = &stdio->stream;
+
+	return stdio->std.properties;
+}
+
 static zend_object *php_uv_create_uv(zend_class_entry *ce) {
 	php_uv_t *uv = emalloc(sizeof(php_uv_t));
 	zend_object_std_init(&uv->std, ce);
@@ -2499,7 +2510,7 @@ static zend_object *php_uv_create_uv_stdio(zend_class_entry *ce) {
 	stdio->std.handlers = &uv_stdio_handlers;
 
 	stdio->flags = 0;
-	stdio->stream = NULL;
+	ZVAL_UNDEF(&stdio->stream);
 
 	return &stdio->std;
 }
@@ -2590,6 +2601,7 @@ PHP_MINIT_FUNCTION(uv)
 	uv_stdio_ce->create_object = php_uv_create_uv_stdio;
 	memcpy(&uv_stdio_handlers, &uv_default_handlers, sizeof(zend_object_handlers));
 	uv_stdio_handlers.dtor_obj = destruct_uv_stdio;
+	uv_stdio_handlers.get_gc = php_uv_stdio_get_gc;
 
 #if !defined(PHP_WIN32) && !(defined(HAVE_SOCKETS) && !defined(COMPILE_DL_SOCKETS))
 	{
@@ -3731,6 +3743,7 @@ PHP_FUNCTION(uv_read_start)
 	zend_fcall_info_cache fcc = empty_fcall_info_cache;
 	php_uv_cb_t *cb;
 	int r;
+	uv_os_fd_t fd;
 
 	PHP_UV_DEBUG_PRINT("uv_read_start\n");
 
@@ -3738,6 +3751,11 @@ PHP_FUNCTION(uv_read_start)
 		UV_PARAM_OBJ(uv, php_uv_t, uv_tcp_ce, uv_pipe_ce, uv_tty_ce)
 		Z_PARAM_FUNC(fci, fcc)
 	ZEND_PARSE_PARAMETERS_END();
+
+	if (uv_fileno(&uv->uv.handle, &fd) != 0) {
+		php_error_docref(NULL, E_WARNING, "passed UV handle is not initialized yet");
+		return;
+	}
 
 	GC_REFCOUNT(&uv->std)++;
 	PHP_UV_DEBUG_OBJ_ADD_REFCOUNT(uv_read_start, uv);
@@ -4644,34 +4662,56 @@ PHP_FUNCTION(uv_stdio_new)
 	php_stream *stream;
 
 	if (zend_parse_parameters(ZEND_NUM_ARGS(),
-		"r|l", &handle, &flags) == FAILURE) {
+		"z|l", &handle, &flags) == FAILURE) {
 		return;
 	}
 
 	if (Z_TYPE_P(handle) == IS_LONG) {
 		fd = Z_LVAL_P(handle);
+		if (flags & (UV_CREATE_PIPE | UV_INHERIT_STREAM)) {
+			php_error_docref(NULL, E_WARNING, "flags must not be UV::CREATE_PIPE or UV::INHERIT_STREAM for resources");
+			RETURN_FALSE;
+		}
+		flags |= UV_INHERIT_FD;
 	} else if (Z_TYPE_P(handle) == IS_RESOURCE) {
 		if ((stream = (php_stream *) zend_fetch_resource_ex(handle, NULL, php_file_le_stream()))) {
-			if (php_stream_cast(stream, PHP_STREAM_AS_FD | PHP_STREAM_CAST_INTERNAL, (void*)&fd, 1) != SUCCESS || fd < 0) {
-				fd = -1;
+			if (php_stream_cast(stream, PHP_STREAM_AS_FD | PHP_STREAM_CAST_INTERNAL, (void *) &fd, 1) != SUCCESS || fd < 0) {
+				php_error_docref(NULL, E_WARNING, "passed resource without file descriptor");
+				RETURN_FALSE;
 			}
 #if !defined(PHP_WIN32) || defined(HAVE_SOCKET)
 		} else if ((socket = (php_socket *) zend_fetch_resource_ex(handle, NULL, php_sockets_le_socket()))) {
 			fd = socket->bsd_socket;
 #endif
 		} else {
-			php_error_docref(NULL, E_WARNING, "passed unexpected resource");
+			php_error_docref(NULL, E_WARNING, "passed unexpected resource, expected file or socket");
 			RETURN_FALSE;
 		}
+		if (flags & (UV_CREATE_PIPE | UV_INHERIT_STREAM)) {
+			php_error_docref(NULL, E_WARNING, "flags must not be UV::CREATE_PIPE or UV::INHERIT_STREAM for resources");
+			RETURN_FALSE;
+		}
+		flags |= UV_INHERIT_FD;
+	} else if (Z_TYPE_P(handle) == IS_OBJECT && instanceof_function(Z_OBJCE_P(handle), uv_ce)) {
+		if (flags & UV_INHERIT_FD) {
+			php_error_docref(NULL, E_WARNING, "flags must not be UV::INHERIT_FD for UV handles");
+			RETURN_FALSE;
+		}
+		if ((flags & (UV_CREATE_PIPE | UV_INHERIT_STREAM)) == (UV_CREATE_PIPE | UV_INHERIT_STREAM) || !(flags & (UV_CREATE_PIPE | UV_INHERIT_STREAM))) {
+			php_error_docref(NULL, E_WARNING, "flags must be exactly one of UV::INHERIT_STREAM or UV::CREATE_PIPE for UV handles");
+			RETURN_FALSE;
+		}
+	} else {
+		php_error_docref(NULL, E_WARNING, "passed unexpected value, expected instance of UV, file resource or socket resource");
+		RETURN_FALSE;
 	}
 
 	PHP_UV_INIT_GENERIC(stdio, php_uv_stdio_t, uv_stdio_ce);
 	stdio->flags = flags;
 	stdio->fd = fd;
 
-	if (Z_TYPE_P(handle) == IS_RESOURCE) {
-		stdio->stream = Z_RES_P(handle);
-		Z_ADDREF_P(handle);
+	if (Z_TYPE_P(handle) == IS_RESOURCE || Z_TYPE_P(handle) == IS_OBJECT) {
+		ZVAL_COPY(&stdio->stream, handle);
 	}
 
 	RETURN_OBJ(&stdio->std);
@@ -4914,7 +4954,7 @@ PHP_FUNCTION(uv_spawn)
 			php_uv_stdio_t *stdio_tmp;
 
 			if (Z_TYPE_P(value) != IS_OBJECT || Z_OBJCE_P(value) != uv_stdio_ce) {
-				php_error_docref(NULL, E_ERROR, "must be uv_stdio resource");
+				php_error_docref(NULL, E_ERROR, "must be instance of UVStdio");
 			}
 
 			stdio_tmp = (php_uv_stdio_t *) Z_OBJ_P(value);
@@ -4923,15 +4963,9 @@ PHP_FUNCTION(uv_spawn)
 
 			if (stdio_tmp->flags & UV_INHERIT_FD) {
 				stdio[x].data.fd = stdio_tmp->fd;
-#if 0
 			} else if (stdio_tmp->flags & (UV_CREATE_PIPE | UV_INHERIT_STREAM)) {
-				php_uv_t* uv_pipe;
-				zval passed_id;
-				ZVAL_RES(&passed_id, stdio_tmp->stream);
-
-				uv_pipe = (php_uv_t *) zend_fetch_resource_ex(&passed_id, PHP_UV_RESOURCE_NAME, uv_resource_handle);
-				stdio[x].data.stream = (uv_stream_t*)&uv_pipe->uv.pipe;
-#endif
+				php_uv_t *uv_pipe = (php_uv_t *) Z_OBJ(stdio_tmp->stream);
+				stdio[x].data.stream = &uv_pipe->uv.stream;
 			} else {
 				php_error_docref(NULL, E_WARNING, "passes unexpected stdio flags");
 				RETURN_FALSE;
@@ -5416,7 +5450,6 @@ PHP_FUNCTION(uv_async_send)
 	ZEND_PARSE_PARAMETERS_END();
 
 	uv_async_send(&uv->uv.async);
-	GC_REFCOUNT(&uv->std)++;
 	PHP_UV_DEBUG_OBJ_ADD_REFCOUNT(uv_async_send, uv);
 }
 /* }}} */

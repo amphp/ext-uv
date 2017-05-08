@@ -193,7 +193,7 @@ typedef struct {
 	zend_object std;
 
 	int fd;
-	zend_resource *stream;
+	zval stream;
 	int flags;
 } php_uv_stdio_t;
 

@@ -6,4 +6,4 @@ Test uv_spawn doesn't cause segfault #56
 $ioRead = uv_stdio_new(null, Uv::CREATE_PIPE | Uv::INHERIT_STREAM);
 
 --EXPECTF--
-Warning: uv_stdio_new() expects parameter 1 to be resource, null given in %s on line %d
+Warning: uv_stdio_new(): passed unexpected value, expected instance of UV, file resource or socket resource in %s on line %d
