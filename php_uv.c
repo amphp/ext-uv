@@ -52,13 +52,14 @@ ZEND_DECLARE_MODULE_GLOBALS(uv);
 	#define uv_zend_wrong_parameter_class_error(...) zend_wrong_parameter_class_error(__VA_ARGS__)
 #endif
 
+#define WITH_STARTING_COMMA(...) , ##__VA_ARGS__
 #define UV_PARAM_OBJ_EX(dest, type, check_null, ce, ...) \
 	{ \
 		zval *zv; \
 		Z_PARAM_PROLOGUE(0) \
-		if (UNEXPECTED(!uv_parse_arg_object(_arg, &zv, check_null, ce, ##__VA_ARGS__, NULL))) { \
+		if (UNEXPECTED(!uv_parse_arg_object(_arg, &zv, check_null, ce WITH_STARTING_COMMA(__VA_ARGS__), NULL))) { \
 			if (!(_flags & ZEND_PARSE_PARAMS_QUIET)) { \
-				zend_string *names = php_uv_concat_ce_names(ce, ##__VA_ARGS__, NULL); \
+				zend_string *names = php_uv_concat_ce_names(ce WITH_STARTING_COMMA(__VA_ARGS__), NULL); \
 				uv_zend_wrong_parameter_class_error(_flags & ZEND_PARSE_PARAMS_THROW, _i, ZSTR_VAL(names), _arg); \
 				zend_string_release(names); \
 			} \
