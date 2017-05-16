@@ -2790,6 +2790,10 @@ ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_is_active, 0, 0, 1)
 	ZEND_ARG_INFO(0, handle)
 ZEND_END_ARG_INFO()
 
+ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_is_closing, 0, 0, 1)
+	ZEND_ARG_INFO(0, handle)
+ZEND_END_ARG_INFO()
+
 ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_is_readable, 0, 0, 1)
 	ZEND_ARG_INFO(0, handle)
 ZEND_END_ARG_INFO()
@@ -4432,17 +4436,37 @@ PHP_FUNCTION(uv_udp_send6)
 }
 /* }}} */
 
-/* {{{ proto bool uv_is_active((uv_handle_t *) resource $handle)
+/* {{{ proto bool uv_is_active(UV $handle)
 */
 PHP_FUNCTION(uv_is_active)
 {
+	zval *zv;
 	php_uv_t *uv;
 
 	ZEND_PARSE_PARAMETERS_START(1, 1)
-		UV_PARAM_OBJ(uv, php_uv_t, uv_ce)
+		Z_PARAM_OBJECT_OF_CLASS(zv, uv_ce)
 	ZEND_PARSE_PARAMETERS_END();
 
-	RETURN_BOOL(uv_is_active(&uv->uv.handle));
+	uv = (php_uv_t *) Z_OBJ_P(zv);
+
+	RETURN_BOOL(!PHP_UV_IS_DTORED(uv) && uv_is_active(&uv->uv.handle));
+}
+/* }}} */
+
+/* {{{ proto bool uv_is_closing(UV $handle)
+*/
+PHP_FUNCTION(uv_is_closing)
+{
+	zval *zv;
+	php_uv_t *uv;
+
+	ZEND_PARSE_PARAMETERS_START(1, 1)
+		Z_PARAM_OBJECT_OF_CLASS(zv, uv_ce)
+	ZEND_PARSE_PARAMETERS_END();
+
+	uv = (php_uv_t *) Z_OBJ_P(zv);
+
+	RETURN_BOOL(PHP_UV_IS_DTORED(uv));
 }
 /* }}} */
 
@@ -6086,6 +6110,7 @@ static zend_function_entry uv_functions[] = {
 	PHP_FE(uv_err_name,                 arginfo_uv_err_name)
 	PHP_FE(uv_strerror,                 arginfo_uv_strerror)
 	PHP_FE(uv_is_active,                arginfo_uv_is_active)
+	PHP_FE(uv_is_closing,               arginfo_uv_is_closing)
 	PHP_FE(uv_is_readable,              arginfo_uv_is_readable)
 	PHP_FE(uv_is_writable,              arginfo_uv_is_writable)
 	PHP_FE(uv_walk,                     arginfo_uv_walk)
