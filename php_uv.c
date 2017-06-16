@@ -52,10 +52,16 @@ ZEND_DECLARE_MODULE_GLOBALS(uv);
 	#define uv_zend_wrong_parameter_class_error(...) zend_wrong_parameter_class_error(__VA_ARGS__)
 #endif
 
+#if PHP_VERSION_ID < 70200
+	#define UV_PARAM_PROLOGUE Z_PARAM_PROLOGUE(0)
+#else
+	#define UV_PARAM_PROLOGUE Z_PARAM_PROLOGUE(0, 0)
+#endif
+
 #define UV_PARAM_OBJ_EX(dest, type, check_null, ce, ...) \
 	{ \
 		zval *zv; \
-		Z_PARAM_PROLOGUE(0) \
+		UV_PARAM_PROLOGUE \
 		if (UNEXPECTED(!uv_parse_arg_object(_arg, &zv, check_null, ce, ##__VA_ARGS__, NULL))) { \
 			if (!(_flags & ZEND_PARSE_PARAMS_QUIET)) { \
 				zend_string *names = php_uv_concat_ce_names(ce, ##__VA_ARGS__, NULL); \
