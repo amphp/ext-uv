@@ -1813,15 +1813,17 @@ static void php_uv_fs_cb(uv_fs_t* req)
 
 		case UV_FS_SCANDIR:
 			argc = 2;
-			if (Z_RES(params[0]) && req->ptr != NULL) {
+			if (uv->uv.fs.result < 0 || req->ptr == NULL) {
+				ZVAL_LONG(&params[1], uv->uv.fs.result);
+			} else {
 				uv_dirent_t dent;
+
+				ZVAL_TRUE(&params[0]); // wtf, but do not break BC
 
 				array_init(&params[1]);
 				while (UV_EOF != uv_fs_scandir_next(req, &dent)) {
 					add_next_index_string(&params[1], dent.name);
 				}
-			} else {
-				ZVAL_NULL(&params[1]);
 			}
 			break;
 
@@ -2453,8 +2455,10 @@ static HashTable *php_uv_loop_get_gc(zval *object, zval **table, int *n) {
 	data.loop = loop;
 
 	*n = 0;
-	uv_walk(&loop->loop, php_uv_loop_get_gc_walk_cb, &data);
-	*table = loop->gc_buffer;
+	if (!PHP_UV_IS_DTORED(loop)) {
+		uv_walk(&loop->loop, php_uv_loop_get_gc_walk_cb, &data);
+		*table = loop->gc_buffer;
+	}
 
 	return loop->std.properties;
 }
