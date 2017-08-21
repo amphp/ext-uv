@@ -1194,8 +1194,9 @@ static void destruct_uv_loop_walk_cb(uv_handle_t* handle, void* arg)
 
 void static destruct_uv_loop(zend_object *obj)
 {
-	uv_loop_t *loop = (uv_loop_t *) &((php_uv_loop_t *) obj)->loop;
-	if ((php_uv_loop_t *) obj != UV_G(default_loop)) {
+	php_uv_loop_t *loop_obj = (php_uv_loop_t *) obj;
+	uv_loop_t *loop = &loop_obj->loop;
+	if (loop_obj != UV_G(default_loop)) {
 		uv_stop(loop); /* in case we haven't stopped the loop yet otherwise ... */
 		uv_run(loop, UV_RUN_DEFAULT); /* invalidate the stop ;-) */
 
@@ -1203,6 +1204,9 @@ void static destruct_uv_loop(zend_object *obj)
 		uv_walk(loop, destruct_uv_loop_walk_cb, NULL);
 		uv_run(loop, UV_RUN_DEFAULT);
 		uv_loop_close(loop);
+	}
+	if (loop_obj->gc_buffer) {
+		efree(loop_obj->gc_buffer);
 	}
 }
 
