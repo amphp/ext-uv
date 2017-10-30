@@ -44,6 +44,10 @@ ZEND_TSRMLS_CACHE_DEFINE()
 
 ZEND_DECLARE_MODULE_GLOBALS(uv);
 
+#if PHP_VERSION_ID < 70300
+	#define GC_ADDREF(ref) ++GC_REFCOUNT(ref)
+#endif
+
 #if PHP_VERSION_ID < 70100
 	#define uv_zend_wrong_parameter_class_error(throw, ...) zend_wrong_paramer_class_error(__VA_ARGS__)
 #elif PHP_VERSION_ID < 70200
@@ -498,7 +502,7 @@ static php_uv_cb_t* php_uv_cb_init_dynamic(php_uv_t *uv, zend_fcall_info *fci, z
 	if (ZEND_FCI_INITIALIZED(*fci)) {
 		Z_TRY_ADDREF(cb->fci.function_name);
 		if (fci->object) {
-			GC_REFCOUNT(cb->fci.object)++;
+			GC_ADDREF(cb->fci.object);
 		}
 	}
 
@@ -528,7 +532,7 @@ static void php_uv_cb_init(php_uv_cb_t **result, php_uv_t *uv, zend_fcall_info *
 	if (ZEND_FCI_INITIALIZED(*fci)) {
 		Z_TRY_ADDREF(cb->fci.function_name);
 		if (fci->object) {
-			GC_REFCOUNT(cb->fci.object)++;
+			GC_ADDREF(cb->fci.object);
 		}
 	}
 
@@ -1250,7 +1254,7 @@ void static destruct_uv(zend_object *obj)
 
 	if (!php_uv_closeable_type(uv)) {
 		if (uv_cancel(&uv->uv.req) == UV_EBUSY) {
-			++GC_REFCOUNT(obj);
+			GC_ADDREF(obj);
 		}
 		clean_uv_handle(uv);
 	} else {
@@ -1546,7 +1550,7 @@ static void php_uv_listen_cb(uv_stream_t* server, int status)
 	TSRMLS_FETCH_FROM_CTX(uv->thread_ctx);
 
 	ZVAL_OBJ(&params[0], &uv->std);
-	++GC_REFCOUNT(&uv->std);
+	GC_ADDREF(&uv->std);
 	PHP_UV_DEBUG_OBJ_ADD_REFCOUNT(uv_listen_cb, uv);
 	ZVAL_LONG(&params[1], status);
 
@@ -1589,7 +1593,7 @@ static void php_uv_read_cb(uv_stream_t* handle, ssize_t nread, const uv_buf_t* b
 
 	ZVAL_OBJ(&params[0], &uv->std);
 	if (nread > 0) { // uv disables itself when it reaches EOF/error
-		GC_REFCOUNT(&uv->std)++;
+		GC_ADDREF(&uv->std);
 		PHP_UV_DEBUG_OBJ_ADD_REFCOUNT(uv_read_cb, uv);
 	}
 
@@ -1626,7 +1630,7 @@ static void php_uv_read2_cb(uv_pipe_t* handle, ssize_t nread, uv_buf_t buf, uv_h
 
 	ZVAL_OBJ(&params[0], &uv->std);
 	if (nread > 0) { // uv disables itself when it reaches EOF/error
-		GC_REFCOUNT(&uv->std)++;
+		GC_ADDREF(&uv->std);
 		PHP_UV_DEBUG_OBJ_ADD_REFCOUNT(uv_read2_cb, uv);
 	}
 	ZVAL_LONG(&params[1], nread);
@@ -1663,7 +1667,7 @@ static void php_uv_prepare_cb(uv_prepare_t* handle)
 	PHP_UV_DEBUG_PRINT("prepare_cb\n");
 
 	ZVAL_OBJ(&params[0], &uv->std);
-	GC_REFCOUNT(&uv->std)++;
+	GC_ADDREF(&uv->std);
 	PHP_UV_DEBUG_OBJ_ADD_REFCOUNT(uv_prepare_cb, uv);
 
 	php_uv_do_callback2(&retval, uv, params, 1, PHP_UV_PREPARE_CB TSRMLS_CC);
@@ -1684,7 +1688,7 @@ static void php_uv_check_cb(uv_check_t* handle)
 	PHP_UV_DEBUG_PRINT("check_cb\n");
 
 	ZVAL_OBJ(&params[0], &uv->std);
-	GC_REFCOUNT(&uv->std)++;
+	GC_ADDREF(&uv->std);
 	PHP_UV_DEBUG_OBJ_ADD_REFCOUNT(uv_check_cb, uv);
 
 	php_uv_do_callback2(&retval, uv, params, 1, PHP_UV_CHECK_CB TSRMLS_CC);
@@ -1706,7 +1710,7 @@ static void php_uv_async_cb(uv_async_t* handle)
 	PHP_UV_DEBUG_PRINT("async_cb\n");
 
 	ZVAL_OBJ(&params[0], &uv->std);
-	GC_REFCOUNT(&uv->std)++;
+	GC_ADDREF(&uv->std);
 	PHP_UV_DEBUG_OBJ_ADD_REFCOUNT(uv_async_cb, uv);
 
 	php_uv_do_callback2(&retval, uv, params, 1, PHP_UV_ASYNC_CB TSRMLS_CC);
@@ -1909,7 +1913,7 @@ static void php_uv_fs_event_cb(uv_fs_event_t* req, const char* filename, int eve
 	PHP_UV_DEBUG_PRINT("fs_event_cb: %s, %d\n", filename, status);
 
 	ZVAL_OBJ(&params[0], &uv->std);
-	GC_REFCOUNT(&uv->std)++;
+	GC_ADDREF(&uv->std);
 	PHP_UV_DEBUG_OBJ_ADD_REFCOUNT(uv_fs_event_cb, uv);
 	if (filename) {
 		ZVAL_STRING(&params[1], filename);
@@ -1964,7 +1968,7 @@ static void php_uv_fs_poll_cb(uv_fs_poll_t* handle, int status, const uv_stat_t*
 	TSRMLS_FETCH_FROM_CTX(uv->thread_ctx);
 
 	ZVAL_OBJ(&params[0], &uv->std);
-	GC_REFCOUNT(&uv->std)++;
+	GC_ADDREF(&uv->std);
 	PHP_UV_DEBUG_OBJ_ADD_REFCOUNT(uv_fs_poll_cb, uv);
 	ZVAL_LONG(&params[1], status);
 	params[2] = php_uv_stat_to_zval(prev);
@@ -1990,7 +1994,7 @@ static void php_uv_poll_cb(uv_poll_t* handle, int status, int events)
 
 	ZVAL_OBJ(&params[0], &uv->std);
 	if (status == 0) {
-		GC_REFCOUNT(&uv->std)++;
+		GC_ADDREF(&uv->std);
 	}
 	PHP_UV_DEBUG_OBJ_ADD_REFCOUNT(uv_poll_cb, uv);
 	ZVAL_LONG(&params[1], status);
@@ -2022,7 +2026,7 @@ static void php_uv_udp_recv_cb(uv_udp_t* handle, ssize_t nread, const uv_buf_t* 
 	TSRMLS_FETCH_FROM_CTX(uv->thread_ctx);
 
 	ZVAL_OBJ(&params[0], &uv->std);
-	GC_REFCOUNT(&uv->std)++;
+	GC_ADDREF(&uv->std);
 	PHP_UV_DEBUG_OBJ_ADD_REFCOUNT(uv_udp_recv_cb, uv);
 	ZVAL_LONG(&params[1], nread);
 	ZVAL_STRINGL(&params[2], buf->base, nread);
@@ -2081,7 +2085,7 @@ static void php_uv_close(php_uv_t *uv) {
 	ZEND_ASSERT(!uv_is_closing(&uv->uv.handle));
 
 	if (!php_uv_is_handle_referenced(uv)) {
-		++GC_REFCOUNT(&uv->std);
+		GC_ADDREF(&uv->std);
 		PHP_UV_DEBUG_OBJ_ADD_REFCOUNT(php_uv_close, uv);
 	}
 
@@ -2099,7 +2103,7 @@ static void php_uv_idle_cb(uv_timer_t *handle)
 	TSRMLS_FETCH_FROM_CTX(uv->thread_ctx);
 
 	ZVAL_OBJ(&params[0], &uv->std);
-	GC_REFCOUNT(&uv->std)++;
+	GC_ADDREF(&uv->std);
 	PHP_UV_DEBUG_OBJ_ADD_REFCOUNT(php_uv_idle_cb, uv);
 
 	php_uv_do_callback2(&retval, uv, params, 1, PHP_UV_IDLE_CB TSRMLS_CC);
@@ -2167,7 +2171,7 @@ static void php_uv_timer_cb(uv_timer_t *handle)
 	ZVAL_OBJ(&params[0], &uv->std);
 
 	if (handle->repeat) {
-		GC_REFCOUNT(&uv->std)++;
+		GC_ADDREF(&uv->std);
 		PHP_UV_DEBUG_OBJ_ADD_REFCOUNT(php_uv_timer_cb, uv);
 	}
 
@@ -2187,7 +2191,7 @@ static void php_uv_signal_cb(uv_signal_t *handle, int sig_num)
 	TSRMLS_FETCH_FROM_CTX(uv->thread_ctx);
 
 	ZVAL_OBJ(&params[0], &uv->std);
-	GC_REFCOUNT(&uv->std)++;
+	GC_ADDREF(&uv->std);
 	PHP_UV_DEBUG_OBJ_ADD_REFCOUNT(php_uv_signal_cb, uv);
 	ZVAL_LONG(&params[1], sig_num);
 
@@ -2347,7 +2351,7 @@ static void php_uv_udp_send(int type, INTERNAL_FUNCTION_PARAMETERS)
 		Z_PARAM_FUNC_EX(fci, fcc, 1, 0)
 	ZEND_PARSE_PARAMETERS_END();
 
-	GC_REFCOUNT(&uv->std)++;
+	GC_ADDREF(&uv->std);
 	PHP_UV_DEBUG_OBJ_ADD_REFCOUNT(uv_udp_send, uv);
 
 	PHP_UV_INIT_SEND_REQ(w, uv, data->val, data->len);
@@ -2376,7 +2380,7 @@ static void php_uv_tcp_connect(enum php_uv_socket_type type, INTERNAL_FUNCTION_P
 		Z_PARAM_FUNC_EX(fci, fcc, 1, 0)
 	ZEND_PARSE_PARAMETERS_END();
 
-	GC_REFCOUNT(&uv->std)++;
+	GC_ADDREF(&uv->std);
 	PHP_UV_DEBUG_OBJ_ADD_REFCOUNT(uv_tcp_connect, uv);
 
 	PHP_UV_INIT_CONNECT(req, uv)
@@ -3499,7 +3503,7 @@ PHP_FUNCTION(uv_signal_start)
 		RETURN_FALSE;
 	}
 
-	GC_REFCOUNT(&uv->std)++;
+	GC_ADDREF(&uv->std);
 	PHP_UV_DEBUG_OBJ_ADD_REFCOUNT(uv_signal_start, uv);
 
 	php_uv_cb_init(&cb, uv, &fci, &fcc, PHP_UV_SIGNAL_CB);
@@ -3613,7 +3617,7 @@ PHP_FUNCTION(uv_write)
 		php_uv_free_write_req(w);
 		php_error_docref(NULL, E_WARNING, "write failed");
 	} else {
-		GC_REFCOUNT(&uv->std)++;
+		GC_ADDREF(&uv->std);
 		PHP_UV_DEBUG_OBJ_ADD_REFCOUNT(uv_write, uv);
 	}
 }
@@ -3646,7 +3650,7 @@ PHP_FUNCTION(uv_write2)
 		php_uv_free_write_req(w);
 		php_error_docref(NULL, E_ERROR, "write2 failed");
 	} else {
-		GC_REFCOUNT(&uv->std)++;
+		GC_ADDREF(&uv->std);
 		PHP_UV_DEBUG_OBJ_ADD_REFCOUNT(uv_write2, uv);
 	}
 }
@@ -3714,7 +3718,7 @@ PHP_FUNCTION(uv_shutdown)
 
 	php_uv_cb_init(&cb, uv, &fci, &fcc, PHP_UV_SHUTDOWN_CB);
 
-	GC_REFCOUNT(&uv->std)++;
+	GC_ADDREF(&uv->std);
 	PHP_UV_DEBUG_OBJ_ADD_REFCOUNT(uv_shutdown, uv);
 	shutdown = emalloc(sizeof(uv_shutdown_t));
 	shutdown->data = uv;
@@ -3777,7 +3781,7 @@ PHP_FUNCTION(uv_read_start)
 		return;
 	}
 
-	GC_REFCOUNT(&uv->std)++;
+	GC_ADDREF(&uv->std);
 	PHP_UV_DEBUG_OBJ_ADD_REFCOUNT(uv_read_start, uv);
 
 	php_uv_cb_init(&cb, uv, &fci, &fcc, PHP_UV_READ_CB);
@@ -3810,7 +3814,7 @@ PHP_FUNCTION(uv_read2_start)
 		Z_PARAM_FUNC(fci, fcc)
 	ZEND_PARSE_PARAMETERS_END();
 
-	GC_REFCOUNT(&uv->std)++;
+	GC_ADDREF(&uv->std);
 	PHP_UV_DEBUG_OBJ_ADD_REFCOUNT(uv_read2_start, uv);
 
 	php_uv_cb_init(&cb, uv, &fci, &fcc, PHP_UV_READ2_CB);
@@ -3902,7 +3906,7 @@ PHP_FUNCTION(uv_listen)
 		Z_PARAM_FUNC(fci, fcc)
 	ZEND_PARSE_PARAMETERS_END();
 
-	GC_REFCOUNT(&uv->std)++;
+	GC_ADDREF(&uv->std);
 	PHP_UV_DEBUG_OBJ_ADD_REFCOUNT(uv_listen, uv);
 	php_uv_cb_init(&cb, uv, &fci, &fcc, PHP_UV_LISTEN_CB);
 
@@ -3986,7 +3990,7 @@ PHP_FUNCTION(uv_timer_start)
 		RETURN_FALSE;
 	}
 
-	GC_REFCOUNT(&uv->std)++;
+	GC_ADDREF(&uv->std);
 	PHP_UV_DEBUG_OBJ_ADD_REFCOUNT(uv_timer_start, uv);
 	php_uv_cb_init(&cb, uv, &fci, &fcc, PHP_UV_TIMER_CB);
 
@@ -4035,7 +4039,7 @@ PHP_FUNCTION(uv_timer_again)
 		RETURN_FALSE;
 	}
 
-	GC_REFCOUNT(&uv->std)++;
+	GC_ADDREF(&uv->std);
 	PHP_UV_DEBUG_OBJ_ADD_REFCOUNT(uv_timer_again, uv);
 
 	uv_timer_again(&uv->uv.timer);
@@ -4114,7 +4118,7 @@ PHP_FUNCTION(uv_idle_start)
 		RETURN_FALSE;
 	}
 
-	GC_REFCOUNT(&uv->std)++;
+	GC_ADDREF(&uv->std);
 	PHP_UV_DEBUG_OBJ_ADD_REFCOUNT(uv_idle_start, uv);
 
 	php_uv_cb_init(&cb, uv, &fci, &fcc, PHP_UV_IDLE_CB);
@@ -4232,7 +4236,7 @@ PHP_FUNCTION(uv_tcp_open)
 PHP_FUNCTION(uv_default_loop)
 {
 	php_uv_loop_t *loop = php_uv_default_loop();
-	++GC_REFCOUNT(&loop->std);
+	GC_ADDREF(&loop->std);
 	RETURN_OBJ(&loop->std);
 }
 /* }}} */
@@ -4309,7 +4313,7 @@ PHP_FUNCTION(uv_udp_recv_start)
 		RETURN_FALSE;
 	}
 
-	GC_REFCOUNT(&uv->std)++;
+	GC_ADDREF(&uv->std);
 	PHP_UV_DEBUG_OBJ_ADD_REFCOUNT(uv_udp_recv_start, uv);
 
 	php_uv_cb_init(&cb, uv, &fci, &fcc, PHP_UV_RECV_CB);
@@ -4631,7 +4635,7 @@ PHP_FUNCTION(uv_pipe_connect)
 		Z_PARAM_FUNC(fci, fcc)
 	ZEND_PARSE_PARAMETERS_END();
 
-	GC_REFCOUNT(&uv->std)++;
+	GC_ADDREF(&uv->std);
 	PHP_UV_DEBUG_OBJ_ADD_REFCOUNT(uv_pipe_connect, uv);
 
 	req = (uv_connect_t *) emalloc(sizeof(uv_connect_t));
@@ -5093,7 +5097,7 @@ PHP_FUNCTION(uv_spawn)
 		RETVAL_LONG(ret);
 	} else {
 		php_uv_cb_init(&cb, proc, &fci, &fcc, PHP_UV_PROC_CLOSE_CB);
-		++GC_REFCOUNT(&proc->std);
+		GC_ADDREF(&proc->std);
 		PHP_UV_DEBUG_OBJ_ADD_REFCOUNT(uv_spawn, proc);
 		RETVAL_OBJ(&proc->std);
 	}
@@ -5344,7 +5348,7 @@ PHP_FUNCTION(uv_prepare_start)
 		RETURN_FALSE;
 	}
 
-	GC_REFCOUNT(&uv->std)++;
+	GC_ADDREF(&uv->std);
 	PHP_UV_DEBUG_OBJ_ADD_REFCOUNT(uv_prepare_start, uv);
 
 	php_uv_cb_init(&cb, uv, &fci, &fcc, PHP_UV_PREPARE_CB);
@@ -5421,7 +5425,7 @@ PHP_FUNCTION(uv_check_start)
 		RETURN_FALSE;
 	}
 
-	GC_REFCOUNT(&uv->std)++;
+	GC_ADDREF(&uv->std);
 	PHP_UV_DEBUG_OBJ_ADD_REFCOUNT(uv_check_start, uv);
 
 	php_uv_cb_init(&cb, uv, &fci, &fcc, PHP_UV_CHECK_CB);
@@ -5993,7 +5997,7 @@ PHP_FUNCTION(uv_poll_start)
 	php_uv_cb_init(&cb, uv, &fci, &fcc, PHP_UV_POLL_CB);
 	if (!uv_is_active(&uv->uv.handle)) {
 		PHP_UV_DEBUG_OBJ_ADD_REFCOUNT(uv_poll_start, uv);
-		GC_REFCOUNT(&uv->std)++;
+		GC_ADDREF(&uv->std);
 	}
 
 	error = uv_poll_start(&uv->uv.poll, events, php_uv_poll_cb);
@@ -6064,7 +6068,7 @@ PHP_FUNCTION(uv_fs_poll_start)
 	ZEND_PARSE_PARAMETERS_END();
 
 	php_uv_cb_init(&cb, uv, &fci, &fcc, PHP_UV_FS_POLL_CB);
-	GC_REFCOUNT(&uv->std)++;
+	GC_ADDREF(&uv->std);
 	PHP_UV_DEBUG_OBJ_ADD_REFCOUNT(uv_fs_poll_start, uv);
 
 	error = uv_fs_poll_start(&uv->uv.fs_poll, php_uv_fs_poll_cb, (const char*)path->val, interval);
