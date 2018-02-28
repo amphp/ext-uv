@@ -50,7 +50,7 @@ ZEND_DECLARE_MODULE_GLOBALS(uv);
 
 #if PHP_VERSION_ID < 70100
 	#define uv_zend_wrong_parameter_class_error(throw, ...) zend_wrong_paramer_class_error(__VA_ARGS__)
-#elif PHP_VERSION_ID < 70200
+#elif PHP_VERSION_ID < 70200 || PHP_VERSION_ID >= 70300
 	#define uv_zend_wrong_parameter_class_error(throw, ...) zend_wrong_parameter_class_error(__VA_ARGS__)
 #else
 	#define uv_zend_wrong_parameter_class_error(...) zend_wrong_parameter_class_error(__VA_ARGS__)
@@ -230,7 +230,11 @@ static int uv_parse_arg_object(zval *arg, zval **dest, int check_null, zend_clas
 		ZVAL_UNDEF(&uv->fs_fd_alt); \
 	}
 
-#define PHP_UV_SKIP_DTOR(uv) do { GC_FLAGS(&uv->std) |= IS_OBJ_DESTRUCTOR_CALLED; } while (0)
+#if PHP_VERSION_ID < 70300
+ #define PHP_UV_SKIP_DTOR(uv) do { GC_FLAGS(&uv->std) |= IS_OBJ_DESTRUCTOR_CALLED; } while (0)
+#else
+ #define PHP_UV_SKIP_DTOR(uv) do { GC_ADD_FLAGS(&uv->std, IS_OBJ_DESTRUCTOR_CALLED); } while (0)
+#endif
 #define PHP_UV_IS_DTORED(uv) (GC_FLAGS(&uv->std) & IS_OBJ_DESTRUCTOR_CALLED)
 
 #define PHP_UV_SOCKADDR_IPV4_INIT(sockaddr) PHP_UV_INIT_GENERIC(sockaddr, php_uv_sockaddr_t, uv_sockaddr_ipv4_ce);
@@ -3548,7 +3552,11 @@ PHP_FUNCTION(uv_loop_delete)
 	ZEND_PARSE_PARAMETERS_END();
 
 	if (loop != UV_G(default_loop)) {
+#if PHP_VERSION_ID < 70300
 		GC_FLAGS(&loop->std) |= IS_OBJ_DESTRUCTOR_CALLED;
+#else
+		GC_ADD_FLAGS(&loop->std, IS_OBJ_DESTRUCTOR_CALLED);
+#endif
 		destruct_uv_loop(&loop->std);
 	}
 }
