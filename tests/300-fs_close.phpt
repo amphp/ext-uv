@@ -16,4 +16,4 @@ uv_fs_open(uv_default_loop(), FIXTURE_PATH, UV::O_RDONLY, 0, function($r){
 
 uv_run();
 --EXPECTF--
-Warning: uv_fs_close() expects parameter 2 to be resource, integer given in %s on line %d
+Warning: uv_fs_close() expects parameter 2 to be resource, in%s given in %s on line %d
