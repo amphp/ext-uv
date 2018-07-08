@@ -1364,7 +1364,11 @@ static int php_uv_do_callback3(zval *retval_ptr, php_uv_t *uv, zval *params, int
 		uv->callback[type]->fci.param_count   = param_count;
 		uv->callback[type]->fci.no_separation = 1;
 		uv->callback[type]->fci.object = NULL;
+#if PHP_VERSION_ID >= 70300
+		uv->callback[type]->fci.size = sizeof(zend_fcall_info);
+#else
 		uv->callback[type]->fcc.initialized = 1;
+#endif
 
 		uv->callback[type]->fcc.calling_scope = NULL;
 		uv->callback[type]->fcc.called_scope = NULL;
@@ -2566,7 +2570,11 @@ PHP_MINIT_FUNCTION(uv)
 {
 	PHP_UV_PROBE(MINIT);
 
+#ifdef PHP_VERSION_ID >= 70300
+	memcpy(&uv_default_handlers, &std_object_handlers, sizeof(zend_object_handlers));
+#else
 	memcpy(&uv_default_handlers, zend_get_std_object_handlers(), sizeof(zend_object_handlers));
+#endif
 	uv_default_handlers.clone_obj = NULL;
 	uv_default_handlers.get_constructor = php_uv_get_ctor;
 	uv_default_handlers.cast_object = php_uv_cast_object;
