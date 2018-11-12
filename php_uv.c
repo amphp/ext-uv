@@ -1137,7 +1137,7 @@ static zval php_uv_make_stat(const uv_stat_t *s)
 	add_assoc_long_ex(&tmp, ZEND_STRL("dev"), s->st_dev);
 	add_assoc_long_ex(&tmp, ZEND_STRL("ino"), s->st_ino);
 	add_assoc_long_ex(&tmp, ZEND_STRL("mode"), s->st_mode);
-	add_assoc_long_ex(&tmp, ZEND_STRL("link"), s->st_nlink);
+	add_assoc_long_ex(&tmp, ZEND_STRL("nlink"), s->st_nlink);
 	add_assoc_long_ex(&tmp, ZEND_STRL("uid"), s->st_uid);
 	add_assoc_long_ex(&tmp, ZEND_STRL("gid"), s->st_gid);
 	add_assoc_long_ex(&tmp, ZEND_STRL("rdev"), s->st_rdev);
