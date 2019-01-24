@@ -62,7 +62,7 @@ ZEND_DECLARE_MODULE_GLOBALS(uv);
 	#define UV_PARAM_PROLOGUE Z_PARAM_PROLOGUE(0, 0)
 #endif
 
-#if PHP_VERSION_ID < 70302
+#if PHP_VERSION_ID < 70400
 	#define _error_code error_code
 #endif
 
