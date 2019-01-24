@@ -62,6 +62,10 @@ ZEND_DECLARE_MODULE_GLOBALS(uv);
 	#define UV_PARAM_PROLOGUE Z_PARAM_PROLOGUE(0, 0)
 #endif
 
+#if PHP_VERSION_ID < 70302
+	#define _error_code error_code
+#endif
+
 #define UV_PARAM_OBJ_EX(dest, type, check_null, ce, ...) \
 	{ \
 		zval *zv; \
@@ -72,14 +76,14 @@ ZEND_DECLARE_MODULE_GLOBALS(uv);
 				uv_zend_wrong_parameter_class_error(_flags & ZEND_PARSE_PARAMS_THROW, _i, ZSTR_VAL(names), _arg); \
 				zend_string_release(names); \
 			} \
-			error_code = ZPP_ERROR_FAILURE; \
+			_error_code = ZPP_ERROR_FAILURE; \
 			break; \
 		} \
 		if (GC_FLAGS(Z_OBJ_P(zv)) & IS_OBJ_DESTRUCTOR_CALLED) { \
 			if (!(_flags & ZEND_PARSE_PARAMS_QUIET)) { \
 				php_error_docref(NULL, E_WARNING, "passed %s handle is already closed", ZSTR_VAL(Z_OBJCE_P(_arg)->name)); \
 			} \
-			error_code = ZPP_ERROR_FAILURE; \
+			_error_code = ZPP_ERROR_FAILURE; \
 			break; \
 		} \
 		dest = zv == NULL ? NULL : (type *) Z_OBJ_P(zv); \
