@@ -5,7 +5,7 @@ Check for uv_queue_work
 ob_start();
 phpinfo();
 $data = ob_get_clean();
-if (!preg_match("/Thread Safety.+?enabled/", $data)) {
+if (!preg_match("/Thread Safety.+?enabled/", $data) || PHP_VERSION_ID >= 80000) {
   echo "skip";
 }
 --FILE--

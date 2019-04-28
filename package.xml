@@ -88,13 +88,11 @@
       <file name="101-uv-idle.phpt" role="test" />
       <file name="200-ares_getaddrinfo.phpt" role="test" />
       <file name="300-fs.phpt" role="test" />
-      <file name="300-fs_close.phpt" role="test" />
       <file name="310-fs-mkdir.phpt" role="test" />
       <file name="311-fs-rmdir.phpt" role="test" />
       <file name="320-fs-event.phpt" role="test" />
       <file name="320-fs-poll.phpt" role="test" />
       <file name="320-fs-sendfile.phpt" role="test" />
-      <file name="330-poll-fd.phpt" role="test" />
       <file name="330-poll-pipe.phpt" role="test" />
       <file name="330-poll.phpt" role="test" />
       <file name="399-fs-stat-regression-no14.phpt" role="test" />
