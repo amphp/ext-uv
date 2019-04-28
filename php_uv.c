@@ -27,7 +27,7 @@
 #define PHP_UV_DEBUG 0
 #endif
 
-#ifdef ZTS
+#if defined(ZTS) && PHP_VERSION_ID < 80000
 #undef TSRMLS_C
 #undef TSRMLS_CC
 #undef TSRMLS_D
@@ -64,6 +64,10 @@ ZEND_DECLARE_MODULE_GLOBALS(uv);
 
 #if PHP_VERSION_ID < 70400
 	#define _error_code error_code
+#endif
+
+#if PHP_VERSION_ID >= 80000
+#define zend_internal_type_error(strict_types, ...) zend_type_error(__VA_ARGS__)
 #endif
 
 #define UV_PARAM_OBJ_EX(dest, type, check_null, ce, ...) \
@@ -279,7 +283,7 @@ static int uv_parse_arg_object(zval *arg, zval **dest, int check_null, zend_clas
 #define PHP_UV_DEBUG_OBJ_DEL_REFCOUNT(hander, uv)
 #endif
 
-#ifdef ZTS
+#if defined(ZTS) && PHP_VERSION_ID < 80000
 #define UV_FETCH_ALL(ls, id, type) ((type) (*((void ***) ls))[TSRM_UNSHUFFLE_RSRC_ID(id)])
 #define UV_FETCH_CTX(ls, id, type, element) (((type) (*((void ***) ls))[TSRM_UNSHUFFLE_RSRC_ID(id)])->element)
 #define UV_CG(ls, v)  UV_FETCH_CTX(ls, compiler_globals_id, zend_compiler_globals*, v)
@@ -1293,7 +1297,7 @@ static int php_uv_do_callback(zval *retval_ptr, php_uv_cb_t *callback, zval *par
 {
 	int error;
 
-#ifdef ZTS
+#if defined(ZTS) && PHP_VERSION_ID < 80000
 	void *old = tsrm_set_interpreter_context(tsrm_ls);
 #endif
 
@@ -1308,7 +1312,7 @@ static int php_uv_do_callback(zval *retval_ptr, php_uv_cb_t *callback, zval *par
 		error = -1;
 	}
 
-#ifdef ZTS
+#if defined(ZTS) && PHP_VERSION_ID < 80000
 	tsrm_set_interpreter_context(old);
 #endif
 
@@ -1319,7 +1323,7 @@ static int php_uv_do_callback2(zval *retval_ptr, php_uv_t *uv, zval *params, int
 {
 	int error = 0;
 
-#ifdef ZTS
+#if defined(ZTS) && PHP_VERSION_ID < 80000
 	void *old = tsrm_set_interpreter_context(tsrm_ls);
 #endif
 	if (ZEND_FCI_INITIALIZED(uv->callback[type]->fci)) {
@@ -1335,7 +1339,7 @@ static int php_uv_do_callback2(zval *retval_ptr, php_uv_t *uv, zval *params, int
 		error = -2;
 	}
 
-#ifdef ZTS
+#if defined(ZTS) && PHP_VERSION_ID < 80000
 	tsrm_set_interpreter_context(old);
 #endif
 	//zend_fcall_info_args_clear(&uv->callback[type]->fci, 0);
@@ -1343,7 +1347,7 @@ static int php_uv_do_callback2(zval *retval_ptr, php_uv_t *uv, zval *params, int
 	return error;
 }
 
-#ifdef ZTS
+#if defined(ZTS) && PHP_VERSION_ID < 80000
 
 static int php_uv_do_callback3(zval *retval_ptr, php_uv_t *uv, zval *params, int param_count, enum php_uv_callback_type type)
 {
@@ -1740,7 +1744,7 @@ static void php_uv_async_cb(uv_async_t* handle)
 	zval_ptr_dtor(&retval);
 }
 
-#ifdef ZTS
+#if defined(ZTS) && PHP_VERSION_ID < 80000
 static void php_uv_work_cb(uv_work_t* req)
 {
 	zval retval = {{0}};
@@ -2418,17 +2422,27 @@ static zend_function_entry php_uv_empty_methods[] = {
 	{NULL, NULL, NULL}
 };
 
-int php_uv_cast_object(zval *readobj, zval *writeobj, int type) {
+#if PHP_VERSION_ID >= 80000
+int php_uv_cast_object(zend_object *readobj, zval *writeobj, int type) {
+#else
+int php_uv_cast_object(zval *readobj_zv, zval *writeobj, int type) {
+	zend_object *readobj = Z_OBJ_P(readobj_zv);
+#endif
 	if (type == IS_LONG) {
-		ZVAL_LONG(writeobj, Z_OBJ_P(readobj)->handle);
+		ZVAL_LONG(writeobj, readobj->handle);
 		return SUCCESS;
 	} else {
 		return zend_std_cast_object_tostring(readobj, writeobj, type);
 	}
 }
 
+#if PHP_VERSION_ID >= 80000
+static HashTable *php_uv_get_gc(zend_object *object, zval **table, int *n) {
+	php_uv_t *uv = (php_uv_t *) object;
+#else
 static HashTable *php_uv_get_gc(zval *object, zval **table, int *n) {
 	php_uv_t *uv = (php_uv_t *) Z_OBJ_P(object);
+#endif
 	int i;
 
 	if (PHP_UV_IS_DTORED(uv)) {
@@ -2475,8 +2489,14 @@ static void php_uv_loop_get_gc_walk_cb(uv_handle_t* handle, void *arg) {
 	}
 }
 
+
+#if PHP_VERSION_ID >= 80000
+static HashTable *php_uv_loop_get_gc(zend_object *object, zval **table, int *n) {
+	php_uv_loop_t *loop = (php_uv_loop_t *) object;
+#else
 static HashTable *php_uv_loop_get_gc(zval *object, zval **table, int *n) {
 	php_uv_loop_t *loop = (php_uv_loop_t *) Z_OBJ_P(object);
+#endif
 	struct { int *n; php_uv_loop_t *loop; } data;
 	data.n = n;
 	data.loop = loop;
@@ -2490,8 +2510,13 @@ static HashTable *php_uv_loop_get_gc(zval *object, zval **table, int *n) {
 	return loop->std.properties;
 }
 
+#if PHP_VERSION_ID >= 80000
+static HashTable *php_uv_stdio_get_gc(zend_object *object, zval **table, int *n) {
+	php_uv_stdio_t *stdio = (php_uv_stdio_t *) object;
+#else
 static HashTable *php_uv_stdio_get_gc(zval *object, zval **table, int *n) {
 	php_uv_stdio_t *stdio = (php_uv_stdio_t *) Z_OBJ_P(object);
+#endif
 
 	*n = 1;
 	*table = &stdio->stream;
@@ -2581,7 +2606,7 @@ PHP_MINIT_FUNCTION(uv)
 {
 	PHP_UV_PROBE(MINIT);
 
-#ifdef PHP_VERSION_ID >= 70300
+#if PHP_VERSION_ID >= 70300
 	memcpy(&uv_default_handlers, &std_object_handlers, sizeof(zend_object_handlers));
 #else
 	memcpy(&uv_default_handlers, zend_get_std_object_handlers(), sizeof(zend_object_handlers));
@@ -4003,12 +4028,12 @@ PHP_FUNCTION(uv_timer_start)
 	ZEND_PARSE_PARAMETERS_END();
 
 	if (timeout < 0) {
-		php_error_docref(NULL, E_WARNING, "timeout value have to be larger than 0. given %ld", timeout);
+		php_error_docref(NULL, E_WARNING, "timeout value have to be larger than 0. given %lld", timeout);
 		RETURN_FALSE;
 	}
 
 	if (repeat < 0) {
-		php_error_docref(NULL, E_WARNING, "repeat value have to be larger than 0. given %ld", repeat);
+		php_error_docref(NULL, E_WARNING, "repeat value have to be larger than 0. given %lld", repeat);
 		RETURN_FALSE;
 	}
 
@@ -5529,7 +5554,7 @@ PHP_FUNCTION(uv_async_send)
 */
 PHP_FUNCTION(uv_queue_work)
 {
-#ifdef ZTS
+#if defined(ZTS) && PHP_VERSION_ID < 80000
 	int r;
 	php_uv_loop_t *loop;
 	php_uv_t *uv;
@@ -6254,7 +6279,9 @@ static zend_function_entry uv_functions[] = {
 	PHP_FE(uv_async_init,               arginfo_uv_async_init)
 	PHP_FE(uv_async_send,               arginfo_uv_async_send)
 	/* queue (does not work yet) */
+#if PHP_VERSION_ID < 80000
 	PHP_FE(uv_queue_work,               NULL)
+#endif
 	/* fs */
 	PHP_FE(uv_fs_open,                  arginfo_uv_fs_open)
 	PHP_FE(uv_fs_read,                  arginfo_uv_fs_read)

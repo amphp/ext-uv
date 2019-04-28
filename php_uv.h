@@ -57,6 +57,15 @@ typedef struct {
 #include <Zend/zend_variables.h>
 #include <Zend/zend_vm.h>
 
+#if PHP_VERSION_ID >= 80000
+#define TSRMLS_C
+#define TSRMLS_CC
+#define TSRMLS_D
+#define TSRMLS_DC
+#define TSRMLS_FETCH_FROM_CTX(ctx)
+#define TSRMLS_SET_CTX(ctx)
+#endif
+
 /* Define the entry point symbol
  * Zend will use when loading this module
  */
@@ -133,7 +142,7 @@ typedef struct {
 typedef struct {
 	zend_object std;
 
-#ifdef ZTS
+#if defined(ZTS) && PHP_VERSION_ID < 80000
 	void ***thread_ctx;
 #endif
 	int type;
