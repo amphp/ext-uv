@@ -89,8 +89,8 @@ ZEND_DECLARE_MODULE_GLOBALS(uv);
 		dest = zv == NULL ? NULL : (type *) Z_OBJ_P(zv); \
 	}
 
-#define UV_PARAM_OBJ(dest, type, ...) UV_PARAM_OBJ_EX(dest, type, 0, ##__VA_ARGS__)
-#define UV_PARAM_OBJ_NULL(dest, type, ...) UV_PARAM_OBJ_EX(dest, type, 1, ##__VA_ARGS__)
+#define UV_PARAM_OBJ(dest, type, ...) UV_PARAM_OBJ_EX(dest, type, 0, ##__VA_ARGS__, NULL)
+#define UV_PARAM_OBJ_NULL(dest, type, ...) UV_PARAM_OBJ_EX(dest, type, 1, ##__VA_ARGS__, NULL)
 
 static ZEND_COLD zend_string *php_uv_concat_ce_names(zend_class_entry *ce, zend_class_entry *next, ...) {
 	va_list va;
