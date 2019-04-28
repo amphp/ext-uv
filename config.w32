@@ -17,6 +17,7 @@ if (PHP_UV != "no") {
 
 	CHECK_LIB("Iphlpapi.lib","uv", PHP_UV);
 	CHECK_LIB("psapi.lib","uv", PHP_UV);
+	CHECK_LIB("userenv.lib","uv", PHP_UV);
 	CHECK_LIB("Ws2_32.lib","uv", PHP_UV);
 
 	ADD_EXTENSION_DEP('uv', 'sockets', false);
