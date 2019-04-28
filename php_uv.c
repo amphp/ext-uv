@@ -1386,7 +1386,11 @@ static int php_uv_do_callback3(zval *retval_ptr, php_uv_t *uv, zval *params, int
 		uv->callback[type]->fcc.function_handler = &fn;
 
 		ops = &fn.op_array;
+#if PHP_VERSION_ID < 70400
 		ops->run_time_cache = NULL;
+#else
+		ZEND_MAP_PTR_SET(ops->run_time_cache, NULL);
+#endif
 		if (ops->fn_flags) {
 			ops->fn_flags &= ~ZEND_ACC_CLOSURE;
 			ops->prototype = NULL;
@@ -1400,9 +1404,12 @@ static int php_uv_do_callback3(zval *retval_ptr, php_uv_t *uv, zval *params, int
 			error = -1;
 		} zend_end_try();
 
+		// after PHP 7.4 this is arena allocated and automatically freed
+#if PHP_VERSION_ID < 70400
 		if (ops->run_time_cache && !ops->function_name) {
 			efree(ops->run_time_cache);
 		}
+#endif
 
 		uv->callback[type]->fcc.function_handler = old_fn;
 
