@@ -2432,7 +2432,11 @@ int php_uv_cast_object(zval *readobj_zv, zval *writeobj, int type) {
 		ZVAL_LONG(writeobj, readobj->handle);
 		return SUCCESS;
 	} else {
+#if PHP_VERSION_ID >= 80000
 		return zend_std_cast_object_tostring(readobj, writeobj, type);
+#else
+		return zend_std_cast_object_tostring(readobj_zv, writeobj, type);
+#endif
 	}
 }
 
