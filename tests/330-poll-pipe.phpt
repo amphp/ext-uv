@@ -2,7 +2,8 @@
 Check poll of a pipe works
 --FILE--
 <?php
-$fd = popen(PHP_BINARY . " ". __DIR__ . "/fixtures/proc.php 2>&1", "w");
+$php = (getenv('TEST_PHP_EXECUTABLE') ? : PHP_BINARY)  . ' ' . (getenv('TEST_PHP_ARGS') ? : '-n');
+$fd = popen($php . " ". __DIR__ . "/fixtures/proc.php 2>&1", "w");
 stream_set_blocking($fd, 0);
 
 $loop = uv_loop_new();
