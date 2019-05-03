@@ -20,7 +20,7 @@ make install
 
 ## Windows
 
-Windows builds for stable PHP versions are available [here](https://windows.php.net/downloads/pecl/releases/uv/).
+Windows builds for stable PHP versions are available [from PECL](https://pecl.php.net/package/uv).
 
 # Examples
 
