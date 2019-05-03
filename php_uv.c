@@ -1873,7 +1873,11 @@ static void php_uv_fs_cb(uv_fs_t* req)
 		case UV_FS_READLINK:
 			argc = 2;
 			ZVAL_BOOL(&params[0], uv->uv.fs.result == 0);
-			ZVAL_STRING(&params[1], req->ptr);
+			if (uv->uv.fs.result == 0) {
+				ZVAL_STRING(&params[1], req->ptr);
+			} else {
+				ZVAL_NULL(&params[1]);
+			}
 			break;
 
 		case UV_FS_READ:
