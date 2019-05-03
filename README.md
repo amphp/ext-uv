@@ -20,7 +20,7 @@ make install
 
 ## Windows
 
-Windows builds for PHP 7.0 and PHP 7.1 are available [here](http://dl.daverandom.com/php-uv/).
+Windows builds for stable PHP versions are available [here](https://windows.php.net/downloads/pecl/releases/uv/).
 
 # Examples
 
