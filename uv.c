@@ -176,6 +176,9 @@ void php_uv_init(zend_class_entry *uv_class_entry)
 	zend_declare_class_constant_long(uv_class_entry,  "INHERIT_STREAM", sizeof("INHERIT_STREAM")-1, UV_INHERIT_STREAM TSRMLS_CC);
 	zend_declare_class_constant_long(uv_class_entry,  "READABLE_PIPE", sizeof("READABLE_PIPE")-1, UV_READABLE_PIPE TSRMLS_CC);
 	zend_declare_class_constant_long(uv_class_entry,  "WRITABLE_PIPE", sizeof("WRITABLE_PIPE")-1, UV_WRITABLE_PIPE TSRMLS_CC);
+#ifdef UV_OVERLAPPED_PIPE
+	zend_declare_class_constant_long(uv_class_entry,  "OVERLAPPED_PIPE", sizeof("OVERLAPPED_PIPE")-1, UV_OVERLAPPED_PIPE TSRMLS_CC);
+#endif
 
 	/* process */
 	zend_declare_class_constant_long(uv_class_entry,  "PROCESS_SETUID", sizeof("PROCESS_SETUID")-1, UV_PROCESS_SETUID TSRMLS_CC);
