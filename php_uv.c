@@ -5114,7 +5114,7 @@ PHP_FUNCTION(uv_spawn)
 			char *tmp_env_entry;
 
 			tmp_env_entry = emalloc(sizeof(char) * (key->len + 2 + Z_STRLEN_P(value)));
-			slprintf(tmp_env_entry, key->len + 1 + Z_STRLEN_P(value), "%s=%s", key->val, Z_STRVAL_P(value));
+			slprintf(tmp_env_entry, key->len + 2 + Z_STRLEN_P(value), "%s=%s", key->val, Z_STRVAL_P(value));
 
 			zenv[i++] = tmp_env_entry;
 		} ZEND_HASH_FOREACH_END();
