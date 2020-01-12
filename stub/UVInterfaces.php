@@ -5,16 +5,16 @@
  * It takes care of polling for i/o and scheduling callbacks to
  * be run based on different sources of events.
  */
-interface uv_loop extends object
+interface UVLoop extends Object
 {
 }
 
 /**
  * Base handle type for `libuv` handles.
  * All handle types (including stream types) subclass
- * - uv_tcp,
- * - uv_udp,
- * - uv_pipe,
+ * - UVTcp,
+ * - UVUdp,
+ * - UVPipe,
  * - ...etc
  *
  * All API functions defined here work with any handle type.
@@ -22,7 +22,7 @@ interface uv_loop extends object
  * to functions must remain valid for the duration of the requested operation.
  * Take care when using stack allocated handles.
  */
-interface uv_handle
+interface UVHandle extends Object
 {
     const UV_UNKNOWN_HANDLE = 0;
     const UV_ASYNC = 1;
@@ -62,31 +62,31 @@ interface uv_handle
     /**
      * Pointer to loop instance the handle is running on.
      *
-     * @return uv_loop
+     * @return UVLoop
      */
-    public function loop(): uv_loop;
+    public function loop(): UVLoop;
 }
 
 /**
  * Stream handles provide an abstraction of a duplex communication channel.
- * `uv_stream` is an abstract type, `libuv` provides 3 stream implementations
- * in the form of `uv_tcp`, `uv_pipe` and `uv_tty`
+ * `UVStream` is an abstract type, `libuv` provides 3 stream implementations
+ * in the form of `UVTcp`, `UVPipe` and `UVTty`
  */
-interface uv_stream extends uv_handle
+interface UVStream extends UVHandle
 {
 }
 
 /**
  * TCP handles are used to represent both TCP streams and servers.
  */
-interface uv_tcp extends uv_stream
+interface UVTcp extends UVStream
 {
 }
 
 /**
  * UDP handles encapsulate UDP communication for both clients and servers.
  */
-interface uv_udp extends uv_handle
+interface UVUdp extends UVHandle
 {
 }
 
@@ -94,7 +94,7 @@ interface uv_udp extends uv_handle
  * Pipe handles provide an abstraction over streaming files on
  * Unix (including local domain sockets, pipes, and FIFOs) and named pipes on Windows.
  */
-interface uv_pipe extends uv_stream
+interface UVPipe extends UVStream
 {
 }
 
@@ -104,12 +104,12 @@ interface uv_pipe extends uv_stream
  *
  * The purpose of poll handles is to enable integrating external libraries that rely on
  * the event loop to signal it about the socket status changes, like c-ares or libssh2.
- * Using `uv_poll` for any other purpose is not recommended; `uv_tcp`, `uv_udp`, etc.
+ * Using `UVPoll` for any other purpose is not recommended; `UVTcp`, `UVUdp`, etc.
  * provide an implementation that is faster and more scalable than what can be achieved
- * with `uv_poll`, especially on Windows.
+ * with `UVPoll`, especially on Windows.
  *
  * It is possible that poll handles occasionally signal that a file descriptor is readable
- * or writable even when it isn�t. The user should therefore always be prepared to handle
+ * or writable even when it isn't. The user should therefore always be prepared to handle
  * EAGAIN or equivalent when it attempts to read from or write to the fd.
  *
  * It is not okay to have multiple active poll handles for the same socket, this can cause
@@ -124,14 +124,14 @@ interface uv_pipe extends uv_stream
  *
  * Note: On AIX, watching for disconnection is not supported.
  */
-interface uv_poll extends uv_handle
+interface UVPoll extends UVHandle
 {
 }
 
 /**
  * Timer handles are used to schedule callbacks to be called in the future.
  */
-interface uv_timer extends uv_handle
+interface UVTimer extends UVHandle
 {
 }
 
@@ -172,7 +172,7 @@ interface uv_timer extends uv_handle
  * Note that calls to raise() or abort() to programmatically raise a signal are
  * not detected by libuv; these will not trigger a signal watcher.
  */
-interface uv_signal extends uv_handle
+interface UVSignal extends UVHandle
 {
 }
 
@@ -180,7 +180,7 @@ interface uv_signal extends uv_handle
  * Process handles will spawn a new process and allow the user to control it and
  * establish communication channels with it using streams.
  */
-interface uv_process extends uv_handle
+interface UVProcess extends UVHandle
 {
 }
 
@@ -188,6 +188,6 @@ interface uv_process extends uv_handle
  * Async handles allow the user to “wakeup” the event loop and get a callback
  * called from another thread.
  */
-interface uv_async extends uv_handle
+interface UVAsync extends UVHandle
 {
 }
