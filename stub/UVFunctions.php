@@ -254,6 +254,18 @@ function uv_fs_write(UVLoop $loop, $fd, string $buffer, int $offset, callable $c
 }
 
 /**
+ * async fdatasync.
+ * synchronize a file's in-core state with storage device
+ *
+ * @param UVLoop $loop
+ * @param resource $fd
+ * @param callable $callback expects (resource $stream, int $status)
+ */
+function uv_fs_fdatasync(UVLoop $loop, $fd, callable $callback)
+{
+}
+
+/**
  * async stat,
  * execute a blocking system call asynchronously (in a thread pool) and call the specified callback in the specified loop after completion.
  *
@@ -498,7 +510,7 @@ function uv_kill(int $pid, int $signal)
  *
  * @return UVPipe
  */
-function UVPipe_init(UVLoop $loop, bool $ipc)
+function uv_pipe_init(UVLoop $loop, bool $ipc)
 {
 }
 
@@ -508,7 +520,7 @@ function UVPipe_init(UVLoop $loop, bool $ipc)
  * @param UVPipe $handle
  * @param int $pipe: dunnno. maybe file descriptor.
  */
-function UVPipe_open(UVPipe $handle, int $pipe)
+function uv_pipe_open(UVPipe $handle, int $pipe)
 {
 }
 
