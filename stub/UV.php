@@ -264,4 +264,19 @@ final class UV
      * ignored.
      */
     const PROCESS_WINDOWS_HIDE_GUI = (1 << 6);
+
+    /**
+     * Initial/normal terminal mode
+     */
+    const TTY_MODE_NORMAL = 0;
+
+    /**
+     * Raw input mode (On Windows, ENABLE_WINDOW_INPUT is also enabled)
+     */
+    const TTY_MODE_RAW = 1;
+
+    /**
+     * Binary-safe I/O mode for IPC (Unix-only)
+     */
+    const TTY_MODE_IO = 2;
 }

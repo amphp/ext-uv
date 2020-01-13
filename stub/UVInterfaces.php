@@ -185,9 +185,23 @@ interface UVProcess extends UVHandle
 }
 
 /**
- * Async handles allow the user to “wakeup” the event loop and get a callback
+ * Async handles allow the user to wakeup the event loop and get a callback
  * called from another thread.
  */
 interface UVAsync extends UVHandle
+{
+}
+
+/**
+ *
+ */
+interface UVStdio extends UVHandle
+{
+}
+
+/**
+ * TTY handles represent a stream for the console.
+ */
+interface UVTty extends UVStream
 {
 }

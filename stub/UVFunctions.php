@@ -124,7 +124,7 @@ function uv_shutdown(UVHandle $handle, ?callable $callback = null)
  *
  * @return UVTimer
  */
-function uv_timer_init(UVLoop $loop)
+function uv_timer_init(UVLoop $loop = null)
 {
 }
 
@@ -502,11 +502,13 @@ function uv_kill(int $pid, int $signal)
 }
 
 /**
- * initialize pipe resource
+ * Initialize a pipe handle.
+ * The ipc argument is a boolean to indicate if this pipe will be used for
+ * handle passing between processes (which may change the bytes on the wire).
  *
  * @param UVLoop $loop
  * @param bool $ipc when use for ipc, set `true` otherwise `false`.
- * - Note: needs to `false` on Windows for proper operations.
+ * - Note: needs to be `false` on Windows for proper operations.
  *
  * @return UVPipe
  */
@@ -515,21 +517,106 @@ function uv_pipe_init(UVLoop $loop, bool $ipc)
 }
 
 /**
- * open a pipe resource.
+ * Open an existing file descriptor or HANDLE as a pipe.
+ * The file descriptor is set to non-blocking mode.
+ *
+ * `Note:` The passed file descriptor or HANDLE is not checked for its type,
+ * but it’s required that it represents a valid pipe.
  *
  * @param UVPipe $handle
- * @param int $pipe: dunnno. maybe file descriptor.
+ * @param int $pipe dunnno. maybe file descriptor.
  */
 function uv_pipe_open(UVPipe $handle, int $pipe)
 {
 }
 
 /**
- * @param resource $fd
- * @param integer $flags
- * @return resource $stdio
+ * Bind the pipe to a file path (Unix) or a name (Windows).
+ *
+ * @param UVPipe $handle uv pipe handle.
+ * @param string $name dunnno. maybe file descriptor.
+ *
+ * @return int
  */
-function uv_stdio_new($fd, int $flags)
+function uv_pipe_bind(UVPipe $handle, string $name)
+{
+}
+
+/**
+ * Connect to the Unix domain socket or the named pipe.
+ *
+ * @param UVPipe $handle uv pipe handle.
+ * @param string $path named pipe path.
+ * @param callable $callback this callback parameter expects (UVPipe $pipe, int $status).
+ */
+function uv_pipe_connect(UVPipe $handle, string $path, callable $callback)
+{
+}
+
+/**
+ * Set the number of pending pipe instance handles when the pipe server is waiting for connections.
+ * Note: This setting applies to Windows only.
+ *
+ * @param UVPipe $handle
+ * @param void $count
+ */
+function uv_pipe_pending_instances(UVPipe $handle, $count)
+{
+}
+
+/**
+ * @param UVHandle $fd
+ * @param integer $flags
+ *
+ * @return UVStdio
+ */
+function uv_stdio_new(UVHandle $fd, int $flags)
+{
+}
+
+/**
+ * Initialize the async handle. A NULL callback is allowed.
+ * Note: Unlike other handle initialization functions, it immediately starts the handle.
+ *
+ * @param UVLoop $loop
+ * @param callable $callback expects (UVAsync $handle)
+ *
+ * @return UVAsync
+ */
+function uv_async_init(UVLoop $loop, callable $callback)
+{
+}
+
+/**
+ * Wake up the event loop and call the async handle’s callback.
+ *
+ * `Note:` It’s safe to call this function from any thread.
+ * The callback will be called on the loop thread.
+ *
+ * `Note:` uv_async_send() is async-signal-safe.
+ * It’s safe to call this function from a signal handler.
+ *
+ * `Warning:` libuv will coalesce calls to `uv_async_send()`, that is, not every call to it
+ * will yield an execution of the callback. For example: if `uv_async_send()` is called
+ * 5 times in a row before the callback is called, the callback will only be called once.
+ * If `uv_async_send()` is called again after the callback was called, it will be called again.
+ *
+ * @param UVAsync $handle uv async handle.
+ */
+function uv_async_send(UVAsync $handle)
+{
+}
+
+/**
+ * Initializes a work request which will run the given `$callback` in a thread from the threadpool.
+ * Once `$callback` is completed, `$after_callback` will be called on the loop thread.
+ * Execute callbacks in another thread (requires Thread Safe enabled PHP).
+ *
+ * @param UVLoop $loop
+ * @param callable $callback
+ * @param callable $after_callback
+ */
+function uv_queue_work(UVLoop $loop, callable $callback, callable $after_callback)
 {
 }
 
@@ -549,7 +636,7 @@ function uv_unref($uv_t)
 /**
  * Get last error code.
  *
- * @param resource|null $uv_loop uv loop handle.
+ * @param UVLoop|null $uv_loop uv loop handle.
  * @return int
  */
 function uv_last_error($uv_loop = null)
@@ -577,7 +664,7 @@ function uv_strerror(int $error_code)
 }
 
 /**
- * @param resource $uv_loop uv loop handle.
+ * @param UVLoop $uv_loop uv loop handle.
  *
  * @return void
  */
@@ -588,31 +675,31 @@ function uv_update_time($uv_loop)
 /**
  * Increment reference count.
  *
- * @param resource $uv_handle uv resource.
+ * @param UVHandle $uv_handle uv resource.
  *
  * @return void
  */
-function uv_ref($uv_handle)
+function uv_ref(UVHandle $uv_handle)
 {
 }
 
 /**
- * @param resource|null $uv_loop
+ * @param UVLoop|null $uv_loop
  *
  * @return void
  */
-function uv_run_once($uv_loop = null)
+function uv_run_once(UVLoop $uv_loop = null)
 {
 }
 
 /**
  * Delete specified loop resource.
  *
- * @param resource $uv_loop uv_loop resource.
+ * @param UVLoop $uv_loop uv_loop resource.
  *
  * @return void
  */
-function uv_loop_delete($uv_loop)
+function uv_loop_delete(UVLoop $uv_loop)
 {
 }
 
@@ -626,36 +713,36 @@ function uv_now()
 /**
  * Binds a name to a socket.
  *
- * @param resource $uv_tcp uv_tcp resource
+ * @param UVTcp $uv_tcp uv_tcp resource
  * @param resource $uv_sockaddr uv sockaddr4 resource.
  *
  * @return void
  */
-function uv_tcp_bind($uv_tcp, $uv_sockaddr)
+function uv_tcp_bind(UVTcp $uv_tcp, $uv_sockaddr)
 {
 }
 
 /**
  * Binds a name to a socket.
  *
- * @param resource $uv_tcp uv_tcp resource
+ * @param UVTcp $uv_tcp uv_tcp resource
  * @param resource $uv_sockaddr uv sockaddr6 resource.
  *
  * @return void
  */
-function uv_tcp_bind6($uv_tcp, $uv_sockaddr)
+function uv_tcp_bind6(UVTcp $uv_tcp, $uv_sockaddr)
 {
 }
 
 /**
- * @param resource $handle
+ * @param UVHandle $handle
  * @param string $data
  * @param resource $send
  * @param callable $callback
  *
  * @return void
  */
-function uv_write2($handle, string $data, $send, callable $callback)
+function uv_write2(UVHandle $handle, string $data, $send, callable $callback)
 {
 }
 
@@ -802,7 +889,7 @@ function uv_timer_get_repeat($timer)
 /**
  * Initialize uv idle handle.
  *
- * @param resource $loop uv_loop resource.
+ * @param UVLoop $loop uv_loop resource.
  *
  * @return resource initialized idle handle.
  */
@@ -834,7 +921,7 @@ function uv_idle_stop($idle)
 }
 
 /**
- * @param resource $loop
+ * @param UVLoop $loop
  * @param callable $callback
  * @param string $node
  * @param string $service
@@ -842,7 +929,7 @@ function uv_idle_stop($idle)
  *
  * @return void
  */
-function uv_getaddrinfo($loop, callable $callback, string $node, string $service, array $hints)
+function uv_getaddrinfo(UVLoop $loop, callable $callback, string $node, string $service, array $hints)
 {
 }
 
@@ -1014,13 +1101,13 @@ function uv_is_writable($handle)
 }
 
 /**
- * @param resource $loop
+ * @param UVLoop $loop
  * @param callable $closure
  * @param array|null $opaque
  *
  * @return bool
  */
-function uv_walk($loop, callable $closure, array $opaque = null)
+function uv_walk(UVLoop $loop, callable $closure, array $opaque = null)
 {
 }
 
@@ -1045,48 +1132,13 @@ function uv_handle_type($uv)
 }
 
 /**
- * Create a named pipe.
- *
- * @param resource $handle uv pipe handle.
- * @param string $name dunnno. maybe file descriptor.
- *
- * @return int
- */
-function uv_pipe_bind($handle, string $name)
-{
-}
-
-/**
- * Connect to named pipe.
- *
- * @param resource $handle uv pipe handle.
- * @param string $path named pipe path.
- * @param callable $callback this callback parameter expects (resource $pipe, long $status).
- *
- * @return void
- */
-function uv_pipe_connect($handle, string $path, callable $callback)
-{
-}
-
-/**
- * @param resource $handle
- * @param void $count
- *
- * @return void
- */
-function uv_pipe_pending_instances($handle, $count)
-{
-}
-
-/**
- * @param resource $loop
+ * @param UVLoop $loop
  * @param array $options
  * @param int $optmask
  *
  * @return resource
  */
-function uv_ares_init_options($loop, array $options, int $optmask)
+function uv_ares_init_options(UVLoop $loop, array $options, int $optmask)
 {
 }
 
@@ -1300,7 +1352,7 @@ function uv_sem_trywait($sem)
 /**
  * Initialize prepare resource.
  *
- * @param resource $loop uv loop handle.
+ * @param UVLoop $loop uv loop handle.
  *
  * @return resource
  */
@@ -1334,7 +1386,7 @@ function uv_prepare_stop($handle)
 /**
  * Setup check resource.
  *
- * @param resource $loop uv loop handle
+ * @param UVLoop $loop uv loop handle
  *
  * @return resource
  */
@@ -1366,126 +1418,90 @@ function uv_check_stop($handle)
 }
 
 /**
- * Setup async callback.
- *
- * @param resource $loop uv loop resource
- * @param callable $callback
- *
- * @return resource uv async resource.
- */
-function uv_async_init($loop, callable $callback)
-{
-}
-
-/**
- * Send async callback immidiately.
- *
- * @param resource $handle uv async handle.
- *
- * @return void
- */
-function uv_async_send($handle)
-{
-}
-
-/**
- * Execute callbacks in another thread (requires Thread Safe enabled PHP).
- *
- * @param resource $loop
- * @param callable $callback
- * @param callable $after_callback
- *
- * @return void
- */
-function uv_queue_work($loop, callable $callback, callable $after_callback)
-{
-}
-
-/**
  * Async fsync.
  *
- * @param resource $loop uv loop handle.
+ * @param UVLoop $loop uv loop handle.
  * @param resource $fd
  * @param callable $callback
  *
  * @return void
  */
-function uv_fs_fsync($loop, $fd, callable $callback)
+function uv_fs_fsync(UVLoop $loop, $fd, callable $callback)
 {
 }
 
 /**
  * Async ftruncate.
  *
- * @param resource $loop uv loop handle.
+ * @param UVLoop $loop uv loop handle.
  * @param resource $fd
  * @param int $offset
  * @param callable $callback
  *
  * @return void
  */
-function uv_fs_ftruncate($loop, $fd, int $offset, callable $callback)
+function uv_fs_ftruncate(UVLoop $loop, $fd, int $offset, callable $callback)
 {
 }
 
 /**
  * Async mkdir.
  *
- * @param resource $loop uv loop handle
+ * @param UVLoop $loop uv loop handle
  * @param string $path
  * @param int $mode
  * @param callable $callback
  *
  * @return void
  */
-function uv_fs_mkdir($loop, string $path, int $mode, callable $callback)
+function uv_fs_mkdir(UVLoop $loop, string $path, int $mode, callable $callback)
 {
 }
 
 /**
  * Async rmdir.
  *
- * @param resource $loop uv loop handle
+ * @param UVLoop $loop uv loop handle
  * @param string $path
  * @param callable $callback
  *
  * @return void
  */
-function uv_fs_rmdir($loop, string $path, callable $callback)
+function uv_fs_rmdir(UVLoop $loop, string $path, callable $callback)
 {
 }
 
 /**
  * Async unlink.
  *
- * @param resource $loop uv loop handle
+ * @param UVLoop $loop uv loop handle
  * @param string $path
  * @param callable $callback
  *
  * @return void
  */
-function uv_fs_unlink($loop, string $path, callable $callback)
+function uv_fs_unlink(UVLoop $loop, string $path, callable $callback)
 {
 }
 
 /**
  * Async rename.
  *
- * @param resource $loop uv loop handle.
+ * @param UVLoop $loop uv loop handle.
  * @param string $from
  * @param string $to
  * @param callable $callback
  *
  * @return void
  */
-function uv_fs_rename($loop, string $from, string $to, callable $callback)
+function uv_fs_rename(UVLoop $loop, string $from, string $to, callable $callback)
 {
 }
 
 /**
  * Async utime.
  *
- * @param resource $loop uv loop handle.
+ * @param UVLoop $loop uv loop handle.
  * @param string $path
  * @param int $utime
  * @param int $atime
@@ -1493,14 +1509,14 @@ function uv_fs_rename($loop, string $from, string $to, callable $callback)
  *
  * @return void
  */
-function uv_fs_utime($loop, string $path, int $utime, int $atime, callable $callback)
+function uv_fs_utime(UVLoop $loop, string $path, int $utime, int $atime, callable $callback)
 {
 }
 
 /**
  * Async futime.
  *
- * @param resource $loop uv loop handle.
+ * @param UVLoop $loop uv loop handle.
  * @param resource $fd
  * @param int $utime
  * @param int $atime
@@ -1508,42 +1524,42 @@ function uv_fs_utime($loop, string $path, int $utime, int $atime, callable $call
  *
  * @return void
  */
-function uv_fs_futime($loop, $fd, int $utime, int $atime, callable $callback)
+function uv_fs_futime(UVLoop $loop, $fd, int $utime, int $atime, callable $callback)
 {
 }
 
 /**
  * Async chmod.
  *
- * @param resource $loop uv loop handle.
+ * @param UVLoop $loop uv loop handle.
  * @param string $path
  * @param int $mode
  * @param callable $callback
  *
  * @return void
  */
-function uv_fs_chmod($loop, string $path, int $mode, callable $callback)
+function uv_fs_chmod(UVLoop $loop, string $path, int $mode, callable $callback)
 {
 }
 
 /**
  * Async fchmod.
  *
- * @param resource $loop uv loop handle.
+ * @param UVLoop $loop uv loop handle.
  * @param resource $fd
  * @param int $mode
  * @param callable $callback
  *
  * @return void
  */
-function uv_fs_fchmod($loop, $fd, int $mode, callable $callback)
+function uv_fs_fchmod(UVLoop $loop, $fd, int $mode, callable $callback)
 {
 }
 
 /**
  * Async chown.
  *
- * @param resource $loop uv loop handle.
+ * @param UVLoop $loop uv loop handle.
  * @param string $path
  * @param int $uid
  * @param int $gid
@@ -1551,14 +1567,14 @@ function uv_fs_fchmod($loop, $fd, int $mode, callable $callback)
  *
  * @return void
  */
-function uv_fs_chown($loop, string $path, int $uid, int $gid, callable $callback)
+function uv_fs_chown(UVLoop $loop, string $path, int $uid, int $gid, callable $callback)
 {
 }
 
 /**
  * Async fchown.
  *
- * @param resource $loop uv loop handle.
+ * @param UVLoop $loop uv loop handle.
  * @param resource $fd
  * @param int $uid
  * @param int $gid
@@ -1566,28 +1582,28 @@ function uv_fs_chown($loop, string $path, int $uid, int $gid, callable $callback
  *
  * @return void
  */
-function uv_fs_fchown($loop, $fd, int $uid, int $gid, callable $callback)
+function uv_fs_fchown(UVLoop $loop, $fd, int $uid, int $gid, callable $callback)
 {
 }
 
 /**
  * Async link.
  *
- * @param resource $loop uv loop handle.
+ * @param UVLoop $loop uv loop handle.
  * @param string $from
  * @param string $to
  * @param callable $callback
  *
  * @return void
  */
-function uv_fs_link($loop, string $from, string $to, callable $callback)
+function uv_fs_link(UVLoop $loop, string $from, string $to, callable $callback)
 {
 }
 
 /**
  * Async symlink.
  *
- * @param resource $loop uv loop handle.
+ * @param UVLoop $loop uv loop handle.
  * @param string $from
  * @param string $to
  * @param int $flags
@@ -1595,61 +1611,61 @@ function uv_fs_link($loop, string $from, string $to, callable $callback)
  *
  * @return void
  */
-function uv_fs_symlink($loop, string $from, string $to, int $flags, callable $callback)
+function uv_fs_symlink(UVLoop $loop, string $from, string $to, int $flags, callable $callback)
 {
 }
 
 /**
  * Async readlink.
  *
- * @param resource $loop uv loop handle
+ * @param UVLoop $loop uv loop handle
  * @param string $path
  * @param callable $callback
  *
  * @return void
  */
-function uv_fs_readlink($loop, string $path, callable $callback)
+function uv_fs_readlink(UVLoop $loop, string $path, callable $callback)
 {
 }
 
 /**
  * Async readdir.
  *
- * @param resource $loop  uv loop handle
+ * @param UVLoop $loop  uv loop handle
  * @param string $path
  * @param int $flags
  * @param callable $callback
  *
  * @return void
  */
-function uv_fs_readdir($loop, string $path, int $flags, callable $callback)
+function uv_fs_readdir(UVLoop $loop, string $path, int $flags, callable $callback)
 {
 }
 
 /**
  * Initialize fs event.
  *
- * @param resource $loop uv loop handle
+ * @param UVLoop $loop uv loop handle
  * @param string $path
  * @param callable $callback
  * @param int $flags
  *
  * @return resource
  */
-function uv_fs_event_init($loop, string $path, callable $callback, int $flags = 0)
+function uv_fs_event_init(UVLoop $loop, string $path, callable $callback, int $flags = 0)
 {
 }
 
 /**
  * Initialize tty resource. you have to open tty your hand.
  *
- * @param resource $loop uv loop handle.
+ * @param UVLoop $loop uv loop handle.
  * @param resource $fd
  * @param int $readable
  *
  * @return resource
  */
-function uv_tty_init($loop, $fd, int $readable)
+function uv_tty_init(UVLoop $loop, $fd, int $readable)
 {
 }
 
