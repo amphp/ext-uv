@@ -420,7 +420,7 @@ function uv_cpu_info()
  *
  * @return UVSignal
  */
-function uv_signal_init(UVLoop $loop)
+function uv_signal_init(UVLoop $loop = null)
 {
 }
 
@@ -428,7 +428,7 @@ function uv_signal_init(UVLoop $loop)
  * Start the signal handle with the given callback, watching for the given signal.
  *
  * @param UVSignal $handle
- * @param callable $callback
+ * @param callable $callback expects (UVSignal handle, int signal)
  * @param int $signal
  */
 function uv_signal_start(UVSignal $handle, callable $callback, int $signal)
