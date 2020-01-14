@@ -7,9 +7,16 @@ $signal = uv_signal_init();
 
 uv_signal_start($signal, function ($signal) {
     print_r($signal);
-    echo PHP_EOL . 'The CTRL+C signal received, exiting.';
+    echo PHP_EOL . 'The CTRL+C signal received, click the [X] to close the window.' . PHP_EOL;
     uv_signal_stop($signal);
 }, 2);
+
+$signal = uv_signal_init();
+
+uv_signal_start($signal, function ($signal) {
+    print_r($signal);
+    echo PHP_EOL . 'The SIGHUP signal received, the OS will close this session window!' . PHP_EOL;
+}, 1);
 
 echo "Hello, ";
 
