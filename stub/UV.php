@@ -279,4 +279,198 @@ final class UV
      * Binary-safe I/O mode for IPC (Unix-only)
      */
     const TTY_MODE_IO = 2;
+
+    /**
+     * The SIGHUP signal is sent to a process when its controlling terminal is closed. It was originally designed to
+     * notify the process of a serial line drop (a hangup). In modern systems, this signal usually means that the
+     * controlling pseudo or virtual terminal has been closed. Many daemons will reload their configuration files and
+     * reopen their logfiles instead of exiting when receiving this signal. nohup is a command to make a command ignore
+     * the signal.
+     */
+    const SIGHUP = 1;
+
+    /**
+     * The SIGINT signal is sent to a process by its controlling terminal when a user wishes to interrupt the process.
+     * This is typically initiated by pressing Ctrl-C, but on some systems, the "delete" character or "break" key can be
+     * used.
+     */
+    const SIGINT = 2;
+
+    /**
+     * The SIGQUIT signal is sent to a process by its controlling terminal when the user requests that the process quit
+     * and perform a core dump.
+     */
+    const SIGQUIT = 3;
+
+    /**
+     * The SIGILL signal is sent to a process when it attempts to execute an illegal, malformed, unknown, or privileged
+     * instruction.
+     */
+    const SIGILL = 4;
+
+    /**
+     * The SIGTRAP signal is sent to a process when an exception (or trap) occurs: a condition that a debugger has
+     * requested to be informed of — for example, when a particular function is executed, or when a particular variable
+     * changes value.
+     */
+    const SIGTRAP = 5;
+
+    /**
+     * The SIGABRT signal is sent to a process to tell it to abort, i.e. to terminate. The signal is usually initiated
+     * by the process itself when it calls abort function of the C Standard Library, but it can be sent to the process
+     * from outside like any other signal.
+     */
+    const SIGABRT = 6;
+
+    const SIGIOT = 6;
+
+    /**
+     * The SIGBUS signal is sent to a process when it causes a bus error. The conditions that lead to the signal being
+     * sent are, for example, incorrect memory access alignment or non-existent physical address.
+     */
+    const SIGBUS = 7;
+
+    const SIGFPE = 8;
+
+    /**
+     * The SIGKILL signal is sent to a process to cause it to terminate immediately (kill). In contrast to SIGTERM and
+     * SIGINT, this signal cannot be caught or ignored, and the receiving process cannot perform any clean-up upon
+     * receiving this signal.
+     */
+    const SIGKILL = 9;
+
+    /**
+     * The SIGUSR1 signal is sent to a process to indicate user-defined conditions.
+     */
+    const SIGUSR1 = 10;
+
+    /**
+     * The SIGUSR1 signa2 is sent to a process to indicate user-defined conditions.
+     */
+    const SIGUSR2 = 12;
+
+    /**
+     * The SIGSEGV signal is sent to a process when it makes an invalid virtual memory reference, or segmentation fault,
+     * i.e. when it performs a segmentation violation.
+     */
+    const SIGSEGV = 11;
+
+    /**
+     * The SIGPIPE signal is sent to a process when it attempts to write to a pipe without a process connected to the
+     * other end.
+     */
+    const SIGPIPE = 13;
+
+    /**
+     * The SIGALRM, SIGVTALRM and SIGPROF signal is sent to a process when the time limit specified in a call to a
+     * preceding alarm setting function (such as setitimer) elapses. SIGALRM is sent when real or clock time elapses.
+     * SIGVTALRM is sent when CPU time used by the process elapses. SIGPROF is sent when CPU time used by the process
+     * and by the system on behalf of the process elapses.
+     */
+    const SIGALRM = 14;
+
+    /**
+     * The SIGTERM signal is sent to a process to request its termination. Unlike the SIGKILL signal, it can be caught
+     * and interpreted or ignored by the process. This allows the process to perform nice termination releasing
+     * resources and saving state if appropriate. SIGINT is nearly identical to SIGTERM.
+     */
+    const SIGTERM = 15;
+
+    const SIGSTKFLT = 16;
+    const SIGCLD = 17;
+
+    /**
+     * The SIGCHLD signal is sent to a process when a child process terminates, is interrupted, or resumes after being
+     * interrupted. One common usage of the signal is to instruct the operating system to clean up the resources used by
+     * a child process after its termination without an explicit call to the wait system call.
+     */
+    const SIGCHLD = 17;
+
+    /**
+     * The SIGCONT signal instructs the operating system to continue (restart) a process previously paused by the
+     * SIGSTOP or SIGTSTP signal. One important use of this signal is in job control in the Unix shell.
+     */
+    const SIGCONT = 18;
+
+    /**
+     * The SIGSTOP signal instructs the operating system to stop a process for later resumption.
+     */
+    const SIGSTOP = 19;
+
+    /**
+     * The SIGTSTP signal is sent to a process by its controlling terminal to request it to stop (terminal stop). It is
+     * commonly initiated by the user pressing Ctrl+Z. Unlike SIGSTOP, the process can register a signal handler for or
+     * ignore the signal.
+     */
+    const SIGTSTP = 20;
+
+    /**
+     * The SIGTTIN signal is sent to a process when it attempts to read in from the tty while in the background.
+     * Typically, this signal is received only by processes under job control; daemons do not have controlling
+     */
+    const SIGTTIN = 21;
+
+    /**
+     * The SIGTTOU signal is sent to a process when it attempts to write out from the tty while in the background.
+     * Typically, this signal is received only by processes under job control; daemons do not have controlling
+     */
+    const SIGTTOU = 22;
+
+    /**
+     * The SIGURG signal is sent to a process when a socket has urgent or out-of-band data available to read.
+     */
+    const SIGURG = 23;
+
+    /**
+     * The SIGXCPU signal is sent to a process when it has used up the CPU for a duration that exceeds a certain
+     * predetermined user-settable value. The arrival of a SIGXCPU signal provides the receiving process a chance to
+     * quickly save any intermediate results and to exit gracefully, before it is terminated by the operating system
+     * using the SIGKILL signal.
+     */
+    const SIGXCPU = 24;
+
+    /**
+     * The SIGXFSZ signal is sent to a process when it grows a file larger than the maximum allowed size
+     */
+    const SIGXFSZ = 25;
+
+    /**
+     * The SIGVTALRM signal is sent to a process when the time limit specified in a call to a preceding alarm setting
+     * function (such as setitimer) elapses. SIGVTALRM is sent when CPU time used by the process elapses.
+     */
+    const SIGVTALRM = 26;
+
+    /**
+     * The SIGPROF signal is sent to a process when the time limit specified in a call to a preceding alarm setting
+     * function (such as setitimer) elapses. SIGPROF is sent when CPU time used by the process and by the system on
+     * behalf of the process elapses.
+     */
+    const SIGPROF = 27;
+
+    /**
+     * The SIGWINCH signal is sent to a process when its controlling terminal changes its size (a window change).
+     */
+    const SIGWINCH = 28;
+
+    /**
+     * The SIGPOLL signal is sent when an event occurred on an explicitly watched file descriptor. Using it effectively
+     * leads to making asynchronous I/O requests since the kernel will poll the descriptor in place of the caller. It
+     * provides an alternative to active polling.
+     */
+    const SIGPOLL = 29;
+
+    const SIGIO = 29;
+
+    /**
+     * The SIGPWR signal is sent to a process when the system experiences a power failure.
+     */
+    const SIGPWR = 30;
+
+    /**
+     * The SIGSYS signal is sent to a process when it passes a bad argument to a system call. In practice, this kind of
+     * signal is rarely encountered since applications rely on libraries (e.g. libc) to make the call for them.
+     */
+    const SIGSYS = 31;
+
+    const SIGBABY = 31;
 }
