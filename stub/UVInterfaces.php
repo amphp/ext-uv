@@ -205,3 +205,33 @@ interface UVStdio extends UVHandle
 interface UVTty extends UVStream
 {
 }
+
+/**
+ * Idle handles will run the given callback once per loop iteration, right before
+ * the `UVPrepare` handles.
+ *
+ * `Note:` The notable difference with prepare handles is that when there are active idle
+ *  handles, the loop will perform a zero timeout poll instead of blocking for i/o.
+ *
+ * `Warning:` Despite the name, idle handles will get their callbacks called on every loop
+ *  iteration, not when the loop is actually “idle”.
+ */
+interface UVIdle extends UVHandle
+{
+}
+
+/**
+ * Prepare handles will run the given callback once per loop iteration, right before
+ * polling for i/o.
+ */
+interface UVPrepare extends UVHandle
+{
+}
+
+/**
+ * Check handles will run the given callback once per loop iteration, right after
+ * polling for i/o.
+ */
+interface UVCheck extends UVHandle
+{
+}

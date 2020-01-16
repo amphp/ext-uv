@@ -620,6 +620,110 @@ function uv_queue_work(UVLoop $loop, callable $callback, callable $after_callbac
 {
 }
 
+/**
+ * Initialize the handle.
+ *
+ * @param UVLoop $loop uv_loop resource.
+ *
+ * @return UVIdle
+ */
+function uv_idle_init(UVLoop $loop = null)
+{
+}
+
+/**
+ * Start the handle with the given callback.
+ *
+ * @param UVIdle $idle uv_idle resource.
+ * @param callable $callback expects (UVIdle $handle)
+ */
+function uv_idle_start(UVIdle $idle, callable $callback)
+{
+}
+
+/**
+ * Stop the handle, the callback will no longer be called.
+ *
+ * @param UVIdle $idle uv_idle resource.
+ */
+function uv_idle_stop(UVIdle $idle)
+{
+}
+
+/**
+ * Initialize the handle.
+ *
+ * @param UVLoop $loop uv loop handle.
+ *
+ * @return UVPrepare
+ */
+function uv_prepare_init(UVLoop $loop = null)
+{
+}
+
+/**
+ * Start the handle with the given callback.
+ *
+ * @param UVPrepare $handle uv resource handle (prepare)
+ * @param callable $callback expects (UVPrepare $prepare, int $status).
+ */
+function uv_prepare_start(UVPrepare $handle, callable $callback)
+{
+}
+
+/**
+ * Stop the handle, the callback will no longer be called.
+ *
+ * @param UVPrepare $handle uv resource handle (prepare).
+ */
+function uv_prepare_stop(UVPrepare $handle)
+{
+}
+
+/**
+ * Initialize the handle.
+ *
+ * @param UVLoop $loop uv loop handle
+ *
+ * @return UVCheck
+ */
+function uv_check_init(UVLoop $loop = null)
+{
+}
+
+/**
+ * Start the handle with the given callback.
+ *
+ * The callbacks of idle handles are invoked once per event loop.
+ *
+ * The idle callback can be used to perform some very low priority activity.
+ * For example, you could dispatch a summary of the daily application performance to the
+ * developers for analysis during periods of idleness, or use the application’s CPU time
+ * to perform SETI calculations :)
+ *
+ * An idle watcher is also useful in a GUI application.
+ *
+ * Say you are using an event loop for a file download. If the TCP socket is still being established
+ * and no other events are present your event loop will pause (block), which means your progress bar
+ * will freeze and the user will face an unresponsive application. In such a case queue up and idle
+ * watcher to keep the UI operational.
+ *
+ * @param UVCheck $handle uv resource handle (check).
+ * @param callable $callback expects (UVCheck $check, int $status).
+ */
+function uv_check_start(UVCheck $handle, callable $callback)
+{
+}
+
+/**
+ * Stop the handle, the callback will no longer be called.
+ *
+ * @param UVCheck $handle uv resource handle (check).
+ */
+function uv_check_stop(UVCheck $handle)
+{
+}
+
 // from https://github.com/JetBrains/phpstorm-stubs/blob/master/uv/uv_functions.php
 
 /**
@@ -883,40 +987,6 @@ function uv_timer_set_repeat($timer, int $repeat)
  * @return int
  */
 function uv_timer_get_repeat($timer)
-{
-}
-
-/**
- * Initialize uv idle handle.
- *
- * @param UVLoop $loop uv_loop resource.
- *
- * @return resource initialized idle handle.
- */
-function uv_idle_init($loop = null)
-{
-}
-
-/**
- * start idle callback.
- *
- * @param resource $idle uv_idle resource.
- * @param callable $callback idle callback.
- *
- * @return void
- */
-function uv_idle_start($idle, callable $callback)
-{
-}
-
-/**
- * Stop idle callback.
- *
- * @param resource $idle uv_idle resource.
- *
- * @return void
- */
-function uv_idle_stop($idle)
 {
 }
 
@@ -1346,74 +1416,6 @@ function uv_sem_wait($sem)
  * @return void
  */
 function uv_sem_trywait($sem)
-{
-}
-
-/**
- * Initialize prepare resource.
- *
- * @param UVLoop $loop uv loop handle.
- *
- * @return resource
- */
-function uv_prepare_init($loop)
-{
-}
-
-/**
- * Setup prepare loop callback. (pre loop callback)
- *
- * @param resource $handle uv resource handle (prepare)
- * @param callable $callback this callback parameter expects (resource $prepare, long $status).
- *
- * @return void
- */
-function uv_prepare_start($handle, callable $callback)
-{
-}
-
-/**
- * Stop prepare callback.
- *
- * @param resource $handle uv resource handle (prepare).
- *
- * @return void
- */
-function uv_prepare_stop($handle)
-{
-}
-
-/**
- * Setup check resource.
- *
- * @param UVLoop $loop uv loop handle
- *
- * @return resource
- */
-function uv_check_init($loop)
-{
-}
-
-/**
- * Stats check loop callback. (after loop callback)
- *
- * @param resource $handle uv resource handle (check).
- * @param callable $callback this callback parameter expects (resource $check, long $status).
- *
- * @return void
- */
-function uv_check_start($handle, callable $callback)
-{
-}
-
-/**
- * Stop check callback.
- *
- * @param resource $handle uv resource handle (check).
- *
- * @return void
- */
-function uv_check_stop($handle)
 {
 }
 
