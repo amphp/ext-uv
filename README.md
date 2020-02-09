@@ -45,7 +45,7 @@ Windows builds for stable PHP versions are available [from PECL](https://pecl.ph
 
 Direct download latest from https://windows.php.net/downloads/pecl/releases/uv/0.2.4/
 
-Extract `libuv.dll` to sampe directory as `PHP` binary excutable, and extract `php_uv.dll` to `ext\` directory.
+Extract `libuv.dll` to sample directory as `PHP` binary executable, and extract `php_uv.dll` to `ext\` directory.
 
 Enable extension `php_sockets.dll` and `php_uv.dll` in php.ini
 
@@ -60,8 +60,6 @@ del php_uv.dll
 del php_uv-0.2.4.zip
 echo extension=php_sockets.dll >> php.ini
 echo extension=php_uv.dll >> php.ini
-
-php -m
 ```
 
 # Examples
