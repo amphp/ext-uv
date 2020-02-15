@@ -2714,11 +2714,12 @@ PHP_RSHUTDOWN_FUNCTION(uv)
 	return SUCCESS;
 }
 
-ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_run, 0, 0, 1)
+ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_run, 0, 0, 0)
 	ZEND_ARG_INFO(0, loop)
+	ZEND_ARG_INFO(0, run_mode)
 ZEND_END_ARG_INFO()
 
-ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_stop, 0, 0, 1)
+ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_stop, 0, 0, 0)
 	ZEND_ARG_INFO(0, loop)
 ZEND_END_ARG_INFO()
 
@@ -2726,21 +2727,23 @@ ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_loop_delete, 0, 0, 1)
 	ZEND_ARG_INFO(0, loop)
 ZEND_END_ARG_INFO()
 
-ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_now, 0, 0, 1)
+ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_now, 0, 0, 0)
 	ZEND_ARG_INFO(0, loop)
 ZEND_END_ARG_INFO()
 
 ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_tcp_connect, 0, 0, 2)
 	ZEND_ARG_INFO(0, resource)
+	ZEND_ARG_INFO(0, ipv4_addr)
 	ZEND_ARG_INFO(0, callback)
 ZEND_END_ARG_INFO()
 
 ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_tcp_connect6, 0, 0, 2)
 	ZEND_ARG_INFO(0, resource)
+	ZEND_ARG_INFO(0, ipv6_addr)
 	ZEND_ARG_INFO(0, callback)
 ZEND_END_ARG_INFO()
 
-ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_tcp_init, 0, 0, 1)
+ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_tcp_init, 0, 0, 0)
 	ZEND_ARG_INFO(0, loop)
 ZEND_END_ARG_INFO()
 
@@ -2790,7 +2793,7 @@ ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_err_name, 0, 0, 1)
 	ZEND_ARG_INFO(0, error)
 ZEND_END_ARG_INFO()
 
-ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_timer_init, 0, 0, 1)
+ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_timer_init, 0, 0, 0)
 	ZEND_ARG_INFO(0, loop)
 ZEND_END_ARG_INFO()
 
@@ -2798,7 +2801,7 @@ ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_idle_stop, 0, 0, 1)
 	ZEND_ARG_INFO(0, idle)
 ZEND_END_ARG_INFO()
 
-ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_timer_start, 0, 0, 4)
+ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_timer_start, 0, 0, 3)
 	ZEND_ARG_INFO(0, timer)
 	ZEND_ARG_INFO(0, timeout)
 	ZEND_ARG_INFO(0, repeat)
@@ -2847,16 +2850,16 @@ ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_shutdown, 0, 0, 2)
 	ZEND_ARG_INFO(0, callback)
 ZEND_END_ARG_INFO()
 
-ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_close, 0, 0, 2)
+ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_close, 0, 0, 1)
 	ZEND_ARG_INFO(0, stream)
 	ZEND_ARG_INFO(0, callback)
 ZEND_END_ARG_INFO()
 
-ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_idle_init, 0, 0, 1)
+ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_idle_init, 0, 0, 0)
 	ZEND_ARG_INFO(0, loop)
 ZEND_END_ARG_INFO()
 
-ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_update_time, 0, 0, 1)
+ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_update_time, 0, 0, 0)
 	ZEND_ARG_INFO(0, loop)
 ZEND_END_ARG_INFO()
 
@@ -2876,7 +2879,7 @@ ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_is_writable, 0, 0, 1)
 	ZEND_ARG_INFO(0, handle)
 ZEND_END_ARG_INFO()
 
-ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_walk, 0, 0, 3)
+ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_walk, 0, 0, 2)
 	ZEND_ARG_INFO(0, loop)
 	ZEND_ARG_INFO(0, callback)
 	ZEND_ARG_INFO(0, opaque)
@@ -2910,7 +2913,7 @@ ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_ip6_addr, 0, 0, 2)
 	ZEND_ARG_INFO(0, port)
 ZEND_END_ARG_INFO()
 
-ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_udp_init, 0, 0, 1)
+ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_udp_init, 0, 0, 0)
 	ZEND_ARG_INFO(0, loop)
 ZEND_END_ARG_INFO()
 
@@ -2919,13 +2922,13 @@ ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_udp_open, 0, 0, 2)
 	ZEND_ARG_INFO(0, udpfd)
 ZEND_END_ARG_INFO()
 
-ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_udp_bind, 0, 0, 3)
+ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_udp_bind, 0, 0, 2)
 	ZEND_ARG_INFO(0, resource)
 	ZEND_ARG_INFO(0, address)
 	ZEND_ARG_INFO(0, flags)
 ZEND_END_ARG_INFO()
 
-ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_udp_bind6, 0, 0, 3)
+ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_udp_bind6, 0, 0, 2)
 	ZEND_ARG_INFO(0, resource)
 	ZEND_ARG_INFO(0, address)
 	ZEND_ARG_INFO(0, flags)
@@ -2955,14 +2958,14 @@ ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_udp_set_broadcast, 0, 0, 2)
 	ZEND_ARG_INFO(0, enabled)
 ZEND_END_ARG_INFO()
 
-ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_udp_send, 0, 0, 4)
+ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_udp_send, 0, 0, 3)
 	ZEND_ARG_INFO(0, server)
 	ZEND_ARG_INFO(0, buffer)
 	ZEND_ARG_INFO(0, address)
 	ZEND_ARG_INFO(0, callback)
 ZEND_END_ARG_INFO()
 
-ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_udp_send6, 0, 0, 4)
+ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_udp_send6, 0, 0, 3)
 	ZEND_ARG_INFO(0, server)
 	ZEND_ARG_INFO(0, buffer)
 	ZEND_ARG_INFO(0, address)
@@ -2974,8 +2977,9 @@ ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_pipe_open, 0, 0, 2)
 	ZEND_ARG_INFO(0, pipe)
 ZEND_END_ARG_INFO()
 
-ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_pipe_init, 0, 0, 1)
+ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_pipe_init, 0, 0, 0)
 	ZEND_ARG_INFO(0, file)
+	ZEND_ARG_INFO(0, ipc)
 ZEND_END_ARG_INFO()
 
 ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_pipe_bind, 0, 0, 2)
@@ -3002,15 +3006,26 @@ ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_pipe_pending_instances, 0, 0, 2)
 	ZEND_ARG_INFO(0, count)
 ZEND_END_ARG_INFO()
 
-/*
-ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_spawn, 0, 0, 5)
+
+ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_getaddrinfo, 0, 0, 4)
+	ZEND_ARG_INFO(0, loop)
+	ZEND_ARG_INFO(0, callback)
+	ZEND_ARG_INFO(0, node)
+	ZEND_ARG_INFO(0, service)
+	ZEND_ARG_INFO(0, hints)
+ZEND_END_ARG_INFO()
+
+ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_spawn, 0, 0, 7)
 	ZEND_ARG_INFO(0, loop)
 	ZEND_ARG_INFO(0, command)
 	ZEND_ARG_INFO(0, args)
-	ZEND_ARG_INFO(0, options)
+	ZEND_ARG_INFO(0, stdio)
+	ZEND_ARG_INFO(0, cwd)
+	ZEND_ARG_INFO(0, env)
 	ZEND_ARG_INFO(0, callback)
+	ZEND_ARG_INFO(0, flags)
+	ZEND_ARG_INFO(0, options)	
 ZEND_END_ARG_INFO()
-*/
 
 ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_kill, 0, 0, 2)
 	ZEND_ARG_INFO(0, pid)
@@ -3038,14 +3053,14 @@ ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_tty_init, 0, 0, 3)
 	ZEND_ARG_INFO(0, readable)
 ZEND_END_ARG_INFO()
 
-ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_fs_event_init, 0, 0, 4)
+ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_fs_event_init, 0, 0, 3)
 	ZEND_ARG_INFO(0, loop)
 	ZEND_ARG_INFO(0, path)
 	ZEND_ARG_INFO(0, callback)
 	ZEND_ARG_INFO(0, flags)
 ZEND_END_ARG_INFO()
 
-ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_fs_sendfile, 0, 0, 6)
+ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_fs_sendfile, 0, 0, 5)
 	ZEND_ARG_INFO(0, loop)
 	ZEND_ARG_INFO(0, in)
 	ZEND_ARG_INFO(0, out)
@@ -3054,45 +3069,45 @@ ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_fs_sendfile, 0, 0, 6)
 	ZEND_ARG_INFO(0, callback)
 ZEND_END_ARG_INFO()
 
-ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_fs_readdir, 0, 0, 4)
+ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_fs_readdir, 0, 0, 3)
 	ZEND_ARG_INFO(0, loop)
 	ZEND_ARG_INFO(0, path)
 	ZEND_ARG_INFO(0, flags)
 	ZEND_ARG_INFO(0, callback)
 ZEND_END_ARG_INFO()
 
-ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_fs_scandir, 0, 0, 4)
+ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_fs_scandir, 0, 0, 3)
 	ZEND_ARG_INFO(0, loop)
 	ZEND_ARG_INFO(0, path)
 	ZEND_ARG_INFO(0, flags)
 	ZEND_ARG_INFO(0, callback)
 ZEND_END_ARG_INFO()
 
-ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_fs_fstat, 0, 0, 3)
+ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_fs_fstat, 0, 0, 2)
 	ZEND_ARG_INFO(0, loop)
 	ZEND_ARG_INFO(0, fd)
 	ZEND_ARG_INFO(0, callback)
 ZEND_END_ARG_INFO()
 
-ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_fs_lstat, 0, 0, 3)
+ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_fs_lstat, 0, 0, 2)
 	ZEND_ARG_INFO(0, loop)
 	ZEND_ARG_INFO(0, path)
 	ZEND_ARG_INFO(0, callback)
 ZEND_END_ARG_INFO()
 
-ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_fs_stat, 0, 0, 3)
+ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_fs_stat, 0, 0, 2)
 	ZEND_ARG_INFO(0, loop)
 	ZEND_ARG_INFO(0, path)
 	ZEND_ARG_INFO(0, callback)
 ZEND_END_ARG_INFO()
 
-ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_fs_readlink, 0, 0, 3)
+ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_fs_readlink, 0, 0, 2)
 	ZEND_ARG_INFO(0, loop)
 	ZEND_ARG_INFO(0, path)
 	ZEND_ARG_INFO(0, callback)
 ZEND_END_ARG_INFO()
 
-ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_fs_symlink, 0, 0, 5)
+ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_fs_symlink, 0, 0, 4)
 	ZEND_ARG_INFO(0, loop)
 	ZEND_ARG_INFO(0, from)
 	ZEND_ARG_INFO(0, to)
@@ -3100,14 +3115,14 @@ ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_fs_symlink, 0, 0, 5)
 	ZEND_ARG_INFO(0, flags)
 ZEND_END_ARG_INFO()
 
-ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_fs_link, 0, 0, 4)
+ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_fs_link, 0, 0, 3)
 	ZEND_ARG_INFO(0, loop)
 	ZEND_ARG_INFO(0, from)
 	ZEND_ARG_INFO(0, to)
 	ZEND_ARG_INFO(0, callback)
 ZEND_END_ARG_INFO()
 
-ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_fs_fchown, 0, 0, 5)
+ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_fs_fchown, 0, 0, 4)
 	ZEND_ARG_INFO(0, loop)
 	ZEND_ARG_INFO(0, fd)
 	ZEND_ARG_INFO(0, uid)
@@ -3115,7 +3130,7 @@ ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_fs_fchown, 0, 0, 5)
 	ZEND_ARG_INFO(0, callback)
 ZEND_END_ARG_INFO()
 
-ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_fs_chown, 0, 0, 5)
+ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_fs_chown, 0, 0, 4)
 	ZEND_ARG_INFO(0, loop)
 	ZEND_ARG_INFO(0, path)
 	ZEND_ARG_INFO(0, uid)
@@ -3123,21 +3138,21 @@ ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_fs_chown, 0, 0, 5)
 	ZEND_ARG_INFO(0, callback)
 ZEND_END_ARG_INFO()
 
-ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_fs_fchmod, 0, 0, 4)
+ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_fs_fchmod, 0, 0, 3)
 	ZEND_ARG_INFO(0, loop)
 	ZEND_ARG_INFO(0, fd)
 	ZEND_ARG_INFO(0, mode)
 	ZEND_ARG_INFO(0, callback)
 ZEND_END_ARG_INFO()
 
-ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_fs_chmod, 0, 0, 4)
+ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_fs_chmod, 0, 0, 3)
 	ZEND_ARG_INFO(0, loop)
 	ZEND_ARG_INFO(0, path)
 	ZEND_ARG_INFO(0, mode)
 	ZEND_ARG_INFO(0, callback)
 ZEND_END_ARG_INFO()
 
-ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_fs_futime, 0, 0, 5)
+ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_fs_futime, 0, 0, 4)
 	ZEND_ARG_INFO(0, loop)
 	ZEND_ARG_INFO(0, fd)
 	ZEND_ARG_INFO(0, utime)
@@ -3145,7 +3160,7 @@ ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_fs_futime, 0, 0, 5)
 	ZEND_ARG_INFO(0, callback)
 ZEND_END_ARG_INFO()
 
-ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_fs_utime, 0, 0, 5)
+ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_fs_utime, 0, 0, 4)
 	ZEND_ARG_INFO(0, loop)
 	ZEND_ARG_INFO(0, path)
 	ZEND_ARG_INFO(0, utime)
@@ -3153,7 +3168,7 @@ ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_fs_utime, 0, 0, 5)
 	ZEND_ARG_INFO(0, callback)
 ZEND_END_ARG_INFO()
 
-ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_fs_open, 0, 0, 5)
+ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_fs_open, 0, 0, 4)
 	ZEND_ARG_INFO(0, loop)
 	ZEND_ARG_INFO(0, path)
 	ZEND_ARG_INFO(0, flag)
@@ -3161,7 +3176,7 @@ ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_fs_open, 0, 0, 5)
 	ZEND_ARG_INFO(0, callback)
 ZEND_END_ARG_INFO()
 
-ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_fs_read, 0, 0, 3)
+ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_fs_read, 0, 0, 2)
 	ZEND_ARG_INFO(0, loop)
 	ZEND_ARG_INFO(0, fd)
 	ZEND_ARG_INFO(0, offset)
@@ -3169,13 +3184,13 @@ ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_fs_read, 0, 0, 3)
 	ZEND_ARG_INFO(0, callback)
 ZEND_END_ARG_INFO()
 
-ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_fs_close, 0, 0, 3)
+ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_fs_close, 0, 0, 2)
 	ZEND_ARG_INFO(0, loop)
 	ZEND_ARG_INFO(0, fd)
 	ZEND_ARG_INFO(0, callback)
 ZEND_END_ARG_INFO()
 
-ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_fs_write, 0, 0, 5)
+ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_fs_write, 0, 0, 4)
 	ZEND_ARG_INFO(0, loop)
 	ZEND_ARG_INFO(0, fd)
 	ZEND_ARG_INFO(0, buffer)
@@ -3183,45 +3198,45 @@ ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_fs_write, 0, 0, 5)
 	ZEND_ARG_INFO(0, callback)
 ZEND_END_ARG_INFO()
 
-ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_fs_fsync, 0, 0, 3)
+ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_fs_fsync, 0, 0, 2)
 	ZEND_ARG_INFO(0, loop)
 	ZEND_ARG_INFO(0, fd)
 	ZEND_ARG_INFO(0, callback)
 ZEND_END_ARG_INFO()
 
-ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_fs_fdatasync, 0, 0, 3)
+ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_fs_fdatasync, 0, 0, 2)
 	ZEND_ARG_INFO(0, loop)
 	ZEND_ARG_INFO(0, fd)
 	ZEND_ARG_INFO(0, callback)
 ZEND_END_ARG_INFO()
 
-ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_fs_ftruncate, 0, 0, 4)
+ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_fs_ftruncate, 0, 0, 3)
 	ZEND_ARG_INFO(0, loop)
 	ZEND_ARG_INFO(0, fd)
 	ZEND_ARG_INFO(0, offset)
 	ZEND_ARG_INFO(0, callback)
 ZEND_END_ARG_INFO()
 
-ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_fs_mkdir, 0, 0, 4)
+ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_fs_mkdir, 0, 0, 3)
 	ZEND_ARG_INFO(0, loop)
 	ZEND_ARG_INFO(0, path)
 	ZEND_ARG_INFO(0, mode)
 	ZEND_ARG_INFO(0, callback)
 ZEND_END_ARG_INFO()
 
-ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_fs_rmdir, 0, 0, 3)
+ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_fs_rmdir, 0, 0, 2)
 	ZEND_ARG_INFO(0, loop)
 	ZEND_ARG_INFO(0, path)
 	ZEND_ARG_INFO(0, callback)
 ZEND_END_ARG_INFO()
 
-ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_fs_unlink, 0, 0, 3)
+ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_fs_unlink, 0, 0, 2)
 	ZEND_ARG_INFO(0, loop)
 	ZEND_ARG_INFO(0, path)
 	ZEND_ARG_INFO(0, callback)
 ZEND_END_ARG_INFO()
 
-ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_fs_rename, 0, 0, 4)
+ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_fs_rename, 0, 0, 3)
 	ZEND_ARG_INFO(0, loop)
 	ZEND_ARG_INFO(0, from)
 	ZEND_ARG_INFO(0, to)
@@ -3293,7 +3308,7 @@ ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_prepare_stop, 0, 0, 1)
 	ZEND_ARG_INFO(0, handle)
 ZEND_END_ARG_INFO()
 
-ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_check_init, 0, 0, 1)
+ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_check_init, 0, 0, 0)
 	ZEND_ARG_INFO(0, loop)
 ZEND_END_ARG_INFO()
 
@@ -3342,7 +3357,7 @@ ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_ip4_name, 0, 0, 1)
 	ZEND_ARG_INFO(0, handle)
 ZEND_END_ARG_INFO()
 
-ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_fs_poll_init, 0, 0, 1)
+ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_fs_poll_init, 0, 0, 0)
 	ZEND_ARG_INFO(0, loop)
 ZEND_END_ARG_INFO()
 
@@ -3372,7 +3387,7 @@ ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_poll_stop, 0, 0, 1)
 	ZEND_ARG_INFO(0, handle)
 ZEND_END_ARG_INFO()
 
-ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_signal_init, 0, 0, 1)
+ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_signal_init, 0, 0, 0)
 	ZEND_ARG_INFO(0, loop)
 ZEND_END_ARG_INFO()
 
@@ -4626,7 +4641,7 @@ PHP_FUNCTION(uv_guess_handle)
 /* }}} */
 
 
-/* {{{ proto resource uv_pipe_init([resource $loop, long $ipc])
+/* {{{ proto resource uv_pipe_init([resource $loop, bool $ipc])
 */
 PHP_FUNCTION(uv_pipe_init)
 {
@@ -5594,7 +5609,7 @@ PHP_FUNCTION(uv_queue_work)
 }
 /* }}} */
 
-/* {{{ proto resource uv_fs_open(resource $loop, string $path, long $flag, long $mode, callable $callback)
+/* {{{ proto resource uv_fs_open(resource $loop, string $path, long $flag, long $mode[, callable $callback])
 */
 PHP_FUNCTION(uv_fs_open)
 {
@@ -5603,7 +5618,7 @@ PHP_FUNCTION(uv_fs_open)
 /* }}} */
 
 
-/* {{{ proto void uv_fs_read(resource $loop, zval $fd, long $offset, long $length, callable $callback)
+/* {{{ proto void uv_fs_read(resource $loop, zval $fd, long $offset, long $length[, callable $callback])
 */
 PHP_FUNCTION(uv_fs_read)
 {
@@ -5612,7 +5627,7 @@ PHP_FUNCTION(uv_fs_read)
 /* }}} */
 
 
-/* {{{ proto void uv_fs_close(resource $loop, zval $fd, callable $callback)
+/* {{{ proto void uv_fs_close(resource $loop, zval $fd[, callable $callback])
 */
 PHP_FUNCTION(uv_fs_close)
 {
@@ -5621,7 +5636,7 @@ PHP_FUNCTION(uv_fs_close)
 /* }}} */
 
 
-/* {{{ proto void uv_fs_write(resource $loop, zval $fd, string $buffer, long $offset, callable $callback)
+/* {{{ proto void uv_fs_write(resource $loop, zval $fd, string $buffer, long $offset[, callable $callback])
 */
 PHP_FUNCTION(uv_fs_write)
 {
@@ -5629,7 +5644,7 @@ PHP_FUNCTION(uv_fs_write)
 }
 /* }}} */
 
-/* {{{ proto void uv_fs_fsync(resource $loop, zval $fd, callable $callback)
+/* {{{ proto void uv_fs_fsync(resource $loop, zval $fd[, callable $callback])
 */
 PHP_FUNCTION(uv_fs_fsync)
 {
@@ -5637,7 +5652,7 @@ PHP_FUNCTION(uv_fs_fsync)
 }
 /* }}} */
 
-/* {{{ proto void uv_fs_fdatasync(resource $loop, zval $fd, callable $callback)
+/* {{{ proto void uv_fs_fdatasync(resource $loop, zval $fd[, callable $callback])
 */
 PHP_FUNCTION(uv_fs_fdatasync)
 {
@@ -5645,7 +5660,7 @@ PHP_FUNCTION(uv_fs_fdatasync)
 }
 /* }}} */
 
-/* {{{ proto void uv_fs_ftruncate(resource $loop, zval $fd, long $offset, callable $callback)
+/* {{{ proto void uv_fs_ftruncate(resource $loop, zval $fd, long $offset[, callable $callback])
 */
 PHP_FUNCTION(uv_fs_ftruncate)
 {
@@ -5653,7 +5668,7 @@ PHP_FUNCTION(uv_fs_ftruncate)
 }
 /* }}} */
 
-/* {{{ proto void uv_fs_mkdir(resource $loop, string $path, long $mode, callable $callback)
+/* {{{ proto void uv_fs_mkdir(resource $loop, string $path, long $mode[, callable $callback])
 */
 PHP_FUNCTION(uv_fs_mkdir)
 {
@@ -5662,7 +5677,7 @@ PHP_FUNCTION(uv_fs_mkdir)
 /* }}} */
 
 
-/* {{{ proto void uv_fs_rmdir(resource $loop, string $path, callable $callback)
+/* {{{ proto void uv_fs_rmdir(resource $loop, string $path[, callable $callback])
 */
 PHP_FUNCTION(uv_fs_rmdir)
 {
@@ -5670,7 +5685,7 @@ PHP_FUNCTION(uv_fs_rmdir)
 }
 /* }}} */
 
-/* {{{ proto void uv_fs_unlink(resource $loop, string $path, callable $callback)
+/* {{{ proto void uv_fs_unlink(resource $loop, string $path[, callable $callback])
 */
 PHP_FUNCTION(uv_fs_unlink)
 {
@@ -5678,7 +5693,7 @@ PHP_FUNCTION(uv_fs_unlink)
 }
 /* }}} */
 
-/* {{{ proto void uv_fs_rename(resource $loop, string $from, string $to, callable $callback)
+/* {{{ proto void uv_fs_rename(resource $loop, string $from, string $to[, callable $callback])
 */
 PHP_FUNCTION(uv_fs_rename)
 {
@@ -5686,7 +5701,7 @@ PHP_FUNCTION(uv_fs_rename)
 }
 /* }}} */
 
-/* {{{ proto void uv_fs_utime(resource $loop, string $path, long $utime, long $atime, callable $callback)
+/* {{{ proto void uv_fs_utime(resource $loop, string $path, long $utime, long $atime[, callable $callback])
 */
 PHP_FUNCTION(uv_fs_utime)
 {
@@ -5694,7 +5709,7 @@ PHP_FUNCTION(uv_fs_utime)
 }
 /* }}} */
 
-/* {{{ proto void uv_fs_futime(resource $loop, zval $fd, long $utime, long $atime callable $callback)
+/* {{{ proto void uv_fs_futime(resource $loop, zval $fd, long $utime, long $atime[, callable $callback])
 */
 PHP_FUNCTION(uv_fs_futime)
 {
@@ -5702,7 +5717,7 @@ PHP_FUNCTION(uv_fs_futime)
 }
 /* }}} */
 
-/* {{{ proto void uv_fs_chmod(resource $loop, string $path, long $mode, callable $callback)
+/* {{{ proto void uv_fs_chmod(resource $loop, string $path, long $mode[, callable $callback])
 */
 PHP_FUNCTION(uv_fs_chmod)
 {
@@ -5711,7 +5726,7 @@ PHP_FUNCTION(uv_fs_chmod)
 /* }}} */
 
 
-/* {{{ proto void uv_fs_fchmod(resource $loop, zval $fd, long $mode, callable $callback)
+/* {{{ proto void uv_fs_fchmod(resource $loop, zval $fd, long $mode[, callable $callback])
 */
 PHP_FUNCTION(uv_fs_fchmod)
 {
@@ -5720,7 +5735,7 @@ PHP_FUNCTION(uv_fs_fchmod)
 /* }}} */
 
 
-/* {{{ proto void uv_fs_chown(resource $loop, string $path, long $uid, long $gid, callable $callback)
+/* {{{ proto void uv_fs_chown(resource $loop, string $path, long $uid, long $gid[, callable $callback])
 */
 PHP_FUNCTION(uv_fs_chown)
 {
@@ -5728,7 +5743,7 @@ PHP_FUNCTION(uv_fs_chown)
 }
 /* }}} */
 
-/* {{{ proto void uv_fs_fchown(resource $loop, zval $fd, long $uid, $long $gid, callable $callback)
+/* {{{ proto void uv_fs_fchown(resource $loop, zval $fd, long $uid, $long $gid[, callable $callback])
 */
 PHP_FUNCTION(uv_fs_fchown)
 {
@@ -5736,7 +5751,7 @@ PHP_FUNCTION(uv_fs_fchown)
 }
 /* }}} */
 	
-/* {{{ proto void uv_fs_link(resource $loop, string $from, string $to, callable $callback)
+/* {{{ proto void uv_fs_link(resource $loop, string $from, string $to[, callable $callback])
 */
 PHP_FUNCTION(uv_fs_link)
 {
@@ -5745,7 +5760,7 @@ PHP_FUNCTION(uv_fs_link)
 /* }}} */
 
 
-/* {{{ proto void uv_fs_symlink(resource $loop, string $from, string $to, long $flags, callable $callback)
+/* {{{ proto void uv_fs_symlink(resource $loop, string $from, string $to, long $flags[, callable $callback])
 */
 PHP_FUNCTION(uv_fs_symlink)
 {
@@ -5753,7 +5768,7 @@ PHP_FUNCTION(uv_fs_symlink)
 }
 /* }}} */
 
-/* {{{ proto void uv_fs_readlink(resource $loop, string $path, callable $callback)
+/* {{{ proto void uv_fs_readlink(resource $loop, string $path[, callable $callback])
 */
 PHP_FUNCTION(uv_fs_readlink)
 {
@@ -5761,7 +5776,7 @@ PHP_FUNCTION(uv_fs_readlink)
 }
 /* }}} */
 
-/* {{{ proto void uv_fs_stat(resource $loop, string $path, callable $callback)
+/* {{{ proto void uv_fs_stat(resource $loop, string $path[, callable $callback])
 */
 PHP_FUNCTION(uv_fs_stat)
 {
@@ -5769,7 +5784,7 @@ PHP_FUNCTION(uv_fs_stat)
 }
 /* }}} */
 
-/* {{{ proto void uv_fs_lstat(resource $loop, string $path, callable $callback)
+/* {{{ proto void uv_fs_lstat(resource $loop, string $path[, callable $callback])
 */
 PHP_FUNCTION(uv_fs_lstat)
 {
@@ -5777,7 +5792,7 @@ PHP_FUNCTION(uv_fs_lstat)
 }
 /* }}} */
 
-/* {{{ proto void uv_fs_fstat(resource $loop, zval $fd, callable $callback)
+/* {{{ proto void uv_fs_fstat(resource $loop, zval $fd[, callable $callback])
 */
 PHP_FUNCTION(uv_fs_fstat)
 {
@@ -5786,7 +5801,7 @@ PHP_FUNCTION(uv_fs_fstat)
 /* }}} */
 
 
-/* {{{ proto uv_fs_readdir(resource $loop, string $path, long $flags, callable $callback)
+/* {{{ proto uv_fs_readdir(resource $loop, string $path, long $flags[, callable $callback])
 */
 PHP_FUNCTION(uv_fs_readdir)
 {
@@ -5794,7 +5809,7 @@ PHP_FUNCTION(uv_fs_readdir)
 }
 /* }}} */
 
-/* {{{ proto uv_fs_scandir(resource $loop, string $path, long $flags, callable $callback)
+/* {{{ proto uv_fs_scandir(resource $loop, string $path, long $flags[, callable $callback])
  *  */
 PHP_FUNCTION(uv_fs_scandir)
 {
@@ -5802,7 +5817,7 @@ PHP_FUNCTION(uv_fs_scandir)
 }
 /* }}} */
 
-/* {{{ proto void uv_fs_sendfile(resource $loop, zval $in_fd, zval $out_fd, long $offset, long $length, callable $callback)
+/* {{{ proto void uv_fs_sendfile(resource $loop, zval $in_fd, zval $out_fd, long $offset, long $length[, callable $callback])
 */
 PHP_FUNCTION(uv_fs_sendfile)
 {
@@ -5810,7 +5825,6 @@ PHP_FUNCTION(uv_fs_sendfile)
 }
 /* }}} */
 
-/* TODO STOP??? */
 /* {{{ proto resource uv_fs_event_init(resource $loop, string $path, callable $callback, long $flags = 0)
 */
 PHP_FUNCTION(uv_fs_event_init)
@@ -6252,11 +6266,11 @@ static zend_function_entry uv_functions[] = {
 	PHP_FE(uv_pipe_pending_type,        arginfo_uv_pipe_pending_type)
 	PHP_FE(uv_stdio_new,                NULL)
 	/* spawn */
-	PHP_FE(uv_spawn,                    NULL)
+	PHP_FE(uv_spawn,                    arginfo_uv_spawn)
 	PHP_FE(uv_process_kill,             arginfo_uv_process_kill)
 	PHP_FE(uv_kill,                     arginfo_uv_kill)
 	/* c-ares */
-	PHP_FE(uv_getaddrinfo,              arginfo_uv_tcp_connect)
+	PHP_FE(uv_getaddrinfo,              arginfo_uv_getaddrinfo)
 	/* rwlock */
 	PHP_FE(uv_rwlock_init,              NULL)
 	PHP_FE(uv_rwlock_rdlock,            arginfo_uv_rwlock_rdlock)
