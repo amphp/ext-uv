@@ -12,4 +12,4 @@ uv_fs_mkdir(uv_default_loop(), DIRECTORY_PATH, 0755, function($result) {
 uv_run();
 
 --EXPECTF--
-bool(true)
+int(0)

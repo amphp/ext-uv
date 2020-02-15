@@ -25,7 +25,7 @@ class TcpServer
             $client = uv_tcp_init($this->loop);
             uv_accept($server, $client);
 
-            uv_read_start($client, function ($socket, $nread, $buffer) {
+            uv_read_start($client, function ($socket, $buffer) {
                 echo 'OK', PHP_EOL;
                 uv_close($socket);
             });

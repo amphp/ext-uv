@@ -5,18 +5,12 @@ uv_fs_readlink() segfaults if file not a link
 
 $uv = uv_loop_new();
 
-uv_fs_readlink($uv, __FILE__, function () {
-    var_dump(func_get_args());
+uv_fs_readlink($uv, __FILE__, function ($result) {
+    var_dump($result < 0);
 });
 
 uv_run($uv);
 
 ?>
 --EXPECT--
-array(2) {
-  [0]=>
-  bool(false)
-  [1]=>
-  NULL
-}
-
+bool(true)

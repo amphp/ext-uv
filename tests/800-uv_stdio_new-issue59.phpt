@@ -1,5 +1,5 @@
 --TEST--
-Test uv_spawn doesn't cause segfault #56
+Test uv_stdio_new doesn't cause segfault #56
 --FILE--
 <?php
 

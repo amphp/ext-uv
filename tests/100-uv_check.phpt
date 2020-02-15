@@ -1,5 +1,5 @@
 --TEST--
-Check for uv_prepare
+Check for uv_check
 --FILE--
 <?php
 $loop = uv_default_loop();
