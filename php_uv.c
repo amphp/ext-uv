@@ -1360,6 +1360,10 @@ static int php_uv_do_callback2(zval *retval_ptr, php_uv_t *uv, zval *params, int
 #endif
 	//zend_fcall_info_args_clear(&uv->callback[type]->fci, 0);
 
+	if (EG(exception)) {
+		uv_stop(uv->uv.handle.loop);
+	}
+
 	return error;
 }
 
@@ -1441,6 +1445,10 @@ static int php_uv_do_callback3(zval *retval_ptr, php_uv_t *uv, zval *params, int
 	}
 
 	//zend_fcall_info_args_clear(&uv->callback[type]->fci, 0);
+
+	if (EG(exception)) {
+		uv_stop(uv->uv.handle.loop);
+	}
 
 	return error;
 }
@@ -1542,6 +1550,10 @@ static void php_uv_write_cb(uv_write_t* req, int status)
 	ZVAL_LONG(&params[1], status);
 
 	php_uv_do_callback(&retval, wr->cb, params, 2 TSRMLS_CC);
+
+	if (EG(exception)) {
+		uv_stop(uv->uv.handle.loop);
+	}
 
 	PHP_UV_DEBUG_OBJ_DEL_REFCOUNT(uv_write_cb, uv);
 	zval_ptr_dtor(&params[0]);
