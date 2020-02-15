@@ -1079,7 +1079,14 @@ static void php_uv_fs_common(uv_fs_type fs_type, INTERNAL_FUNCTION_PARAMETERS)
 			zend_long fd, offset = -1;
 			uv_buf_t uv_fs_write_buf_t;
 
-			PHP_UV_FS_PARSE_PARAMETERS(3, Z_PARAM_RESOURCE(zstream) Z_PARAM_STR(buffer) Z_PARAM_LONG(offset));
+			ZEND_PARSE_PARAMETERS_START(3, 5)
+				UV_PARAM_OBJ(loop, php_uv_loop_t, uv_loop_ce)
+				Z_PARAM_RESOURCE(zstream)
+				Z_PARAM_STR(buffer)
+				Z_PARAM_OPTIONAL
+				Z_PARAM_LONG(offset)
+				Z_PARAM_FUNC_EX(fci, fcc, 1, 0)
+			ZEND_PARSE_PARAMETERS_END();
 			PHP_UV_FS_SETUP();
 			PHP_UV_ZVAL_TO_FD(fd, zstream);
 			uv->fs_fd = *zstream;
@@ -5613,7 +5620,7 @@ PHP_FUNCTION(uv_fs_close)
 /* }}} */
 
 
-/* {{{ proto void uv_fs_write(UVLoop $loop, resource $fd, string $buffer, long $offset[, callable(resource $fd, long $result) $callback])
+/* {{{ proto void uv_fs_write(UVLoop $loop, resource $fd, string $buffer[, long $offset = -1[, callable(resource $fd, long $result) $callback]])
 */
 PHP_FUNCTION(uv_fs_write)
 {
