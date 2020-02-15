@@ -495,7 +495,7 @@ function uv_process_kill(UVProcess $process, int $signal)
  * Returns process id.
  *
  * @param UVProcess $process
- * @param int $pid
+ * @return int
  */
 function uv_process_get_pid(UVProcess $process)
 {
@@ -932,7 +932,7 @@ function uv_ip6_addr(string $ipv6_addr, int $port)
  *
  * @param resource $handle uv resource handle (tcp, udp and pipe).
  * @param int $backlog backlog.
- * @param callable $callback this callback parameter expects (resource $connection, long $status).
+ * @param callable $callback this callback parameter expects (resource $connection, int $status).
  *
  * @return void
  */
@@ -1154,7 +1154,7 @@ function uv_udp_send($handle, string $data, $uv_addr, callable $callback)
  * @param resource $handle uv resource handle (udp).
  * @param string $data data.
  * @param resource $uv_addr6 uv_ip6_addr.
- * @param callable $callback this callback parameter expects (resource $stream, long $status).
+ * @param callable $callback this callback parameter expects (resource $stream, int $status).
  *
  * @return void
  */
