@@ -1361,7 +1361,29 @@ static int php_uv_do_callback2(zval *retval_ptr, php_uv_t *uv, zval *params, int
 	//zend_fcall_info_args_clear(&uv->callback[type]->fci, 0);
 
 	if (EG(exception)) {
-		uv_stop(uv->uv.handle.loop);
+		switch (type) {
+			case PHP_UV_FS_CB:
+				uv_stop(uv->uv.fs.loop);
+				break;
+			case PHP_UV_GETADDR_CB:
+				uv_stop(uv->uv.addrinfo.loop);
+				break;
+			case PHP_UV_AFTER_WORK_CB:
+				uv_stop(uv->uv.work.loop);
+				break;
+			case PHP_UV_SHUTDOWN_CB:
+				uv_stop(uv->uv.shutdown.handle->loop);
+				break;
+			case PHP_UV_SEND_CB:
+				uv_stop(uv->uv.udp_send.handle->loop);
+				break;
+			case PHP_UV_CONNECT_CB:
+			case PHP_UV_PIPE_CONNECT_CB:
+				uv_stop(uv->uv.connect.handle->loop);
+				break;
+			default:
+				uv_stop(uv->uv.handle.loop);
+		}
 	}
 
 	return error;
