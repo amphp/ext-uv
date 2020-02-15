@@ -176,7 +176,7 @@ void php_uv_init(zend_class_entry *uv_class_entry)
 	zend_declare_class_constant_long(uv_class_entry,  "INHERIT_STREAM", sizeof("INHERIT_STREAM")-1, UV_INHERIT_STREAM TSRMLS_CC);
 	zend_declare_class_constant_long(uv_class_entry,  "READABLE_PIPE", sizeof("READABLE_PIPE")-1, UV_READABLE_PIPE TSRMLS_CC);
 	zend_declare_class_constant_long(uv_class_entry,  "WRITABLE_PIPE", sizeof("WRITABLE_PIPE")-1, UV_WRITABLE_PIPE TSRMLS_CC);
-#ifdef UV_OVERLAPPED_PIPE
+#if UV_VERSION_HEX >= ((1 << 16) | (21 << 8))
 	zend_declare_class_constant_long(uv_class_entry,  "OVERLAPPED_PIPE", sizeof("OVERLAPPED_PIPE")-1, UV_OVERLAPPED_PIPE TSRMLS_CC);
 #endif
 
@@ -185,6 +185,11 @@ void php_uv_init(zend_class_entry *uv_class_entry)
 	zend_declare_class_constant_long(uv_class_entry,  "PROCESS_SETGID", sizeof("PROCESS_SETGID")-1, UV_PROCESS_SETGID TSRMLS_CC);
 	zend_declare_class_constant_long(uv_class_entry,  "PROCESS_WINDOWS_VERBATIM_ARGUMENTS", sizeof("PROCESS_WINDOWS_VERBATIM_ARGUMENTS")-1, UV_PROCESS_WINDOWS_VERBATIM_ARGUMENTS TSRMLS_CC);
 	zend_declare_class_constant_long(uv_class_entry,  "PROCESS_DETACHED", sizeof("PROCESS_DETACHED")-1, UV_PROCESS_DETACHED TSRMLS_CC);
+	zend_declare_class_constant_long(uv_class_entry,  "PROCESS_WINDOWS_HIDE", sizeof("PROCESS_WINDOWS_HIDE")-1, UV_PROCESS_WINDOWS_HIDE TSRMLS_CC);
+#if UV_VERSION_HEX >= ((1 << 16) | (24 << 8))
+	zend_declare_class_constant_long(uv_class_entry,  "PROCESS_WINDOWS_HIDE_CONSOLE", sizeof("PROCESS_WINDOWS_HIDE_CONSOLE")-1, UV_PROCESS_WINDOWS_HIDE_CONSOLE TSRMLS_CC);
+	zend_declare_class_constant_long(uv_class_entry,  "PROCESS_WINDOWS_HIDE_GUI", sizeof("PROCESS_WINDOWS_HIDE_GUI")-1, UV_PROCESS_WINDOWS_HIDE_GUI TSRMLS_CC);
+#endif
 
 #define PHP_UV_ERRNO_GEN(name, msg_notused) zend_declare_class_constant_long(uv_class_entry, ZEND_STRL(#name), UV_##name);
 	UV_ERRNO_MAP(PHP_UV_ERRNO_GEN)
