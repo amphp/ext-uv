@@ -4772,7 +4772,7 @@ PHP_FUNCTION(uv_pipe_pending_type)
 }
 /* }}} */
 
-/* {{{ proto UVStdio uv_stdio_new(UV|resource|long $fd[, long $flags = 0])
+/* {{{ proto UVStdio uv_stdio_new([UV|resource|long|null $fd[, long $flags = 0]])
 */
 PHP_FUNCTION(uv_stdio_new)
 {
@@ -4786,11 +4786,13 @@ PHP_FUNCTION(uv_stdio_new)
 	php_stream *stream;
 
 	if (zend_parse_parameters(ZEND_NUM_ARGS(),
-		"z|l", &handle, &flags) == FAILURE) {
+		"|zl", &handle, &flags) == FAILURE) {
 		return;
 	}
 
-	if (Z_TYPE_P(handle) == IS_LONG) {
+	if (handle == NULL || Z_TYPE_P(handle) == IS_NULL) {
+		flags = UV_IGNORE;
+	} else if (Z_TYPE_P(handle) == IS_LONG) {
 		fd = Z_LVAL_P(handle);
 		if (flags & (UV_CREATE_PIPE | UV_INHERIT_STREAM)) {
 			php_error_docref(NULL, E_WARNING, "flags must not be UV::CREATE_PIPE or UV::INHERIT_STREAM for resources");
