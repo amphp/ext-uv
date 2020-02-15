@@ -1450,12 +1450,11 @@ static void php_uv_tcp_connect_cb(uv_connect_t *req, int status)
 	efree(req);
 }
 
-/* TODO: Not sure how PHP will deal with int64_t */
 static void php_uv_process_close_cb(uv_process_t* process, int64_t exit_status, int term_signal)
 {
 	zval retval = {{0}};
 	zval params[3] = {{{0}}};
-	php_uv_t *uv = (php_uv_t*)process->data;
+	php_uv_t *uv = (php_uv_t *) process->data;
 	TSRMLS_FETCH_FROM_CTX(uv->thread_ctx);
 
 	ZVAL_OBJ(&params[0], &uv->std);
@@ -1480,8 +1479,8 @@ static void php_uv_pipe_connect_cb(uv_connect_t *req, int status)
 	php_uv_t *uv = (php_uv_t*)req->data;
 	TSRMLS_FETCH_FROM_CTX(uv->thread_ctx);
 
-	ZVAL_LONG(&params[0], status);
-	ZVAL_OBJ(&params[1], &uv->std);
+	ZVAL_OBJ(&params[0], &uv->std);
+	ZVAL_LONG(&params[1], status);
 
 	php_uv_do_callback2(&retval, uv, params, 2, PHP_UV_PIPE_CONNECT_CB TSRMLS_CC);
 
@@ -1608,7 +1607,7 @@ static void php_uv_shutdown_cb(uv_shutdown_t* handle, int status)
 static void php_uv_read_cb(uv_stream_t* handle, ssize_t nread, const uv_buf_t* buf)
 {
 	zval retval = {{0}};
-	zval params[3] = {{{0}}};
+	zval params[2] = {{{0}}};
 	php_uv_t *uv = (php_uv_t *) handle->data;
 	TSRMLS_FETCH_FROM_CTX(uv->thread_ctx);
 
@@ -1620,19 +1619,17 @@ static void php_uv_read_cb(uv_stream_t* handle, ssize_t nread, const uv_buf_t* b
 		PHP_UV_DEBUG_OBJ_ADD_REFCOUNT(uv_read_cb, uv);
 	}
 
-	ZVAL_LONG(&params[1], nread);
 	if (nread > 0) {
-		ZVAL_STRINGL(&params[2], buf->base, nread);
+		ZVAL_STRINGL(&params[1], buf->base, nread);
 	} else {
-		ZVAL_NULL(&params[2]);
+		ZVAL_LONG(&params[1], nread);
 	}
 
-	php_uv_do_callback2(&retval, uv, params, 3, PHP_UV_READ_CB TSRMLS_CC);
+	php_uv_do_callback2(&retval, uv, params, 2, PHP_UV_READ_CB TSRMLS_CC);
 
 	PHP_UV_DEBUG_OBJ_DEL_REFCOUNT(uv_read_cb, uv);
 	zval_ptr_dtor(&params[0]);
 	zval_ptr_dtor(&params[1]);
-	zval_ptr_dtor(&params[2]);
 
 	zval_ptr_dtor(&retval);
 
@@ -1645,7 +1642,7 @@ static void php_uv_read_cb(uv_stream_t* handle, ssize_t nread, const uv_buf_t* b
 static void php_uv_read2_cb(uv_pipe_t* handle, ssize_t nread, uv_buf_t buf, uv_handle_type pending)
 {
 	zval retval = {{0}};
-	zval params[4] = {{{0}}};
+	zval params[3] = {{{0}}};
 	php_uv_t *uv = (php_uv_t*)handle->data;
 	TSRMLS_FETCH_FROM_CTX(uv->thread_ctx);
 
@@ -1656,21 +1653,19 @@ static void php_uv_read2_cb(uv_pipe_t* handle, ssize_t nread, uv_buf_t buf, uv_h
 		GC_ADDREF(&uv->std);
 		PHP_UV_DEBUG_OBJ_ADD_REFCOUNT(uv_read2_cb, uv);
 	}
-	ZVAL_LONG(&params[1], nread);
 	if (nread > 0) {
-		ZVAL_STRINGL(&params[2], buf.base,nread);
+		ZVAL_STRINGL(&params[1], buf.base,nread);
 	} else {
-		ZVAL_NULL(&params[2]);
+		ZVAL_LONG(&params[1], nread);
 	}
-	ZVAL_LONG(&params[3], pending);
+	ZVAL_LONG(&params[2], pending);
 
-	php_uv_do_callback2(&retval, uv, params, 4, PHP_UV_READ2_CB TSRMLS_CC);
+	php_uv_do_callback2(&retval, uv, params, 3, PHP_UV_READ2_CB TSRMLS_CC);
 
 	PHP_UV_DEBUG_OBJ_DEL_REFCOUNT(uv_read2_cb, uv);
 	zval_ptr_dtor(&params[0]);
 	zval_ptr_dtor(&params[1]);
 	zval_ptr_dtor(&params[2]);
-	zval_ptr_dtor(&params[3]);
 
 	zval_ptr_dtor(&retval);
 
@@ -1795,12 +1790,7 @@ static void php_uv_fs_cb(uv_fs_t* req)
 	}
 
 	if (!Z_ISUNDEF(uv->fs_fd)) {
-		if (uv->uv.fs.result < 0) {
-			ZVAL_FALSE(&params[0]);
-			zval_ptr_dtor(&uv->fs_fd);
-		} else {
-			ZVAL_COPY_VALUE(&params[0], &uv->fs_fd);
-		}
+		ZVAL_COPY_VALUE(&params[0], &uv->fs_fd);
 		ZVAL_UNDEF(&uv->fs_fd);
 	}
 
@@ -1817,7 +1807,7 @@ static void php_uv_fs_cb(uv_fs_t* req)
 		case UV_FS_UTIME:
 		case UV_FS_FUTIME:
 			argc = 1;
-			ZVAL_BOOL(&params[0], uv->uv.fs.result == 0);
+			ZVAL_LONG(&params[0], uv->uv.fs.result);
 			break;
 
 		case UV_FS_FCHMOD:
@@ -1825,17 +1815,14 @@ static void php_uv_fs_cb(uv_fs_t* req)
 		case UV_FS_FTRUNCATE:
 		case UV_FS_FDATASYNC:
 		case UV_FS_FSYNC:
-			argc = 1;
-			if (uv->uv.fs.result < 0) {
-				zval_ptr_dtor(&params[0]);
-				ZVAL_FALSE(&params[0]);
-			}
+			argc = 2;
+			ZVAL_LONG(&params[1], uv->uv.fs.result);
 			break;
 
 		case UV_FS_OPEN:
 			argc = 1;
 			if (uv->uv.fs.result < 0) {
-				ZVAL_FALSE(&params[0]);
+				ZVAL_LONG(&params[0], uv->uv.fs.result);
 			} else {
 				PHP_UV_FD_TO_ZVAL(&params[0], uv->uv.fs.result)
 				PHP_UV_DEBUG_PRINT("Creating fs handle %p\n", Z_RES(params[0]));
@@ -1845,13 +1832,11 @@ static void php_uv_fs_cb(uv_fs_t* req)
 		case UV_FS_SCANDIR:
 			argc = 2;
 			if (uv->uv.fs.result < 0) { /* req->ptr may be NULL here, but uv_fs_scandir_next() knows to handle it */
-				ZVAL_LONG(&params[1], uv->uv.fs.result);
+				ZVAL_LONG(&params[0], uv->uv.fs.result);
 			} else {
 				uv_dirent_t dent;
 
-				ZVAL_TRUE(&params[0]); // wtf, but do not break BC
-
-				array_init(&params[1]);
+				array_init(&params[0]);
 				while (UV_EOF != uv_fs_scandir_next(req, &dent)) {
 					add_next_index_string(&params[1], dent.name);
 				}
@@ -1860,34 +1845,38 @@ static void php_uv_fs_cb(uv_fs_t* req)
 
 		case UV_FS_LSTAT:
 		case UV_FS_STAT:
-			ZVAL_BOOL(&params[0], req->ptr != NULL);
+			argc = 1;
+			if (req->ptr != NULL) {
+				params[0] = php_uv_make_stat((const uv_stat_t *) req->ptr);
+			} else {
+				ZVAL_LONG(&params[0], uv->uv.fs.result);
+			}
+			break;
 		case UV_FS_FSTAT:
 			argc = 2;
 			if (req->ptr != NULL) {
 				params[1] = php_uv_make_stat((const uv_stat_t *) req->ptr);
 			} else {
-				ZVAL_NULL(&params[1]);
+				ZVAL_LONG(&params[1], uv->uv.fs.result);
 			}
 			break;
 
 		case UV_FS_READLINK:
-			argc = 2;
-			ZVAL_BOOL(&params[0], uv->uv.fs.result == 0);
+			argc = 1;
 			if (uv->uv.fs.result == 0) {
-				ZVAL_STRING(&params[1], req->ptr);
+				ZVAL_STRING(&params[0], req->ptr);
 			} else {
-				ZVAL_NULL(&params[1]);
+				ZVAL_LONG(&params[0], uv->uv.fs.result);
 			}
 			break;
 
 		case UV_FS_READ:
-			argc = 3;
+			argc = 2;
 			if (uv->uv.fs.result >= 0) {
-				ZVAL_STRINGL(&params[2], uv->buffer, uv->uv.fs.result);
+				ZVAL_STRINGL(&params[1], uv->buffer, uv->uv.fs.result);
 			} else {
-				ZVAL_NULL(&params[2]);
+				ZVAL_LONG(&params[1], uv->uv.fs.result);
 			}
-			ZVAL_LONG(&params[1], uv->uv.fs.result);
 			efree(uv->buffer);
 			break;
 
@@ -2055,8 +2044,12 @@ static void php_uv_udp_recv_cb(uv_udp_t* handle, ssize_t nread, const uv_buf_t* 
 	ZVAL_OBJ(&params[0], &uv->std);
 	GC_ADDREF(&uv->std);
 	PHP_UV_DEBUG_OBJ_ADD_REFCOUNT(uv_udp_recv_cb, uv);
-	ZVAL_LONG(&params[1], nread);
-	ZVAL_STRINGL(&params[2], buf->base, nread);
+	if (nread < 0) {
+		ZVAL_LONG(&params[1], nread);
+	} else {
+		ZVAL_STRINGL(&params[1], buf->base, nread);
+	}
+	ZVAL_LONG(&params[2], flags);
 
 	php_uv_do_callback2(&retval, uv, params, 3, PHP_UV_RECV_CB TSRMLS_CC);
 
@@ -2076,7 +2069,6 @@ static void php_uv_read_alloc(uv_handle_t* handle, size_t suggested_size, uv_buf
 {
 	buf->base = emalloc(suggested_size);
 	buf->len = suggested_size;
-	//return uv_buf_init(emalloc(suggested_size), suggested_size);
 }
 
 static void php_uv_close_cb(uv_handle_t *handle)
@@ -2088,7 +2080,7 @@ static void php_uv_close_cb(uv_handle_t *handle)
 	TSRMLS_FETCH_FROM_CTX(uv->thread_ctx);
 
 	if (uv->callback[PHP_UV_CLOSE_CB]) {
-		ZVAL_OBJ(&params[0], (zend_object *) uv);
+		ZVAL_OBJ(&params[0], &uv->std);
 
 		php_uv_do_callback2(&retval, uv, params, 1, PHP_UV_CLOSE_CB TSRMLS_CC);
 		zval_ptr_dtor(&retval);
@@ -2144,7 +2136,7 @@ static void php_uv_idle_cb(uv_timer_t *handle)
 static void php_uv_getaddrinfo_cb(uv_getaddrinfo_t* handle, int status, struct addrinfo* res)
 {
 	zval retval = {{0}};
-	zval params[2] = {{{0}}};
+	zval params[1] = {{{0}}};
 	struct addrinfo *address;
 	char ip[INET6_ADDRSTRLEN];
 	const char *addr;
@@ -2152,36 +2144,38 @@ static void php_uv_getaddrinfo_cb(uv_getaddrinfo_t* handle, int status, struct a
 	php_uv_t *uv = (php_uv_t*)handle->data;
 	TSRMLS_FETCH_FROM_CTX(uv->thread_ctx);
 
-	ZVAL_LONG(&params[0], status);
-	array_init(&params[1]);
+	if (status != 0) {
+		ZVAL_LONG(&params[0], status);
+	} else {
+		array_init(&params[0]);
 
-	address = res;
-	while (address) {
-		if (address->ai_family == AF_INET) {
-			addr = (char*) &((struct sockaddr_in*) address->ai_addr)->sin_addr;
-			uv_inet_ntop(address->ai_family, addr, ip, INET6_ADDRSTRLEN);
-			add_next_index_string(&params[1], ip);
+		address = res;
+		while (address) {
+			if (address->ai_family == AF_INET) {
+				addr = (char*) &((struct sockaddr_in*) address->ai_addr)->sin_addr;
+				uv_inet_ntop(address->ai_family, addr, ip, INET6_ADDRSTRLEN);
+				add_next_index_string(&params[0], ip);
+			}
+
+			address = address->ai_next;
 		}
 
-		address = address->ai_next;
-	}
+		address = res;
+		while (address) {
+			if (address->ai_family == AF_INET6) {
+				addr = (char*) &((struct sockaddr_in6*) address->ai_addr)->sin6_addr;
+				uv_inet_ntop(address->ai_family, addr, ip, INET6_ADDRSTRLEN);
+				add_next_index_string(&params[0], ip);
+			}
 
-	address = res;
-	while (address) {
-		if (address->ai_family == AF_INET6) {
-			addr = (char*) &((struct sockaddr_in6*) address->ai_addr)->sin6_addr;
-			uv_inet_ntop(address->ai_family, addr, ip, INET6_ADDRSTRLEN);
-			add_next_index_string(&params[1], ip);
+			address = address->ai_next;
 		}
-
-		address = address->ai_next;
 	}
 
-	php_uv_do_callback2(&retval, uv, params, 2, PHP_UV_GETADDR_CB TSRMLS_CC);
+	php_uv_do_callback2(&retval, uv, params, 1, PHP_UV_GETADDR_CB TSRMLS_CC);
 
 	zval_ptr_dtor(&retval);
 	zval_ptr_dtor(&params[0]);
-	zval_ptr_dtor(&params[1]);
 
 	uv_freeaddrinfo(res);
 	clean_uv_handle(uv);
@@ -2373,7 +2367,7 @@ static void php_uv_udp_send(int type, INTERNAL_FUNCTION_PARAMETERS)
 	ZEND_PARSE_PARAMETERS_START(3, 4)
 		UV_PARAM_OBJ(uv, php_uv_t, uv_udp_ce)
 		Z_PARAM_STR(data)
-		UV_PARAM_OBJ(addr, php_uv_sockaddr_t, (type == 1) ? uv_sockaddr_ipv4_ce : uv_sockaddr_ipv6_ce)
+		UV_PARAM_OBJ(addr, php_uv_sockaddr_t, (type == 1) ? uv_sockaddr_ipv4_ce : uv_sockaddr_ipv6_ce, uv_sockaddr_ipv6_ce)
 		Z_PARAM_OPTIONAL
 		Z_PARAM_FUNC_EX(fci, fcc, 1, 0)
 	ZEND_PARSE_PARAMETERS_END();
@@ -2384,7 +2378,7 @@ static void php_uv_udp_send(int type, INTERNAL_FUNCTION_PARAMETERS)
 	PHP_UV_INIT_SEND_REQ(w, uv, data->val, data->len);
 	php_uv_cb_init(&cb, uv, &fci, &fcc, PHP_UV_SEND_CB);
 
-	if (type == 1) {
+	if (addr->std.ce == uv_sockaddr_ipv4_ce) {
 		uv_udp_send(&w->req, &uv->uv.udp, &w->buf, 1, (const struct sockaddr*)&PHP_UV_SOCKADDR_IPV4(addr), php_uv_udp_send_cb);
 	} else {
 		uv_udp_send(&w->req, &uv->uv.udp, &w->buf, 1, (const struct sockaddr*)&PHP_UV_SOCKADDR_IPV6(addr), php_uv_udp_send_cb);
@@ -2402,7 +2396,7 @@ static void php_uv_tcp_connect(enum php_uv_socket_type type, INTERNAL_FUNCTION_P
 
 	ZEND_PARSE_PARAMETERS_START(2, 3)
 		UV_PARAM_OBJ(uv, php_uv_t, uv_tcp_ce)
-		UV_PARAM_OBJ(addr, php_uv_sockaddr_t, (type == PHP_UV_TCP_IPV4) ? uv_sockaddr_ipv4_ce : uv_sockaddr_ipv6_ce)
+		UV_PARAM_OBJ(addr, php_uv_sockaddr_t, (type == PHP_UV_TCP_IPV4) ? uv_sockaddr_ipv4_ce : uv_sockaddr_ipv6_ce, uv_sockaddr_ipv6_ce)
 		Z_PARAM_OPTIONAL
 		Z_PARAM_FUNC_EX(fci, fcc, 1, 0)
 	ZEND_PARSE_PARAMETERS_END();
@@ -2413,7 +2407,7 @@ static void php_uv_tcp_connect(enum php_uv_socket_type type, INTERNAL_FUNCTION_P
 	PHP_UV_INIT_CONNECT(req, uv)
 	php_uv_cb_init(&cb, uv, &fci, &fcc, PHP_UV_CONNECT_CB);
 
-	if (type == PHP_UV_TCP_IPV4) {
+	if (addr->std.ce == uv_sockaddr_ipv4_ce) {
 		uv_tcp_connect(req, &uv->uv.tcp, (const struct sockaddr*)&PHP_UV_SOCKADDR_IPV4(addr), php_uv_tcp_connect_cb);
 	} else {
 		uv_tcp_connect(req, &uv->uv.tcp,  (const struct sockaddr*)&PHP_UV_SOCKADDR_IPV6(addr), php_uv_tcp_connect_cb);
@@ -2647,7 +2641,7 @@ PHP_MINIT_FUNCTION(uv)
 	uv_fs_ce = php_uv_register_internal_class_ex("UVFs", uv_ce);
 	uv_fs_event_ce = php_uv_register_internal_class_ex("UVFsEvent", uv_ce);
 	uv_tty_ce = php_uv_register_internal_class_ex("UVTty", uv_ce);
-	uv_fs_poll_ce = php_uv_register_internal_class_ex("UVFSPoll", uv_ce);
+	uv_fs_poll_ce = php_uv_register_internal_class_ex("UVFsPoll", uv_ce);
 	uv_poll_ce = php_uv_register_internal_class_ex("UVPoll", uv_ce);
 	uv_signal_ce = php_uv_register_internal_class_ex("UVSignal", uv_ce);
 
@@ -2733,7 +2727,7 @@ ZEND_END_ARG_INFO()
 
 ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_tcp_connect, 0, 0, 2)
 	ZEND_ARG_INFO(0, resource)
-	ZEND_ARG_INFO(0, ipv4_addr)
+	ZEND_ARG_INFO(0, sock_addr)
 	ZEND_ARG_INFO(0, callback)
 ZEND_END_ARG_INFO()
 
@@ -2759,11 +2753,6 @@ ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_accept, 0, 0, 2)
 ZEND_END_ARG_INFO()
 
 ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_read_start, 0, 0, 2)
-	ZEND_ARG_INFO(0, server)
-	ZEND_ARG_INFO(0, callback)
-ZEND_END_ARG_INFO()
-
-ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_read2_start, 0, 0, 2)
 	ZEND_ARG_INFO(0, server)
 	ZEND_ARG_INFO(0, callback)
 ZEND_END_ARG_INFO()
@@ -3342,6 +3331,11 @@ ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_udp_getsockname, 0, 0, 1)
 	ZEND_ARG_INFO(0, handle)
 ZEND_END_ARG_INFO()
 
+ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_tcp_simultaneous_accepts, 0, 0, 2)
+	ZEND_ARG_INFO(0, handle)
+	ZEND_ARG_INFO(0, enable)
+ZEND_END_ARG_INFO()
+
 ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_udp_set_membership, 0, 0, 4)
 	ZEND_ARG_INFO(0, client)
 	ZEND_ARG_INFO(0, multicast_addr)
@@ -3408,17 +3402,11 @@ ZEND_END_ARG_INFO()
 PHP_FUNCTION(uv_unref)
 {
 	php_uv_t *uv;
-//	uv_loop_t *loop;
 
 	ZEND_PARSE_PARAMETERS_START(1, 1)
 		UV_PARAM_OBJ(uv, php_uv_t, uv_ce)
 	ZEND_PARSE_PARAMETERS_END();
 
-/*
-	if ((loop = (uv_loop_t *) zend_fetch_resource_ex(handle, NULL, uv_loop_handle))) {
-		uv_unref((uv_handle_t *) loop);
-	} else
-*/
 	uv_unref(&uv->uv.handle);
 }
 /* }}} */
@@ -3464,7 +3452,7 @@ PHP_FUNCTION(uv_strerror)
 }
 /* }}} */
 
-/* {{{ proto void uv_update_time([UVLoop $uv_loop])
+/* {{{ proto void uv_update_time([UVLoop $uv_loop = uv_default_loop()])
 */
 PHP_FUNCTION(uv_update_time)
 {
@@ -3485,22 +3473,16 @@ PHP_FUNCTION(uv_update_time)
 PHP_FUNCTION(uv_ref)
 {
 	php_uv_t *uv;
-//	uv_loop_t *loop;
 
 	ZEND_PARSE_PARAMETERS_START(1, 1)
 		UV_PARAM_OBJ(uv, php_uv_t, uv_ce)
 	ZEND_PARSE_PARAMETERS_END();
 
-/*
-	if ((loop = (uv_loop_t *) zend_fetch_resource_ex(handle, NULL, uv_loop_handle))) {
-		uv_ref((uv_handle_t *)loop);
-	} else
-*/
 	uv_ref(&uv->uv.handle);
 }
 /* }}} */
 
-/* {{{ proto void uv_run([UVLoop $uv_loop, long $run_mode])
+/* {{{ proto void uv_run([UVLoop $uv_loop = uv_default_loop(), long $run_mode = UV::RUN_DEFAULT])
 */
 PHP_FUNCTION(uv_run)
 {
@@ -3518,7 +3500,7 @@ PHP_FUNCTION(uv_run)
 }
 /* }}} */
 
-/* {{{ proto void uv_stop([UVLoop $uv_loop])
+/* {{{ proto void uv_stop([UVLoop $uv_loop = uv_default_loop()])
 */
 PHP_FUNCTION(uv_stop)
 {
@@ -3534,7 +3516,7 @@ PHP_FUNCTION(uv_stop)
 }
 /* }}} */
 
-/* {{{ proto resource uv_signal_init([UVLoop $uv_loop])
+/* {{{ proto resource uv_signal_init([UVLoop $uv_loop = uv_default_loop()])
 */
 PHP_FUNCTION(uv_signal_init)
 {
@@ -3553,7 +3535,7 @@ PHP_FUNCTION(uv_signal_init)
 }
 /* }}} */
 
-/* {{{ proto void uv_signal_start(UVSignal $sig_handle, callable $sig_callback, int $sig_num)
+/* {{{ proto void uv_signal_start(UVSignal $sig_handle, callable(UVSignal $sig_handle, long $sig_num) $sig_callback, int $sig_num)
 */
 PHP_FUNCTION(uv_signal_start)
 {
@@ -3629,7 +3611,7 @@ PHP_FUNCTION(uv_loop_delete)
 }
 /* }}} */
 
-/* {{{ proto long uv_now([UVLoop $uv_loop])
+/* {{{ proto long uv_now([UVLoop $uv_loop = uv_default_loop()])
 */
 PHP_FUNCTION(uv_now)
 {
@@ -3648,7 +3630,7 @@ PHP_FUNCTION(uv_now)
 /* }}} */
 
 
-/* {{{ proto void uv_tcp_bind(resource $uv_tcp, resource $uv_sockaddr)
+/* {{{ proto void uv_tcp_bind(UVTcp $uv_tcp, UVSockAddr $uv_sockaddr)
 */
 PHP_FUNCTION(uv_tcp_bind)
 {
@@ -3656,7 +3638,7 @@ PHP_FUNCTION(uv_tcp_bind)
 }
 /* }}} */
 
-/* {{{ proto void uv_tcp_bind6(resource $uv_tcp, resource $uv_sockaddr)
+/* {{{ proto void uv_tcp_bind6(UVTcp $uv_tcp, UVSockAddr $uv_sockaddr)
 */
 PHP_FUNCTION(uv_tcp_bind6)
 {
@@ -3665,7 +3647,7 @@ PHP_FUNCTION(uv_tcp_bind6)
 /* }}} */
 
 
-/* {{{ proto void uv_write(resource $handle, string $data, callable $callback)
+/* {{{ proto void uv_write<UVTcp|UVPipe|UVTty>(T $handle, string $data[, callable(T $handle, long $status) $callback = function() {}])
 */
 PHP_FUNCTION(uv_write)
 {
@@ -3698,7 +3680,7 @@ PHP_FUNCTION(uv_write)
 }
 /* }}} */
 
-/* {{{ proto void uv_write2(resource $handle, string $data, resource $send, callable $callback)
+/* {{{ proto void uv_write2<T = UVTcp|UVPipe|UVTty>(T $handle, string $data, UVTcp|UvPipe $send, callable(T $handle, long $status) $callback)
 */
 PHP_FUNCTION(uv_write2)
 {
@@ -3713,7 +3695,7 @@ PHP_FUNCTION(uv_write2)
 	ZEND_PARSE_PARAMETERS_START(4, 4)
 		UV_PARAM_OBJ(uv, php_uv_t, uv_tcp_ce, uv_pipe_ce, uv_tty_ce)
 		Z_PARAM_STR(data)
-		UV_PARAM_OBJ(send, php_uv_t, uv_ce)
+		UV_PARAM_OBJ(send, php_uv_t, uv_tcp_ce, uv_pipe_ce)
 		Z_PARAM_FUNC(fci, fcc)
 	ZEND_PARSE_PARAMETERS_END();
 
@@ -3731,7 +3713,7 @@ PHP_FUNCTION(uv_write2)
 }
 /* }}} */
 
-/* {{{ proto void uv_tcp_nodelay(resource $handle, bool $enable)
+/* {{{ proto void uv_tcp_nodelay(UVTcp $handle, bool $enable)
 */
 PHP_FUNCTION(uv_tcp_nodelay)
 {
@@ -3747,7 +3729,7 @@ PHP_FUNCTION(uv_tcp_nodelay)
 }
 /* }}} */
 
-/* {{{ proto void uv_accept(resource $server, resource $client)
+/* {{{ proto void uv_accept<T = UVTcp|UVPipe>(T $server, T $client)
 */
 PHP_FUNCTION(uv_accept)
 {
@@ -3774,7 +3756,7 @@ PHP_FUNCTION(uv_accept)
 /* }}} */
 
 
-/* {{{ proto void uv_shutdown(resource $handle, callable $callback)
+/* {{{ proto void uv_shutdown<T = UVTcp|UVPipe|UVTty>(T $handle, callable(T $handle, long $status) $callback)
 */
 PHP_FUNCTION(uv_shutdown)
 {
@@ -3786,7 +3768,7 @@ PHP_FUNCTION(uv_shutdown)
 	int r = 0;
 
 	ZEND_PARSE_PARAMETERS_START(1, 2)
-		UV_PARAM_OBJ(uv, php_uv_t, uv_ce)
+		UV_PARAM_OBJ(uv, php_uv_t, uv_tcp_ce, uv_pipe_ce, uv_tty_ce)
 		Z_PARAM_OPTIONAL
 		Z_PARAM_FUNC_EX(fci, fcc, 1, 0)
 	ZEND_PARSE_PARAMETERS_END();
@@ -3807,7 +3789,7 @@ PHP_FUNCTION(uv_shutdown)
 }
 /* }}} */
 
-/* {{{ proto void uv_close(resource $handle, callable $callback)
+/* {{{ proto void uv_close(UV $handle, callable(UV $handle) $callback)
 */
 PHP_FUNCTION(uv_close)
 {
@@ -3833,7 +3815,7 @@ PHP_FUNCTION(uv_close)
 }
 /* }}} */
 
-/* {{{ proto void uv_read_start(resource $handle, callable $callback)
+/* {{{ proto void uv_read_start<T = UVTcp|UVPipe|UVTty>(T $handle, callable(T $handle, string|long $read) $callback)
 */
 PHP_FUNCTION(uv_read_start)
 {
@@ -3869,40 +3851,7 @@ PHP_FUNCTION(uv_read_start)
 }
 /* }}} */
 
-/* {{{ proto void uv_read2_start(resource $handle, callable $callback)
-*/
-PHP_FUNCTION(uv_read2_start)
-{
-	/* TODO: determine how to make this backwards compatible? */
-	php_error_docref(NULL, E_ERROR, "uv_read2_start is no longer supported.");
-	/*
-	php_uv_t *uv;
-	int r;
-	zend_fcall_info fci       = empty_fcall_info;
-	zend_fcall_info_cache fcc = empty_fcall_info_cache;
-	php_uv_cb_t *cb;
-
-	PHP_UV_DEBUG_PRINT("uv_read2_start\n");
-
-	ZEND_PARSE_PARAMETERS_START(2, 2)
-		UV_PARAM_OBJ(uv, php_uv_t, uv_tcp_ce, uv_pipe_ce, uv_tty_ce)
-		Z_PARAM_FUNC(fci, fcc)
-	ZEND_PARSE_PARAMETERS_END();
-
-	GC_ADDREF(&uv->std);
-	PHP_UV_DEBUG_OBJ_ADD_REFCOUNT(uv_read2_start, uv);
-
-	php_uv_cb_init(&cb, uv, &fci, &fcc, PHP_UV_READ2_CB);
-	r = uv_read2_start(&uv->uv.stream, php_uv_read_alloc, php_uv_read2_cb);
-	if (r) {
-		php_error_docref(NULL, E_NOTICE, "read2 failed");
-		OBJ_RELEASE(&uv->std);
-	}
-	*/
-}
-/* }}} */
-
-/* {{{ proto void uv_read_stop(resource $handle)
+/* {{{ proto void uv_read_stop(UVTcp|UVPipe|UVTty $handle)
 */
 PHP_FUNCTION(uv_read_stop)
 {
@@ -3923,7 +3872,7 @@ PHP_FUNCTION(uv_read_stop)
 }
 /* }}} */
 
-/* {{{ proto resource uv_ip4_addr(string $ipv4_addr, long $port)
+/* {{{ proto UVSockAddrIPv4 uv_ip4_addr(string $ipv4_addr, long $port)
 */
 PHP_FUNCTION(uv_ip4_addr)
 {
@@ -3943,7 +3892,7 @@ PHP_FUNCTION(uv_ip4_addr)
 }
 /* }}} */
 
-/* {{{ proto resource uv_ip6_addr(string $ipv6_addr, long $port)
+/* {{{ proto UVSockAddrIPv6 uv_ip6_addr(string $ipv6_addr, long $port)
 */
 PHP_FUNCTION(uv_ip6_addr)
 {
@@ -3964,7 +3913,7 @@ PHP_FUNCTION(uv_ip6_addr)
 /* }}} */
 
 
-/* {{{ proto void uv_listen(resource $handle, long $backlog, callable $callback)
+/* {{{ proto void uv_listen<T = UVTcp|UVPipe>(T $handle, long $backlog, callable(T $handle, long $status) $callback)
 */
 PHP_FUNCTION(uv_listen)
 {
@@ -3993,7 +3942,7 @@ PHP_FUNCTION(uv_listen)
 }
 /* }}} */
 
-/* {{{ proto void uv_tcp_connect(resource $handle, resource $ipv4_addr, callable $callback)
+/* {{{ proto void uv_tcp_connect(UVTcp $handle, UVSockAddr $sock_addr, callable(UVTcp $handle, long $status) $callback)
 */
 PHP_FUNCTION(uv_tcp_connect)
 {
@@ -4002,16 +3951,17 @@ PHP_FUNCTION(uv_tcp_connect)
 /* }}} */
 
 
-/* {{{ proto void uv_tcp_connect6(resource $handle, resource $ipv6_addr, callable $callback)
+/* {{{ proto void uv_tcp_connect6(UVTcp $handle, UVSockAddrIPv6 $ipv6_addr, callable(UVTcp $handle, long $status) $callback)
 */
 PHP_FUNCTION(uv_tcp_connect6)
 {
+	php_error_docref(NULL, E_DEPRECATED, "uv_udp_send6: Use uv_udp_send() instead");
 	php_uv_tcp_connect(PHP_UV_TCP_IPV6, INTERNAL_FUNCTION_PARAM_PASSTHRU);
 }
 /* }}} */
 
 
-/* {{{ proto resource uv_timer_init([resource $loop])
+/* {{{ proto UVTimer uv_timer_init([UVLoop $loop = uv_default_loop()])
 */
 PHP_FUNCTION(uv_timer_init)
 {
@@ -4032,7 +3982,7 @@ PHP_FUNCTION(uv_timer_init)
 }
 /* }}} */
 
-/* {{{ proto void uv_timer_start(resource $timer, long $timeout, long $repeat, callable $callback)
+/* {{{ proto void uv_timer_start(UVTimer $timer, long $timeout, long $repeat[, callable(UVTimer $timer) $callback = function() {}])
 */
 PHP_FUNCTION(uv_timer_start)
 {
@@ -4061,7 +4011,7 @@ PHP_FUNCTION(uv_timer_start)
 	}
 
 	if (uv_is_active(&uv->uv.handle)) {
-		php_error_docref(NULL, E_NOTICE, "passed uv timer resource has been started. you don't have to call this method");
+		php_error_docref(NULL, E_NOTICE, "Passed uv timer resource has been started. You don't have to call this method");
 		RETURN_FALSE;
 	}
 
@@ -4073,7 +4023,7 @@ PHP_FUNCTION(uv_timer_start)
 }
 /* }}} */
 
-/* {{{ proto void uv_timer_stop(resource $timer)
+/* {{{ proto void uv_timer_stop(UVTimer $timer)
 */
 PHP_FUNCTION(uv_timer_stop)
 {
@@ -4085,7 +4035,7 @@ PHP_FUNCTION(uv_timer_stop)
 	ZEND_PARSE_PARAMETERS_END();
 
 	if (!uv_is_active(&uv->uv.handle)) {
-		php_error_docref(NULL, E_NOTICE, "passed uv timer resource has been stopped. you don't have to call this method");
+		php_error_docref(NULL, E_NOTICE, "Passed uv timer resource has been stopped. You don't have to call this method");
 		RETURN_FALSE;
 	}
 
@@ -4099,7 +4049,7 @@ PHP_FUNCTION(uv_timer_stop)
 }
 /* }}} */
 
-/* {{{ proto void uv_timer_again(resource $timer)
+/* {{{ proto void uv_timer_again(UVTimer $timer)
 */
 PHP_FUNCTION(uv_timer_again)
 {
@@ -4110,7 +4060,7 @@ PHP_FUNCTION(uv_timer_again)
 	ZEND_PARSE_PARAMETERS_END();
 
 	if (uv_is_active(&uv->uv.handle)) {
-		php_error_docref(NULL, E_NOTICE, "passed uv timer resource has been started. you don't have to call this method");
+		php_error_docref(NULL, E_NOTICE, "Passed uv timer resource has been started. You don't have to call this method");
 		RETURN_FALSE;
 	}
 
@@ -4121,7 +4071,7 @@ PHP_FUNCTION(uv_timer_again)
 }
 /* }}} */
 
-/* {{{ proto void uv_timer_set_repeat(resource $timer, long $repeat)
+/* {{{ proto void uv_timer_set_repeat(UVTimer $timer, long $repeat)
 */
 PHP_FUNCTION(uv_timer_set_repeat)
 {
@@ -4137,7 +4087,7 @@ PHP_FUNCTION(uv_timer_set_repeat)
 }
 /* }}} */
 
-/* {{{ proto long uv_timer_get_repeat(resource $timer)
+/* {{{ proto long uv_timer_get_repeat(UVTimer $timer)
 */
 PHP_FUNCTION(uv_timer_get_repeat)
 {
@@ -4154,7 +4104,7 @@ PHP_FUNCTION(uv_timer_get_repeat)
 /* }}} */
 
 
-/* {{{ proto resource uv_idle_init([resource $loop])
+/* {{{ proto UVIdle uv_idle_init([UVLoop $loop = uv_default_loop()])
 */
 PHP_FUNCTION(uv_idle_init)
 {
@@ -4173,7 +4123,7 @@ PHP_FUNCTION(uv_idle_init)
 }
 /* }}} */
 
-/* {{{ proto void uv_idle_start(resource $idle, callable $callback)
+/* {{{ proto void uv_idle_start(UVIdle $idle, callable $callback)
 */
 PHP_FUNCTION(uv_idle_start)
 {
@@ -4205,7 +4155,7 @@ PHP_FUNCTION(uv_idle_start)
 /* }}} */
 
 
-/* {{{ proto void uv_idle_stop(resource $idle)
+/* {{{ proto void uv_idle_stop(UVIdle $idle)
 */
 PHP_FUNCTION(uv_idle_stop)
 {
@@ -4231,7 +4181,7 @@ PHP_FUNCTION(uv_idle_stop)
 /* }}} */
 
 
-/* {{{ proto void uv_getaddrinfo(resource $loop, callable $callback, string $node, string $service, array $hints)
+/* {{{ proto void uv_getaddrinfo(UVLoop $loop, callable $callback, string $node, string $service[, array $hints = []])
 */
 PHP_FUNCTION(uv_getaddrinfo)
 {
@@ -4253,7 +4203,7 @@ PHP_FUNCTION(uv_getaddrinfo)
 		Z_PARAM_ARRAY(hints)
 	ZEND_PARSE_PARAMETERS_END();
 
-	if (Z_TYPE_P(hints) == IS_ARRAY) {
+	if (hints != NULL) {
 		HashTable *h;
 		zval *data;
 
@@ -4279,7 +4229,7 @@ PHP_FUNCTION(uv_getaddrinfo)
 }
 /* }}} */
 
-/* {{{ proto resource uv_tcp_init([resource $loop])
+/* {{{ proto UVTcp uv_tcp_init([UVLoop $loop])
 */
 PHP_FUNCTION(uv_tcp_init)
 {
@@ -4298,7 +4248,7 @@ PHP_FUNCTION(uv_tcp_init)
 }
 /* }}} */
 
-/* {{{ proto int|false uv_tcp_open(resource $handle, long $tcpfd)
+/* {{{ proto int|false uv_tcp_open(UVTcp $handle, long $tcpfd)
 */
 PHP_FUNCTION(uv_tcp_open)
 {
@@ -4306,7 +4256,7 @@ PHP_FUNCTION(uv_tcp_open)
 }
 /* }}} */
 
-/* {{{ proto resource uv_default_loop()
+/* {{{ proto UVLoop uv_default_loop()
 */
 PHP_FUNCTION(uv_default_loop)
 {
@@ -4316,7 +4266,7 @@ PHP_FUNCTION(uv_default_loop)
 }
 /* }}} */
 
-/* {{{ proto resource uv_loop_new()
+/* {{{ proto UVLoop uv_loop_new()
 */
 PHP_FUNCTION(uv_loop_new)
 {
@@ -4325,7 +4275,7 @@ PHP_FUNCTION(uv_loop_new)
 /* }}} */
 
 
-/* {{{ proto resource uv_udp_init([resource $loop])
+/* {{{ proto UVUdp uv_udp_init([UVLoop $loop])
 */
 PHP_FUNCTION(uv_udp_init)
 {
@@ -4344,7 +4294,7 @@ PHP_FUNCTION(uv_udp_init)
 }
 /* }}} */
 
-/* {{{ proto int|false uv_udp_open(resource $handle, long $udpfd)
+/* {{{ proto int|false uv_udp_open(UVUdp $handle, long $udpfd)
 */
 PHP_FUNCTION(uv_udp_open)
 {
@@ -4352,7 +4302,7 @@ PHP_FUNCTION(uv_udp_open)
 }
 /* }}} */
 
-/* {{{ proto void uv_udp_bind(resource $resource, resource $address, long $flags)
+/* {{{ proto void uv_udp_bind(UVUdp $resource, UVSockAddr $address[, long $flags = 0])
 */
 PHP_FUNCTION(uv_udp_bind)
 {
@@ -4360,7 +4310,7 @@ PHP_FUNCTION(uv_udp_bind)
 }
 /* }}} */
 
-/* {{{ proto void uv_udp_bind6(resource $resource, resource $address, long $flags)
+/* {{{ proto void uv_udp_bind6(UVUdp $resource, UVSockAddr $address[, long $flags = 0])
 */
 PHP_FUNCTION(uv_udp_bind6)
 {
@@ -4368,7 +4318,7 @@ PHP_FUNCTION(uv_udp_bind6)
 }
 /* }}} */
 
-/* {{{ proto void uv_udp_recv_start(resource $handle, callable $callback)
+/* {{{ proto void uv_udp_recv_start(UVUdp $handle, callable(UVUdp $handle, string|long $read, long $flags) $callback)
 */
 PHP_FUNCTION(uv_udp_recv_start)
 {
@@ -4400,7 +4350,7 @@ PHP_FUNCTION(uv_udp_recv_start)
 }
 /* }}} */
 
-/* {{{ proto void uv_udp_recv_stop(resource $handle)
+/* {{{ proto void uv_udp_recv_stop(UVUdp $handle)
 */
 PHP_FUNCTION(uv_udp_recv_stop)
 {
@@ -4422,7 +4372,7 @@ PHP_FUNCTION(uv_udp_recv_stop)
 }
 /* }}} */
 
-/* {{{ proto long uv_udp_set_membership(resource $handle, string $multicast_addr, string $interface_addr, long $membership)
+/* {{{ proto long uv_udp_set_membership(UVUdp $handle, string $multicast_addr, string $interface_addr, long $membership)
 */
 PHP_FUNCTION(uv_udp_set_membership)
 {
@@ -4445,17 +4395,17 @@ PHP_FUNCTION(uv_udp_set_membership)
 /* }}} */
 
 
-/* {{{ proto void uv_udp_set_multicast_loop(resource $handle, long $enabled)
+/* {{{ proto void uv_udp_set_multicast_loop(UVUdp $handle, bool $enabled)
 */
 PHP_FUNCTION(uv_udp_set_multicast_loop)
 {
 	php_uv_t *uv;
-	zend_long enabled = 0;
+	zend_bool enabled = 0;
 	int r;
 
 	ZEND_PARSE_PARAMETERS_START(2, 2)
 		UV_PARAM_OBJ(uv, php_uv_t, uv_udp_ce)
-		Z_PARAM_LONG(enabled)
+		Z_PARAM_BOOL(enabled)
 	ZEND_PARSE_PARAMETERS_END();
 
 	r = uv_udp_set_multicast_loop((uv_udp_t*)&uv->uv.udp, enabled);
@@ -4465,7 +4415,7 @@ PHP_FUNCTION(uv_udp_set_multicast_loop)
 }
 /* }}} */
 
-/* {{{ proto void uv_udp_set_multicast_ttl(resource $handle, long $ttl)
+/* {{{ proto void uv_udp_set_multicast_ttl(UVUdp $handle, long $ttl)
 */
 PHP_FUNCTION(uv_udp_set_multicast_ttl)
 {
@@ -4493,17 +4443,17 @@ PHP_FUNCTION(uv_udp_set_multicast_ttl)
 }
 /* }}} */
 
-/* {{{ proto void uv_udp_set_broadcast(resource $handle, bool $enabled)
+/* {{{ proto void uv_udp_set_broadcast(UVUdp $handle, bool $enabled)
 */
 PHP_FUNCTION(uv_udp_set_broadcast)
 {
 	php_uv_t *uv;
-	zend_long enabled = 0;
+	zend_bool enabled = 0;
 	int r;
 
 	ZEND_PARSE_PARAMETERS_START(2, 2)
 		UV_PARAM_OBJ(uv, php_uv_t, uv_udp_ce)
-		Z_PARAM_LONG(enabled)
+		Z_PARAM_BOOL(enabled)
 	ZEND_PARSE_PARAMETERS_END();
 
 	r = uv_udp_set_broadcast(&uv->uv.udp, enabled);
@@ -4513,7 +4463,7 @@ PHP_FUNCTION(uv_udp_set_broadcast)
 }
 /* }}} */
 
-/* {{{ proto void uv_udp_send(resource $handle, string $data, resource $uv_addr, callable $callback)
+/* {{{ proto void uv_udp_send(UVUdp $handle, string $data, UVSockAddr $uv_addr, callable(UVUdp $handle, long $status) $callback)
 */
 PHP_FUNCTION(uv_udp_send)
 {
@@ -4521,10 +4471,11 @@ PHP_FUNCTION(uv_udp_send)
 }
 /* }}} */
 
-/* {{{ proto void uv_udp_send6(resource $handle, string $data, resource $uv_addr6, callable $callback)
+/* {{{ proto void uv_udp_send6(resource $handle, string $data, UVSockAddrIPv6 $uv_addr6, callable(UVUdp $handle, long $status) $callback)
 */
 PHP_FUNCTION(uv_udp_send6)
 {
+	php_error_docref(NULL, E_DEPRECATED, "uv_udp_send6: Use uv_udp_send() instead");
 	php_uv_udp_send(2, INTERNAL_FUNCTION_PARAM_PASSTHRU);
 }
 /* }}} */
@@ -4563,28 +4514,28 @@ PHP_FUNCTION(uv_is_closing)
 }
 /* }}} */
 
-/* {{{ proto bool uv_is_readable(resource $handle)
+/* {{{ proto bool uv_is_readable(UVTcp|UVPipe|UVTty $handle)
 */
 PHP_FUNCTION(uv_is_readable)
 {
 	php_uv_t *uv;
 
 	ZEND_PARSE_PARAMETERS_START(1, 1)
-		UV_PARAM_OBJ(uv, php_uv_t, uv_ce)
+		UV_PARAM_OBJ(uv, php_uv_t, uv_tcp_ce, uv_pipe_ce, uv_tty_ce)
 	ZEND_PARSE_PARAMETERS_END();
 
 	RETURN_BOOL(uv_is_readable(&uv->uv.stream));
 }
 /* }}} */
 
-/* {{{ proto bool uv_is_writable(resource $handle)
+/* {{{ proto bool uv_is_writable(UVTcp|UVPipe|UVTty $handle)
 */
 PHP_FUNCTION(uv_is_writable)
 {
 	php_uv_t *uv;
 
 	ZEND_PARSE_PARAMETERS_START(1, 1)
-		UV_PARAM_OBJ(uv, php_uv_t, uv_ce)
+		UV_PARAM_OBJ(uv, php_uv_t, uv_tcp_ce, uv_pipe_ce, uv_tty_ce)
 	ZEND_PARSE_PARAMETERS_END();
 
 	RETURN_BOOL(uv_is_writable(&uv->uv.stream));
@@ -4592,7 +4543,7 @@ PHP_FUNCTION(uv_is_writable)
 /* }}} */
 
 
-/* {{{ proto bool uv_walk(resource $loop, callable $closure[, array $opaque])
+/* {{{ proto bool uv_walk(UVLoop $loop, callable $closure[, array $opaque])
 */
 PHP_FUNCTION(uv_walk)
 {
@@ -4641,7 +4592,7 @@ PHP_FUNCTION(uv_guess_handle)
 /* }}} */
 
 
-/* {{{ proto resource uv_pipe_init([resource $loop, bool $ipc])
+/* {{{ proto UVPipe uv_pipe_init([UVLoop $loop = uv_default_loop(), bool $ipc = false])
 */
 PHP_FUNCTION(uv_pipe_init)
 {
@@ -4663,7 +4614,7 @@ PHP_FUNCTION(uv_pipe_init)
 }
 /* }}} */
 
-/* {{{ proto int|false uv_pipe_open(resource $handle, long $pipe)
+/* {{{ proto long|false uv_pipe_open(UVPipe $handle, long $pipe)
 */
 PHP_FUNCTION(uv_pipe_open)
 {
@@ -4671,7 +4622,7 @@ PHP_FUNCTION(uv_pipe_open)
 }
 /* }}} */
 
-/* {{{ proto long uv_pipe_bind(resource $handle, string $name)
+/* {{{ proto long uv_pipe_bind(UVPipe $handle, string $name)
 */
 PHP_FUNCTION(uv_pipe_bind)
 {
@@ -4693,7 +4644,7 @@ PHP_FUNCTION(uv_pipe_bind)
 }
 /* }}} */
 
-/* {{{ proto void uv_pipe_connect(resource $handle, string $path, callable $callback)
+/* {{{ proto void uv_pipe_connect(UVPipe $handle, string $path, callable(UVPipe $handle, long $status) $callback)
 */
 PHP_FUNCTION(uv_pipe_connect)
 {
@@ -4721,7 +4672,7 @@ PHP_FUNCTION(uv_pipe_connect)
 }
 /* }}} */
 
-/* {{{ proto void uv_pipe_pending_instances(resource $handle, long $count)
+/* {{{ proto void uv_pipe_pending_instances(UVPipe $handle, long $count)
 */
 PHP_FUNCTION(uv_pipe_pending_instances)
 {
@@ -4737,7 +4688,7 @@ PHP_FUNCTION(uv_pipe_pending_instances)
 }
 /* }}} */
 
-/* {{{ proto void uv_pipe_pending_count(resource $handle)
+/* {{{ proto void uv_pipe_pending_count(UVPipe $handle)
 */
 PHP_FUNCTION(uv_pipe_pending_count)
 {
@@ -4751,7 +4702,7 @@ PHP_FUNCTION(uv_pipe_pending_count)
 }
 /* }}} */
 
-/* {{{ proto void uv_pipe_pending_type(resource $handle)
+/* {{{ proto void uv_pipe_pending_type(UVPipe $handle)
 */
 PHP_FUNCTION(uv_pipe_pending_type)
 {
@@ -4767,7 +4718,7 @@ PHP_FUNCTION(uv_pipe_pending_type)
 }
 /* }}} */
 
-/* {{{ proto void uv_stdio_new(zval $fd, long $flags)
+/* {{{ proto UVStdio uv_stdio_new(UV|resource|long $fd[, long $flags = 0])
 */
 PHP_FUNCTION(uv_stdio_new)
 {
@@ -4905,7 +4856,6 @@ PHP_FUNCTION(uv_hrtime)
 		return;
 	}
 
-	/* TODO: is this correct? */
 	RETURN_LONG(uv_hrtime());
 }
 /* }}} */
@@ -4922,7 +4872,7 @@ PHP_FUNCTION(uv_exepath)
 	}
 
 	if (uv_exepath(buffer, &buffer_sz) == UV_EINVAL) {
-		RETURN_FALSE;
+		RETURN_FALSE; /* should be unreeachable */
 	}
 
 	RETURN_STRINGL(buffer, buffer_sz);
@@ -5026,7 +4976,7 @@ PHP_FUNCTION(uv_interface_addresses)
 }
 /* }}} */
 
-/* {{{ proto resource uv_spawn(resource $loop, string $command, array $args, array $stdio, string $cwd, array $env = array(), callable $callback [,long $flags, array $options])
+/* {{{ proto UVProcess|long uv_spawn(UVLoop $loop, string $command, array $args, array $stdio, string $cwd, array $env, callable(UVProcess $process, long $exit_status, long $term_signal) $callback[, long $flags = 0, array $options = []])
 */
 PHP_FUNCTION(uv_spawn)
 {
@@ -5196,7 +5146,7 @@ PHP_FUNCTION(uv_spawn)
 /* }}} */
 
 
-/* {{{ proto void uv_process_kill(resource $handle, long $signal)
+/* {{{ proto void uv_process_kill(UVProcess $handle, long $signal)
 */
 PHP_FUNCTION(uv_process_kill)
 {
@@ -5247,7 +5197,7 @@ PHP_FUNCTION(uv_chdir)
 /* }}} */
 
 
-/* {{{ proto resource uv_rwlock_init(void)
+/* {{{ proto UVLock uv_rwlock_init(void)
 */
 PHP_FUNCTION(uv_rwlock_init)
 {
@@ -5255,7 +5205,7 @@ PHP_FUNCTION(uv_rwlock_init)
 }
 /* }}} */
 
-/* {{{ proto uv_rwlock_rdlock(resource $handle)
+/* {{{ proto null|false uv_rwlock_rdlock(UVLock $handle)
 */
 PHP_FUNCTION(uv_rwlock_rdlock)
 {
@@ -5263,7 +5213,7 @@ PHP_FUNCTION(uv_rwlock_rdlock)
 }
 /* }}} */
 
-/* {{{ proto bool uv_rwlock_tryrdlock(resource $handle)
+/* {{{ proto bool uv_rwlock_tryrdlock(UVLock $handle)
 */
 PHP_FUNCTION(uv_rwlock_tryrdlock)
 {
@@ -5271,7 +5221,7 @@ PHP_FUNCTION(uv_rwlock_tryrdlock)
 }
 /* }}} */
 
-/* {{{ proto void uv_rwlock_rdunlock(resource $handle)
+/* {{{ proto void uv_rwlock_rdunlock(UVLock $handle)
 */
 PHP_FUNCTION(uv_rwlock_rdunlock)
 {
@@ -5279,7 +5229,7 @@ PHP_FUNCTION(uv_rwlock_rdunlock)
 }
 /* }}} */
 
-/* {{{ proto uv_rwlock_wrlock(resource $handle)
+/* {{{ proto null|false uv_rwlock_wrlock(UVLock $handle)
 */
 PHP_FUNCTION(uv_rwlock_wrlock)
 {
@@ -5287,7 +5237,7 @@ PHP_FUNCTION(uv_rwlock_wrlock)
 }
 /* }}} */
 
-/* {{{ proto uv_rwlock_trywrlock(resource $handle)
+/* {{{ proto bool uv_rwlock_trywrlock(UVLock $handle)
 */
 PHP_FUNCTION(uv_rwlock_trywrlock)
 {
@@ -5295,7 +5245,7 @@ PHP_FUNCTION(uv_rwlock_trywrlock)
 }
 /* }}} */
 
-/* {{{ proto uv_rwlock_wrunlock(resource $handle)
+/* {{{ proto void uv_rwlock_wrunlock(UVLock $handle)
 */
 PHP_FUNCTION(uv_rwlock_wrunlock)
 {
@@ -5303,7 +5253,7 @@ PHP_FUNCTION(uv_rwlock_wrunlock)
 }
 /* }}} */
 
-/* {{{ proto uv_lock uv_mutex_init(void)
+/* {{{ proto UVLock uv_mutex_init(void)
 */
 PHP_FUNCTION(uv_mutex_init)
 {
@@ -5311,7 +5261,7 @@ PHP_FUNCTION(uv_mutex_init)
 }
 /* }}} */
 
-/* {{{ proto void uv_mutex_lock(uv_lock $lock)
+/* {{{ proto void uv_mutex_lock(UVLock $lock)
 */
 PHP_FUNCTION(uv_mutex_lock)
 {
@@ -5319,7 +5269,7 @@ PHP_FUNCTION(uv_mutex_lock)
 }
 /* }}} */
 
-/* {{{ proto bool uv_mutex_trylock(uv_lock $lock)
+/* {{{ proto bool uv_mutex_trylock(UVLock $lock)
 */
 PHP_FUNCTION(uv_mutex_trylock)
 {
@@ -5327,7 +5277,7 @@ PHP_FUNCTION(uv_mutex_trylock)
 }
 /* }}} */
 
-/* {{{ void uv_mutex_unlock(uv_lock $lock)
+/* {{{ void uv_mutex_unlock(UVLock $lock)
 
 ##### *Description*
 
@@ -5335,7 +5285,7 @@ unlock mutex
 
 ##### *Parameters*
 
-*resource $handle*: uv resource handle (uv mutex)
+*UVLock $lock*: uv resource handle (uv mutex)
 
 ##### *Return Value*
 
@@ -5350,7 +5300,7 @@ PHP_FUNCTION(uv_mutex_unlock)
 }
 /* }}} */
 
-/* {{{ proto uv_lock uv_sem_init(long $value)
+/* {{{ proto UVLock uv_sem_init(long $value)
 */
 PHP_FUNCTION(uv_sem_init)
 {
@@ -5358,7 +5308,7 @@ PHP_FUNCTION(uv_sem_init)
 }
 /* }}} */
 
-/* {{{ proto void uv_sem_post(uv_lock $sem)
+/* {{{ proto void uv_sem_post(UVLock $sem)
 */
 PHP_FUNCTION(uv_sem_post)
 {
@@ -5366,7 +5316,7 @@ PHP_FUNCTION(uv_sem_post)
 }
 /* }}} */
 
-/* {{{ proto void uv_sem_wait(uv_lock $sem)
+/* {{{ proto void uv_sem_wait(UVLock $sem)
 */
 PHP_FUNCTION(uv_sem_wait)
 {
@@ -5374,7 +5324,7 @@ PHP_FUNCTION(uv_sem_wait)
 }
 /* }}} */
 
-/* {{{ proto void uv_sem_trywait(uv_lock $sem)
+/* {{{ proto long uv_sem_trywait(UVLock $sem)
 */
 PHP_FUNCTION(uv_sem_trywait)
 {
@@ -5382,7 +5332,7 @@ PHP_FUNCTION(uv_sem_trywait)
 }
 /* }}} */
 
-/* {{{ proto resource uv_prepare_init(resource $loop)
+/* {{{ proto UVPrepare uv_prepare_init(UVLoop $loop)
 */
 PHP_FUNCTION(uv_prepare_init)
 {
@@ -5401,7 +5351,7 @@ PHP_FUNCTION(uv_prepare_init)
 }
 /* }}} */
 
-/* {{{ proto void uv_prepare_start(resource $handle, callable $callback)
+/* {{{ proto long uv_prepare_start(UVPrepare $handle, callable(UVPrepare $handle) $callback)
 */
 PHP_FUNCTION(uv_prepare_start)
 {
@@ -5434,7 +5384,7 @@ PHP_FUNCTION(uv_prepare_start)
 }
 /* }}} */
 
-/* {{{ proto void uv_prepare_stop(resource $handle)
+/* {{{ proto long uv_prepare_stop(UVPrepare $handle)
 */
 PHP_FUNCTION(uv_prepare_stop)
 {
@@ -5459,7 +5409,7 @@ PHP_FUNCTION(uv_prepare_stop)
 }
 /* }}} */
 
-/* {{{ proto resoruce uv_check_init([resource $loop])
+/* {{{ proto UVCheck uv_check_init([UVLoop $loop])
 */
 PHP_FUNCTION(uv_check_init)
 {
@@ -5478,7 +5428,7 @@ PHP_FUNCTION(uv_check_init)
 }
 /* }}} */
 
-/* {{{ proto void uv_check_start(resource $handle, callable $callback)
+/* {{{ proto void uv_check_start(UVCheck $handle, callable(UVCheck $handle) $callback)
 */
 PHP_FUNCTION(uv_check_start)
 {
@@ -5511,7 +5461,7 @@ PHP_FUNCTION(uv_check_start)
 }
 /* }}} */
 
-/* {{{ proto void uv_check_stop(resource $handle)
+/* {{{ proto void uv_check_stop(UVCheck $handle)
 */
 PHP_FUNCTION(uv_check_stop)
 {
@@ -5534,7 +5484,7 @@ PHP_FUNCTION(uv_check_stop)
 /* }}} */
 
 
-/* {{{ proto resource uv_async_init(resource $loop, callable $callback)
+/* {{{ proto UVAsync uv_async_init(UVLoop $loop, callable(UVAsync $handle) $callback)
 */
 PHP_FUNCTION(uv_async_init)
 {
@@ -5558,7 +5508,7 @@ PHP_FUNCTION(uv_async_init)
 }
 /* }}} */
 
-/* {{{ proto void uv_async_send(resource $handle)
+/* {{{ proto void uv_async_send(UVAsync $handle)
 */
 PHP_FUNCTION(uv_async_send)
 {
@@ -5573,7 +5523,7 @@ PHP_FUNCTION(uv_async_send)
 }
 /* }}} */
 
-/* {{{ proto void uv_queue_work(resource $loop, callable $callback, callable $after_callback)
+/* {{{ proto void uv_queue_work(UVLoop $loop, callable() $callback, callable() $after_callback)
 */
 PHP_FUNCTION(uv_queue_work)
 {
@@ -5609,7 +5559,7 @@ PHP_FUNCTION(uv_queue_work)
 }
 /* }}} */
 
-/* {{{ proto resource uv_fs_open(resource $loop, string $path, long $flag, long $mode[, callable $callback])
+/* {{{ proto void uv_fs_open(UVLoop $loop, string $path, long $flag, long $mode[, callable(long|resource $file_or_result) $callback])
 */
 PHP_FUNCTION(uv_fs_open)
 {
@@ -5618,7 +5568,7 @@ PHP_FUNCTION(uv_fs_open)
 /* }}} */
 
 
-/* {{{ proto void uv_fs_read(resource $loop, zval $fd, long $offset, long $length[, callable $callback])
+/* {{{ proto void uv_fs_read(UVLoop $loop, resource $fd, long $offset, long $length[, callable(resource $fd, string|long $read) $callback])
 */
 PHP_FUNCTION(uv_fs_read)
 {
@@ -5627,7 +5577,7 @@ PHP_FUNCTION(uv_fs_read)
 /* }}} */
 
 
-/* {{{ proto void uv_fs_close(resource $loop, zval $fd[, callable $callback])
+/* {{{ proto void uv_fs_close(UVLoop $loop, resource $fd[, callable(bool $success) $callback])
 */
 PHP_FUNCTION(uv_fs_close)
 {
@@ -5636,7 +5586,7 @@ PHP_FUNCTION(uv_fs_close)
 /* }}} */
 
 
-/* {{{ proto void uv_fs_write(resource $loop, zval $fd, string $buffer, long $offset[, callable $callback])
+/* {{{ proto void uv_fs_write(UVLoop $loop, resource $fd, string $buffer, long $offset[, callable(resource $fd, long $result) $callback])
 */
 PHP_FUNCTION(uv_fs_write)
 {
@@ -5644,7 +5594,7 @@ PHP_FUNCTION(uv_fs_write)
 }
 /* }}} */
 
-/* {{{ proto void uv_fs_fsync(resource $loop, zval $fd[, callable $callback])
+/* {{{ proto void uv_fs_fsync(UVLoop $loop, resource $fd[, callable(resource $fd, long $result) $callback])
 */
 PHP_FUNCTION(uv_fs_fsync)
 {
@@ -5652,7 +5602,7 @@ PHP_FUNCTION(uv_fs_fsync)
 }
 /* }}} */
 
-/* {{{ proto void uv_fs_fdatasync(resource $loop, zval $fd[, callable $callback])
+/* {{{ proto void uv_fs_fdatasync(UVLoop $loop, resource $fd[, callable(resource $fd, long $result) $callback])
 */
 PHP_FUNCTION(uv_fs_fdatasync)
 {
@@ -5660,7 +5610,7 @@ PHP_FUNCTION(uv_fs_fdatasync)
 }
 /* }}} */
 
-/* {{{ proto void uv_fs_ftruncate(resource $loop, zval $fd, long $offset[, callable $callback])
+/* {{{ proto void uv_fs_ftruncate(UVLoop $loop, resource $fd, long $offset[, callable(resource $fd, long $result) $callback])
 */
 PHP_FUNCTION(uv_fs_ftruncate)
 {
@@ -5668,7 +5618,7 @@ PHP_FUNCTION(uv_fs_ftruncate)
 }
 /* }}} */
 
-/* {{{ proto void uv_fs_mkdir(resource $loop, string $path, long $mode[, callable $callback])
+/* {{{ proto void uv_fs_mkdir(UVLoop $loop, string $path, long $mode[, callable(long $result) $callback])
 */
 PHP_FUNCTION(uv_fs_mkdir)
 {
@@ -5677,7 +5627,7 @@ PHP_FUNCTION(uv_fs_mkdir)
 /* }}} */
 
 
-/* {{{ proto void uv_fs_rmdir(resource $loop, string $path[, callable $callback])
+/* {{{ proto void uv_fs_rmdir(UVLoop $loop, string $path[, callable(long $result) $callback])
 */
 PHP_FUNCTION(uv_fs_rmdir)
 {
@@ -5685,7 +5635,7 @@ PHP_FUNCTION(uv_fs_rmdir)
 }
 /* }}} */
 
-/* {{{ proto void uv_fs_unlink(resource $loop, string $path[, callable $callback])
+/* {{{ proto void uv_fs_unlink(UVLoop $loop, string $path[, callable(long $result) $callback])
 */
 PHP_FUNCTION(uv_fs_unlink)
 {
@@ -5693,7 +5643,7 @@ PHP_FUNCTION(uv_fs_unlink)
 }
 /* }}} */
 
-/* {{{ proto void uv_fs_rename(resource $loop, string $from, string $to[, callable $callback])
+/* {{{ proto void uv_fs_rename(UVLoop $loop, string $from, string $to[, callable(long $result) $callback])
 */
 PHP_FUNCTION(uv_fs_rename)
 {
@@ -5701,7 +5651,7 @@ PHP_FUNCTION(uv_fs_rename)
 }
 /* }}} */
 
-/* {{{ proto void uv_fs_utime(resource $loop, string $path, long $utime, long $atime[, callable $callback])
+/* {{{ proto void uv_fs_utime(UVLoop $loop, string $path, long $utime, long $atime[, callable(long $result) $callback])
 */
 PHP_FUNCTION(uv_fs_utime)
 {
@@ -5709,7 +5659,7 @@ PHP_FUNCTION(uv_fs_utime)
 }
 /* }}} */
 
-/* {{{ proto void uv_fs_futime(resource $loop, zval $fd, long $utime, long $atime[, callable $callback])
+/* {{{ proto void uv_fs_futime(UVLoop $loop, zval $fd, long $utime, long $atime[, callable(long $result) $callback])
 */
 PHP_FUNCTION(uv_fs_futime)
 {
@@ -5717,7 +5667,7 @@ PHP_FUNCTION(uv_fs_futime)
 }
 /* }}} */
 
-/* {{{ proto void uv_fs_chmod(resource $loop, string $path, long $mode[, callable $callback])
+/* {{{ proto void uv_fs_chmod(UVLoop $loop, string $path, long $mode[, callable(long $result) $callback])
 */
 PHP_FUNCTION(uv_fs_chmod)
 {
@@ -5726,7 +5676,7 @@ PHP_FUNCTION(uv_fs_chmod)
 /* }}} */
 
 
-/* {{{ proto void uv_fs_fchmod(resource $loop, zval $fd, long $mode[, callable $callback])
+/* {{{ proto void uv_fs_fchmod(UVLoop $loop, zval $fd, long $mode[, callable(long $result) $callback])
 */
 PHP_FUNCTION(uv_fs_fchmod)
 {
@@ -5735,7 +5685,7 @@ PHP_FUNCTION(uv_fs_fchmod)
 /* }}} */
 
 
-/* {{{ proto void uv_fs_chown(resource $loop, string $path, long $uid, long $gid[, callable $callback])
+/* {{{ proto void uv_fs_chown(UVLoop $loop, string $path, long $uid, long $gid[, callable(long $result) $callback])
 */
 PHP_FUNCTION(uv_fs_chown)
 {
@@ -5743,7 +5693,7 @@ PHP_FUNCTION(uv_fs_chown)
 }
 /* }}} */
 
-/* {{{ proto void uv_fs_fchown(resource $loop, zval $fd, long $uid, $long $gid[, callable $callback])
+/* {{{ proto void uv_fs_fchown(UVLoop $loop, zval $fd, long $uid, $long $gid[, callable(long $result) $callback])
 */
 PHP_FUNCTION(uv_fs_fchown)
 {
@@ -5751,7 +5701,7 @@ PHP_FUNCTION(uv_fs_fchown)
 }
 /* }}} */
 	
-/* {{{ proto void uv_fs_link(resource $loop, string $from, string $to[, callable $callback])
+/* {{{ proto void uv_fs_link(UVLoop $loop, string $from, string $to[, callable(long $result) $callback])
 */
 PHP_FUNCTION(uv_fs_link)
 {
@@ -5760,7 +5710,7 @@ PHP_FUNCTION(uv_fs_link)
 /* }}} */
 
 
-/* {{{ proto void uv_fs_symlink(resource $loop, string $from, string $to, long $flags[, callable $callback])
+/* {{{ proto void uv_fs_symlink(UVLoop $loop, string $from, string $to, long $flags[, callable(long $result) $callback])
 */
 PHP_FUNCTION(uv_fs_symlink)
 {
@@ -5768,7 +5718,7 @@ PHP_FUNCTION(uv_fs_symlink)
 }
 /* }}} */
 
-/* {{{ proto void uv_fs_readlink(resource $loop, string $path[, callable $callback])
+/* {{{ proto void uv_fs_readlink(UVLoop $loop, string $path[, callable(string|long $result_or_link_contents) $callback])
 */
 PHP_FUNCTION(uv_fs_readlink)
 {
@@ -5776,7 +5726,7 @@ PHP_FUNCTION(uv_fs_readlink)
 }
 /* }}} */
 
-/* {{{ proto void uv_fs_stat(resource $loop, string $path[, callable $callback])
+/* {{{ proto void uv_fs_stat(UVLoop $loop, string $path[, callable(long|array $result_or_stat) $callback])
 */
 PHP_FUNCTION(uv_fs_stat)
 {
@@ -5784,7 +5734,7 @@ PHP_FUNCTION(uv_fs_stat)
 }
 /* }}} */
 
-/* {{{ proto void uv_fs_lstat(resource $loop, string $path[, callable $callback])
+/* {{{ proto void uv_fs_lstat(UVLoop $loop, string $path[, callable(long|array $result_or_stat) $callback])
 */
 PHP_FUNCTION(uv_fs_lstat)
 {
@@ -5792,7 +5742,7 @@ PHP_FUNCTION(uv_fs_lstat)
 }
 /* }}} */
 
-/* {{{ proto void uv_fs_fstat(resource $loop, zval $fd[, callable $callback])
+/* {{{ proto void uv_fs_fstat(UVLoop $loop, resource $fd[, callable(resource $fd, array $stat) $callback])
 */
 PHP_FUNCTION(uv_fs_fstat)
 {
@@ -5801,15 +5751,16 @@ PHP_FUNCTION(uv_fs_fstat)
 /* }}} */
 
 
-/* {{{ proto uv_fs_readdir(resource $loop, string $path, long $flags[, callable $callback])
+/* {{{ proto uv_fs_readdir(UVLoop $loop, string $path, long $flags[, callable(long|array $result_or_dir_contents) $callback])
 */
 PHP_FUNCTION(uv_fs_readdir)
 {
+	php_error_docref(NULL, E_DEPRECATED, "Use uv_fs_scandir() instead of uv_fs_readdir()");
 	php_uv_fs_common(UV_FS_SCANDIR, INTERNAL_FUNCTION_PARAM_PASSTHRU);
 }
 /* }}} */
 
-/* {{{ proto uv_fs_scandir(resource $loop, string $path, long $flags[, callable $callback])
+/* {{{ proto uv_fs_scandir(UVLoop $loop, string $path, long $flags[, callable(long|array $result_or_dir_contents) $callback])
  *  */
 PHP_FUNCTION(uv_fs_scandir)
 {
@@ -5817,7 +5768,7 @@ PHP_FUNCTION(uv_fs_scandir)
 }
 /* }}} */
 
-/* {{{ proto void uv_fs_sendfile(resource $loop, zval $in_fd, zval $out_fd, long $offset, long $length[, callable $callback])
+/* {{{ proto void uv_fs_sendfile(UVLoop $loop, resource $in_fd, resource $out_fd, long $offset, long $length[, callable(resource $out_fd, long $result) $callback])
 */
 PHP_FUNCTION(uv_fs_sendfile)
 {
@@ -5825,7 +5776,7 @@ PHP_FUNCTION(uv_fs_sendfile)
 }
 /* }}} */
 
-/* {{{ proto resource uv_fs_event_init(resource $loop, string $path, callable $callback, long $flags = 0)
+/* {{{ proto UVFsEvent uv_fs_event_init(UVLoop $loop, string $path, callable(UVFsEvent $handle, string|null $filename, long $events, long $status) $callback[, long $flags = 0])
 */
 PHP_FUNCTION(uv_fs_event_init)
 {
@@ -5862,7 +5813,7 @@ PHP_FUNCTION(uv_fs_event_init)
 }
 /* }}} */
 
-/* {{{ proto resource uv_tty_init(resource $loop, zval $fd, long $readable)
+/* {{{ proto UVTty uv_tty_init(UVLoop $loop, resource $fd, long $readable)
 */
 PHP_FUNCTION(uv_tty_init)
 {
@@ -5888,7 +5839,7 @@ PHP_FUNCTION(uv_tty_init)
 /* }}} */
 
 
-/* {{{ proto long uv_tty_get_winsize(resource $tty, long &$width, long &$height)
+/* {{{ proto long uv_tty_get_winsize(UVTty $tty, long &$width, long &$height)
 */
 PHP_FUNCTION(uv_tty_get_winsize)
 {
@@ -5915,7 +5866,7 @@ PHP_FUNCTION(uv_tty_get_winsize)
 /* }}} */
 
 
-/* {{{ proto long uv_tty_set_mode(resource $tty, long $mode)
+/* {{{ proto long uv_tty_set_mode(UVTty $tty, long $mode)
 */
 PHP_FUNCTION(uv_tty_set_mode)
 {
@@ -5944,25 +5895,25 @@ PHP_FUNCTION(uv_tty_reset_mode)
 }
 /* }}} */
 
-#ifdef PHP_WIN32
-/* {{{ */
+/* {{{ proto void uv_tcp_simultaneous_accepts(UVTcp $handle, bool $enable)
+ */
 PHP_FUNCTION(uv_tcp_simultaneous_accepts)
 {
 	php_uv_t *uv;
-	zend_long enable, error = 0;
+	zend_bool enable;
+	zend_long error = 0;
 
 	ZEND_PARSE_PARAMETERS_START(2, 2)
 		UV_PARAM_OBJ(uv, php_uv_t, uv_tcp_ce)
-		Z_PARAM_LONG(enable)
+		Z_PARAM_BOOL(enable)
 	ZEND_PARSE_PARAMETERS_END();
 
 	error = uv_tcp_simultaneous_accepts(&uv->uv.tcp, enable);
 	RETURN_LONG(error);
 }
 /* }}} */
-#endif
 
-/* {{{ proto string uv_tcp_getsockname(resource $uv_sockaddr)
+/* {{{ proto string uv_tcp_getsockname(UVTcp $uv_sock)
 */
 PHP_FUNCTION(uv_tcp_getsockname)
 {
@@ -5970,7 +5921,7 @@ PHP_FUNCTION(uv_tcp_getsockname)
 }
 /* }}} */
 
-/* {{{ proto string uv_tcp_getpeername(resource $uv_sockaddr)
+/* {{{ proto string uv_tcp_getpeername(UVTcp $uv_sock)
 */
 PHP_FUNCTION(uv_tcp_getpeername)
 {
@@ -5978,7 +5929,7 @@ PHP_FUNCTION(uv_tcp_getpeername)
 }
 /* }}} */
 
-/* {{{ proto string uv_udp_getsockname(resource $uv_sockaddr)
+/* {{{ proto string uv_udp_getsockname(UVUdp $uv_sock)
 */
 PHP_FUNCTION(uv_udp_getsockname)
 {
@@ -6003,7 +5954,7 @@ PHP_FUNCTION(uv_resident_set_memory)
 }
 /* }}} */
 
-/* {{{ proto string uv_ip4_name(resource uv_sockaddr $address)
+/* {{{ proto string uv_ip4_name(UVSockAddr $address)
 */
 PHP_FUNCTION(uv_ip4_name)
 {
@@ -6011,7 +5962,7 @@ PHP_FUNCTION(uv_ip4_name)
 }
 /* }}} */
 
-/* {{{ proto string uv_ip6_name(resource uv_sockaddr $address)
+/* {{{ proto string uv_ip6_name(UVSockAddr $address)
 */
 PHP_FUNCTION(uv_ip6_name)
 {
@@ -6019,7 +5970,7 @@ PHP_FUNCTION(uv_ip6_name)
 }
 /* }}} */
 
-/* {{{ proto uv uv_poll_init([resource $uv_loop], zval fd)
+/* {{{ proto UVPoll uv_poll_init(UVLoop $loop, resource $fd)
 */
 PHP_FUNCTION(uv_poll_init)
 {
@@ -6051,7 +6002,7 @@ PHP_FUNCTION(uv_poll_init)
 /* }}} */
 
 
-/* {{{ proto uv uv_poll_start(resource $handle, $events, $callback)
+/* {{{ proto void uv_poll_start(UVPoll $handle, long $events, callable(UVPoll $handle, long $status, long $events, resource $fd) $callback)
 */
 PHP_FUNCTION(uv_poll_start)
 {
@@ -6082,7 +6033,7 @@ PHP_FUNCTION(uv_poll_start)
 }
 /* }}} */
 
-/* {{{ proto void uv_poll_stop(resource $poll)
+/* {{{ proto void uv_poll_stop(UVPoll $poll)
 */
 PHP_FUNCTION(uv_poll_stop)
 {
@@ -6103,7 +6054,7 @@ PHP_FUNCTION(uv_poll_stop)
 }
 /* }}} */
 
-/* {{{ proto uv uv_fs_poll_init([resource $uv_loop])
+/* {{{ proto UVFsPoll uv_fs_poll_init([UVLoop $loop = uv_default_loop()])
 */
 PHP_FUNCTION(uv_fs_poll_init)
 {
@@ -6122,7 +6073,7 @@ PHP_FUNCTION(uv_fs_poll_init)
 }
 /* }}} */
 
-/* {{{ proto uv uv_fs_poll_start(resource $handle, $callback, string $path, long $interval)
+/* {{{ proto uv uv_fs_poll_start(UVFsPoll $handle, callable(UVFsPoll $handle, long $status, array $prev_stat, array $cur_stat) $callback, string $path, long $interval)
 */
 PHP_FUNCTION(uv_fs_poll_start)
 {
@@ -6153,7 +6104,7 @@ PHP_FUNCTION(uv_fs_poll_start)
 }
 /* }}} */
 
-/* {{{ proto void uv_fs_poll_stop(resource $poll)
+/* {{{ proto void uv_fs_poll_stop(UVFsPoll $poll)
 */
 PHP_FUNCTION(uv_fs_poll_stop)
 {
@@ -6197,7 +6148,6 @@ static zend_function_entry uv_functions[] = {
 	PHP_FE(uv_now,                      arginfo_uv_now)
 	PHP_FE(uv_loop_delete,              arginfo_uv_loop_delete)
 	PHP_FE(uv_read_start,               arginfo_uv_read_start)
-	PHP_FE(uv_read2_start,              arginfo_uv_read2_start)
 	PHP_FE(uv_read_stop,                arginfo_uv_read_stop)
 	PHP_FE(uv_err_name,                 arginfo_uv_err_name)
 	PHP_FE(uv_strerror,                 arginfo_uv_strerror)
@@ -6253,9 +6203,7 @@ static zend_function_entry uv_functions[] = {
 	PHP_FE(uv_tcp_getsockname,          arginfo_uv_tcp_getsockname)
 	PHP_FE(uv_tcp_getpeername,          arginfo_uv_tcp_getpeername)
 	PHP_FE(uv_udp_getsockname,          arginfo_uv_udp_getsockname)
-#ifdef PHP_WIN32
-	PHP_FE(uv_tcp_simultaneous_accepts, NULL)
-#endif
+	PHP_FE(uv_tcp_simultaneous_accepts, arginfo_uv_tcp_simultaneous_accepts)
 	/* pipe */
 	PHP_FE(uv_pipe_init,                arginfo_uv_pipe_init)
 	PHP_FE(uv_pipe_bind,                arginfo_uv_pipe_bind)

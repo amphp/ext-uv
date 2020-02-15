@@ -27,7 +27,7 @@ HELO
 EOF;
     uv_write($client, $request, function($client, $stat) {
         if ($stat == 0) {
-            uv_read_start($client, function($client, $nread, $buffer) {
+            uv_read_start($client, function($client, $buffer) {
                 echo "$buffer\n";
                 uv_close($client);
             });

@@ -13,4 +13,4 @@ uv_fs_rmdir(uv_default_loop(), DIRECTORY_PATH, function($result) {
 uv_run();
 
 --EXPECTF--
-bool(true)
+int(0)
