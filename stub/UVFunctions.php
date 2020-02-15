@@ -139,7 +139,7 @@ function uv_timer_init(UVLoop $loop = null)
  * @param UVTimer $timer
  * @param float $timeout
  * @param float $repeat
- * @param callable $callback expects (UVTimer $timer, int$status)
+ * @param callable $callback expects (UVTimer $timer, int $status)
  */
 function uv_timer_start(UVTimer $timer, float $timeout, float $repeat, callable $callback)
 {
@@ -183,7 +183,7 @@ function uv_write(UVHandle $handle, string $data, callable $callback)
  * starts read callback for uv resources `$handle`.
  *
  * @param UVHandle $handle
- * @param callable $callback expects (UVHandle $handle, int $read, string buffer)
+ * @param callable $callback expects (UVHandle $handle, $data)
  */
 function uv_read_start(UVHandle $handle, callable $callback)
 {
@@ -223,7 +223,7 @@ function uv_fs_close(UVLoop $loop, $fd, callable $callback)
  * @param resource $fd PHP `stream`, or `socket`
  * @param int $offset
  * @param int $length
- * @param callable $callback - `$callable` expects (resource $stream, int $read, string $buffer).
+ * @param callable $callback - `$callable` expects (resource $stream, $data).
  *
  * `$read` is > 0 if there is data available, 0 if libuv is done reading for
  * now, or < 0 on error.
@@ -492,6 +492,16 @@ function uv_process_kill(UVProcess $process, int $signal)
 }
 
 /**
+ * Returns process id.
+ *
+ * @param UVProcess $process
+ * @param int $pid
+ */
+function uv_process_get_pid(UVProcess $process)
+{
+}
+
+/**
  * send signal to specified pid.
  *
  * @param int $pid process id
@@ -565,12 +575,12 @@ function uv_pipe_pending_instances(UVPipe $handle, $count)
 }
 
 /**
- * @param UVHandle $fd
+ * @param UVHandle|resource $fd
  * @param integer $flags
  *
  * @return UVStdio
  */
-function uv_stdio_new(UVHandle $fd, int $flags)
+function uv_stdio_new($fd, int $flags)
 {
 }
 
@@ -1055,7 +1065,7 @@ function uv_udp_bind6($resource, $address, int $flags)
  * Start receive callback.
  *
  * @param resource $handle uv resource handle (udp).
- * @param callable $callback this callback parameter expects (resource $stream, long $nread, string $buffer)..
+ * @param callable $callback this callback parameter expects (resource $stream, $data)..
  *
  * @return void
  */
@@ -1130,7 +1140,7 @@ function uv_udp_set_broadcast($handle, bool $enabled)
  * @param resource $handle uv resource handle (udp).
  * @param string $data data.
  * @param resource $uv_addr uv_ip4_addr.
- * @param callable $callback this callback parameter expects (resource $stream, long $status).
+ * @param callable $callback this callback parameter expects (resource $stream, int $status).
  *
  * @return void
  */
