@@ -5122,7 +5122,7 @@ PHP_FUNCTION(uv_spawn)
 	ret = uv_spawn(&loop->loop, &proc->uv.process, &options);
 
 	if (ret) {
-		PHP_UV_DEINIT_UV(proc);
+		OBJ_RELEASE(&proc->std);
 		RETVAL_LONG(ret);
 	} else {
 		php_uv_cb_init(&cb, proc, &fci, &fcc, PHP_UV_PROC_CLOSE_CB);
