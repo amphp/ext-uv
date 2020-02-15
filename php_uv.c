@@ -1079,7 +1079,14 @@ static void php_uv_fs_common(uv_fs_type fs_type, INTERNAL_FUNCTION_PARAMETERS)
 			zend_long fd, offset = -1;
 			uv_buf_t uv_fs_write_buf_t;
 
-			PHP_UV_FS_PARSE_PARAMETERS(3, Z_PARAM_RESOURCE(zstream) Z_PARAM_STR(buffer) Z_PARAM_LONG(offset));
+			ZEND_PARSE_PARAMETERS_START(3, 5)
+				UV_PARAM_OBJ(loop, php_uv_loop_t, uv_loop_ce)
+				Z_PARAM_RESOURCE(zstream)
+				Z_PARAM_STR(buffer)
+				Z_PARAM_OPTIONAL
+				Z_PARAM_LONG(offset)
+				Z_PARAM_FUNC_EX(fci, fcc, 1, 0)
+			ZEND_PARSE_PARAMETERS_END();
 			PHP_UV_FS_SETUP();
 			PHP_UV_ZVAL_TO_FD(fd, zstream);
 			uv->fs_fd = *zstream;
@@ -1353,6 +1360,10 @@ static int php_uv_do_callback2(zval *retval_ptr, php_uv_t *uv, zval *params, int
 #endif
 	//zend_fcall_info_args_clear(&uv->callback[type]->fci, 0);
 
+	if (EG(exception)) {
+		uv_stop(uv->uv.handle.loop);
+	}
+
 	return error;
 }
 
@@ -1434,6 +1445,10 @@ static int php_uv_do_callback3(zval *retval_ptr, php_uv_t *uv, zval *params, int
 	}
 
 	//zend_fcall_info_args_clear(&uv->callback[type]->fci, 0);
+
+	if (EG(exception)) {
+		uv_stop(uv->uv.handle.loop);
+	}
 
 	return error;
 }
@@ -1535,6 +1550,10 @@ static void php_uv_write_cb(uv_write_t* req, int status)
 	ZVAL_LONG(&params[1], status);
 
 	php_uv_do_callback(&retval, wr->cb, params, 2 TSRMLS_CC);
+
+	if (EG(exception)) {
+		uv_stop(uv->uv.handle.loop);
+	}
 
 	PHP_UV_DEBUG_OBJ_DEL_REFCOUNT(uv_write_cb, uv);
 	zval_ptr_dtor(&params[0]);
@@ -4194,7 +4213,7 @@ PHP_FUNCTION(uv_idle_stop)
 /* }}} */
 
 
-/* {{{ proto void uv_getaddrinfo(UVLoop $loop, callable $callback, string $node, string $service[, array $hints = []])
+/* {{{ proto void uv_getaddrinfo(UVLoop $loop, callable(array|long $addresses_or_error) $callback, string $node, string $service[, array $hints = []])
 */
 PHP_FUNCTION(uv_getaddrinfo)
 {
@@ -5613,7 +5632,7 @@ PHP_FUNCTION(uv_fs_close)
 /* }}} */
 
 
-/* {{{ proto void uv_fs_write(UVLoop $loop, resource $fd, string $buffer, long $offset[, callable(resource $fd, long $result) $callback])
+/* {{{ proto void uv_fs_write(UVLoop $loop, resource $fd, string $buffer[, long $offset = -1[, callable(resource $fd, long $result) $callback]])
 */
 PHP_FUNCTION(uv_fs_write)
 {
