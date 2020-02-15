@@ -773,14 +773,17 @@ static void php_uv_fs_common(uv_fs_type fs_type, INTERNAL_FUNCTION_PARAMETERS)
 	zend_fcall_info_cache fcc = empty_fcall_info_cache;
 	php_uv_cb_t *cb;
 
-#define PHP_UV_FS_PARSE_PARAMETERS(num, params) \
-	ZEND_PARSE_PARAMETERS_START(1 + num, 2 + num) \
+#define PHP_UV_FS_PARSE_PARAMETERS_EX(num, params, required_cb) \
+	ZEND_PARSE_PARAMETERS_START(1 + num + required_cb, 2 + num) \
 		UV_PARAM_OBJ(loop, php_uv_loop_t, uv_loop_ce) \
 		params \
-		Z_PARAM_OPTIONAL \
+		if (!required_cb) { \
+			Z_PARAM_OPTIONAL \
+		} \
 		Z_PARAM_FUNC_EX(fci, fcc, 1, 0) \
 	ZEND_PARSE_PARAMETERS_END()
-	
+
+#define PHP_UV_FS_PARSE_PARAMETERS(num, params) PHP_UV_FS_PARSE_PARAMETERS_EX(num, params, 0)	
 
 #define PHP_UV_FS_SETUP() \
 	PHP_UV_INIT_UV(uv, uv_fs_ce); \
@@ -946,16 +949,22 @@ static void php_uv_fs_common(uv_fs_type fs_type, INTERNAL_FUNCTION_PARAMETERS)
 			zend_string *path;
 			zend_long flag, mode;
 
-			PHP_UV_FS_PARSE_PARAMETERS(3, Z_PARAM_STR(path) Z_PARAM_LONG(flag) Z_PARAM_LONG(mode));
+			PHP_UV_FS_PARSE_PARAMETERS_EX(3, Z_PARAM_STR(path) Z_PARAM_LONG(flag) Z_PARAM_LONG(mode), 1);
 			PHP_UV_FS_SETUP_AND_EXECUTE(open, path->val, flag, mode);
 			break;
 		}
 		case UV_FS_SCANDIR:
 		{
 			zend_string *path;
-			zend_long flags;
+			zend_long flags = 0;
 
-			PHP_UV_FS_PARSE_PARAMETERS(2, Z_PARAM_STR(path) Z_PARAM_LONG(flags));
+			ZEND_PARSE_PARAMETERS_START(3, 4)
+				UV_PARAM_OBJ(loop, php_uv_loop_t, uv_loop_ce)
+				Z_PARAM_STR(path)
+				Z_PARAM_FUNC_EX(fci, fcc, 1, 0)
+				Z_PARAM_OPTIONAL
+				Z_PARAM_LONG(flags)
+			ZEND_PARSE_PARAMETERS_END();
 			PHP_UV_FS_SETUP_AND_EXECUTE(scandir, path->val, flags);
 			break;
 		}
@@ -963,7 +972,7 @@ static void php_uv_fs_common(uv_fs_type fs_type, INTERNAL_FUNCTION_PARAMETERS)
 		{
 			zend_string *path;
 
-			PHP_UV_FS_PARSE_PARAMETERS(1, Z_PARAM_STR(path));
+			PHP_UV_FS_PARSE_PARAMETERS_EX(1, Z_PARAM_STR(path), 1);
 			PHP_UV_FS_SETUP_AND_EXECUTE(lstat, path->val);
 			break;
 		}
@@ -972,7 +981,7 @@ static void php_uv_fs_common(uv_fs_type fs_type, INTERNAL_FUNCTION_PARAMETERS)
 			zval *zstream = NULL;
 			unsigned long fd;
 
-			PHP_UV_FS_PARSE_PARAMETERS(1, Z_PARAM_RESOURCE(zstream));
+			PHP_UV_FS_PARSE_PARAMETERS_EX(1, Z_PARAM_RESOURCE(zstream), 1);
 			PHP_UV_FS_SETUP()
 			PHP_UV_ZVAL_TO_FD(fd, zstream);
 			uv->fs_fd = *zstream;
@@ -984,7 +993,7 @@ static void php_uv_fs_common(uv_fs_type fs_type, INTERNAL_FUNCTION_PARAMETERS)
 		{
 			zend_string *path;
 
-			PHP_UV_FS_PARSE_PARAMETERS(1, Z_PARAM_STR(path));
+			PHP_UV_FS_PARSE_PARAMETERS_EX(1, Z_PARAM_STR(path), 1);
 			PHP_UV_FS_SETUP_AND_EXECUTE(stat, path->val);
 			break;
 		}
@@ -1015,7 +1024,7 @@ static void php_uv_fs_common(uv_fs_type fs_type, INTERNAL_FUNCTION_PARAMETERS)
 		{
 			zend_string *path;
 
-			PHP_UV_FS_PARSE_PARAMETERS(1, Z_PARAM_STR(path));
+			PHP_UV_FS_PARSE_PARAMETERS_EX(1, Z_PARAM_STR(path), 1);
 			PHP_UV_FS_SETUP_AND_EXECUTE(readlink, path->val);
 			break;
 		}
@@ -1027,7 +1036,7 @@ static void php_uv_fs_common(uv_fs_type fs_type, INTERNAL_FUNCTION_PARAMETERS)
 			zend_long offset;
 			uv_buf_t buf;
 
-			PHP_UV_FS_PARSE_PARAMETERS(3, Z_PARAM_RESOURCE(zstream) Z_PARAM_LONG(offset) Z_PARAM_LONG(length));
+			PHP_UV_FS_PARSE_PARAMETERS_EX(3, Z_PARAM_RESOURCE(zstream) Z_PARAM_LONG(offset) Z_PARAM_LONG(length), 1);
 			if (length <= 0) {
 				length = 0;
 			}
@@ -1838,7 +1847,7 @@ static void php_uv_fs_cb(uv_fs_t* req)
 
 				array_init(&params[0]);
 				while (UV_EOF != uv_fs_scandir_next(req, &dent)) {
-					add_next_index_string(&params[1], dent.name);
+					add_next_index_string(&params[0], dent.name);
 				}
 			}
 			break;
@@ -5577,7 +5586,7 @@ PHP_FUNCTION(uv_queue_work)
 }
 /* }}} */
 
-/* {{{ proto void uv_fs_open(UVLoop $loop, string $path, long $flag, long $mode[, callable(long|resource $file_or_result) $callback])
+/* {{{ proto void uv_fs_open(UVLoop $loop, string $path, long $flag, long $mode, callable(long|resource $file_or_result) $callback)
 */
 PHP_FUNCTION(uv_fs_open)
 {
@@ -5586,7 +5595,7 @@ PHP_FUNCTION(uv_fs_open)
 /* }}} */
 
 
-/* {{{ proto void uv_fs_read(UVLoop $loop, resource $fd, long $offset, long $length[, callable(resource $fd, string|long $read) $callback])
+/* {{{ proto void uv_fs_read(UVLoop $loop, resource $fd, long $offset, long $length, callable(resource $fd, string|long $read) $callback)
 */
 PHP_FUNCTION(uv_fs_read)
 {
@@ -5736,7 +5745,7 @@ PHP_FUNCTION(uv_fs_symlink)
 }
 /* }}} */
 
-/* {{{ proto void uv_fs_readlink(UVLoop $loop, string $path[, callable(string|long $result_or_link_contents) $callback])
+/* {{{ proto void uv_fs_readlink(UVLoop $loop, string $path, callable(string|long $result_or_link_contents) $callback)
 */
 PHP_FUNCTION(uv_fs_readlink)
 {
@@ -5744,7 +5753,7 @@ PHP_FUNCTION(uv_fs_readlink)
 }
 /* }}} */
 
-/* {{{ proto void uv_fs_stat(UVLoop $loop, string $path[, callable(long|array $result_or_stat) $callback])
+/* {{{ proto void uv_fs_stat(UVLoop $loop, string $path, callable(long|array $result_or_stat) $callback)
 */
 PHP_FUNCTION(uv_fs_stat)
 {
@@ -5752,7 +5761,7 @@ PHP_FUNCTION(uv_fs_stat)
 }
 /* }}} */
 
-/* {{{ proto void uv_fs_lstat(UVLoop $loop, string $path[, callable(long|array $result_or_stat) $callback])
+/* {{{ proto void uv_fs_lstat(UVLoop $loop, string $path, callable(long|array $result_or_stat) $callback)
 */
 PHP_FUNCTION(uv_fs_lstat)
 {
@@ -5760,7 +5769,7 @@ PHP_FUNCTION(uv_fs_lstat)
 }
 /* }}} */
 
-/* {{{ proto void uv_fs_fstat(UVLoop $loop, resource $fd[, callable(resource $fd, array $stat) $callback])
+/* {{{ proto void uv_fs_fstat(UVLoop $loop, resource $fd, callable(resource $fd, array $stat) $callback)
 */
 PHP_FUNCTION(uv_fs_fstat)
 {
@@ -5769,7 +5778,7 @@ PHP_FUNCTION(uv_fs_fstat)
 /* }}} */
 
 
-/* {{{ proto uv_fs_readdir(UVLoop $loop, string $path, long $flags[, callable(long|array $result_or_dir_contents) $callback])
+/* {{{ proto void uv_fs_readdir(UVLoop $loop, string $path, callable(long|array $result_or_dir_contents) $callback[, long $flags = 0])
 */
 PHP_FUNCTION(uv_fs_readdir)
 {
@@ -5778,7 +5787,7 @@ PHP_FUNCTION(uv_fs_readdir)
 }
 /* }}} */
 
-/* {{{ proto uv_fs_scandir(UVLoop $loop, string $path, long $flags[, callable(long|array $result_or_dir_contents) $callback])
+/* {{{ proto void uv_fs_scandir(UVLoop $loop, string $path, callable(long|array $result_or_dir_contents) $callback[, long $flags = 0])
  *  */
 PHP_FUNCTION(uv_fs_scandir)
 {
