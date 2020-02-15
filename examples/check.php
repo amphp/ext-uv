@@ -5,7 +5,7 @@ $check = uv_check_init($loop);
 $idle = uv_idle_init();
 
 $i = 0;
-uv_idle_start($idle, function($stat) use (&$i, $idle, $loop){
+uv_idle_start($idle, function($status) use (&$i, $idle, $loop){
     echo "count: {$i}" . PHP_EOL;
     $i++;
     
@@ -15,8 +15,8 @@ uv_idle_start($idle, function($stat) use (&$i, $idle, $loop){
     sleep(1);
 });
 
-uv_check_start($check, function($check, $status){
-    echo "Hello";
+uv_check_start($check, function($check) {
+    echo "Hello\n";
     uv_check_stop($check);
 });
 

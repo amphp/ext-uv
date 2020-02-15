@@ -17,7 +17,7 @@ uv_spawn(uv_default_loop(), "php", array('-r','var_dump($_ENV);'), $stdio, "/usr
 
 }, $flags);
 
-uv_read2_start($out, function($out, $nread, $buffer, $stat){
+uv_read_start($out, function($out, $buffer){
     echo $buffer;
 
     uv_close($out,function(){});

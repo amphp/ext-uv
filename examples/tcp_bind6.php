@@ -16,7 +16,7 @@ uv_listen($tcp,100, function($server){
 });
 
 $c = uv_tcp_init();
-uv_tcp_connect6($c, uv_ip6_addr('::1',9999), function($client, $stat){
+uv_tcp_connect($c, uv_ip6_addr('::1',9999), function($client, $stat){
     if ($stat == 0) {
         uv_write($client,"Hello",function($socket, $stat){
             uv_close($socket);
