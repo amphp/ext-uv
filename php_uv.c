@@ -4213,7 +4213,7 @@ PHP_FUNCTION(uv_idle_stop)
 /* }}} */
 
 
-/* {{{ proto void uv_getaddrinfo(UVLoop $loop, callable $callback, string $node, string $service[, array $hints = []])
+/* {{{ proto void uv_getaddrinfo(UVLoop $loop, callable(array|long $addresses_or_error) $callback, string $node, string $service[, array $hints = []])
 */
 PHP_FUNCTION(uv_getaddrinfo)
 {
