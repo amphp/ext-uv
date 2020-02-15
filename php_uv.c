@@ -3026,6 +3026,10 @@ ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_process_kill, 0, 0, 2)
 	ZEND_ARG_INFO(0, signal)
 ZEND_END_ARG_INFO()
 
+ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_process_get_pid, 0, 0, 1)
+	ZEND_ARG_INFO(0, process)
+ZEND_END_ARG_INFO()
+
 ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_chdir, 0, 0, 1)
 	ZEND_ARG_INFO(0, dir)
 ZEND_END_ARG_INFO()
@@ -5162,6 +5166,20 @@ PHP_FUNCTION(uv_process_kill)
 }
 /* }}} */
 
+/* {{{ proto void uv_process_get_pid(UVProcess $handle)
+*/
+PHP_FUNCTION(uv_process_get_pid)
+{
+	php_uv_t *uv;
+
+	ZEND_PARSE_PARAMETERS_START(1, 1)
+		UV_PARAM_OBJ(uv, php_uv_t, uv_process_ce)
+	ZEND_PARSE_PARAMETERS_END();
+
+	RETURN_LONG(uv_process_get_pid(&uv->uv.process));
+}
+/* }}} */
+
 /* {{{ proto void uv_kill(long $pid, long $signal)
 */
 PHP_FUNCTION(uv_kill)
@@ -6216,6 +6234,7 @@ static zend_function_entry uv_functions[] = {
 	/* spawn */
 	PHP_FE(uv_spawn,                    arginfo_uv_spawn)
 	PHP_FE(uv_process_kill,             arginfo_uv_process_kill)
+	PHP_FE(uv_process_get_pid,          arginfo_uv_process_get_pid)
 	PHP_FE(uv_kill,                     arginfo_uv_kill)
 	/* c-ares */
 	PHP_FE(uv_getaddrinfo,              arginfo_uv_getaddrinfo)
