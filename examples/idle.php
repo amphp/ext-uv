@@ -3,7 +3,7 @@ $loop = uv_default_loop();
 $idle = uv_idle_init();
 
 $i = 0;
-uv_idle_start($idle, function($stat) use (&$i, $idle, $loop){
+uv_idle_start($idle, function($stat) use (&$i, $idle, $loop) {
     echo "count: {$i}" . PHP_EOL;
     $i++;
     

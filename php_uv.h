@@ -158,6 +158,9 @@ typedef struct {
 		uv_handle_t handle;
 		uv_req_t req;
 		uv_stream_t stream;
+		uv_shutdown_t shutdown;
+		uv_udp_send_t udp_send;
+		uv_connect_t connect;
 		uv_getaddrinfo_t addrinfo;
 		uv_prepare_t prepare;
 		uv_check_t check;

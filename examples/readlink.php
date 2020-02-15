@@ -1,7 +1,6 @@
 <?php
 
-uv_fs_readlink(uv_default_loop(), "li", function($result,$buffer){
-    var_dump($result);
+uv_fs_readlink(uv_default_loop(), "linkPath", function($buffer){
     var_dump($buffer);
 });
 

@@ -1361,7 +1361,29 @@ static int php_uv_do_callback2(zval *retval_ptr, php_uv_t *uv, zval *params, int
 	//zend_fcall_info_args_clear(&uv->callback[type]->fci, 0);
 
 	if (EG(exception)) {
-		uv_stop(uv->uv.handle.loop);
+		switch (type) {
+			case PHP_UV_FS_CB:
+				uv_stop(uv->uv.fs.loop);
+				break;
+			case PHP_UV_GETADDR_CB:
+				uv_stop(uv->uv.addrinfo.loop);
+				break;
+			case PHP_UV_AFTER_WORK_CB:
+				uv_stop(uv->uv.work.loop);
+				break;
+			case PHP_UV_SHUTDOWN_CB:
+				uv_stop(uv->uv.shutdown.handle->loop);
+				break;
+			case PHP_UV_SEND_CB:
+				uv_stop(uv->uv.udp_send.handle->loop);
+				break;
+			case PHP_UV_CONNECT_CB:
+			case PHP_UV_PIPE_CONNECT_CB:
+				uv_stop(uv->uv.connect.handle->loop);
+				break;
+			default:
+				uv_stop(uv->uv.handle.loop);
+		}
 	}
 
 	return error;
@@ -4750,7 +4772,7 @@ PHP_FUNCTION(uv_pipe_pending_type)
 }
 /* }}} */
 
-/* {{{ proto UVStdio uv_stdio_new(UV|resource|long $fd[, long $flags = 0])
+/* {{{ proto UVStdio uv_stdio_new([UV|resource|long|null $fd[, long $flags = 0]])
 */
 PHP_FUNCTION(uv_stdio_new)
 {
@@ -4764,11 +4786,13 @@ PHP_FUNCTION(uv_stdio_new)
 	php_stream *stream;
 
 	if (zend_parse_parameters(ZEND_NUM_ARGS(),
-		"z|l", &handle, &flags) == FAILURE) {
+		"|zl", &handle, &flags) == FAILURE) {
 		return;
 	}
 
-	if (Z_TYPE_P(handle) == IS_LONG) {
+	if (handle == NULL || Z_TYPE_P(handle) == IS_NULL) {
+		flags = UV_IGNORE;
+	} else if (Z_TYPE_P(handle) == IS_LONG) {
 		fd = Z_LVAL_P(handle);
 		if (flags & (UV_CREATE_PIPE | UV_INHERIT_STREAM)) {
 			php_error_docref(NULL, E_WARNING, "flags must not be UV::CREATE_PIPE or UV::INHERIT_STREAM for resources");
