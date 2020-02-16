@@ -22,7 +22,7 @@ interface UVLoop extends Object
  * to functions must remain valid for the duration of the requested operation.
  * Take care when using stack allocated handles.
  */
-interface UVHandle extends Object
+interface UV extends \UV
 {
     const UV_UNKNOWN_HANDLE = 0;
     const UV_ASYNC = 1;
@@ -72,7 +72,7 @@ interface UVHandle extends Object
  * `UVStream` is an abstract type, `libuv` provides 3 stream implementations
  * in the form of `UVTcp`, `UVPipe` and `UVTty`
  */
-interface UVStream extends UVHandle
+interface UVStream extends UV
 {
 }
 
@@ -86,7 +86,7 @@ interface UVTcp extends UVStream
 /**
  * UDP handles encapsulate UDP communication for both clients and servers.
  */
-interface UVUdp extends UVHandle
+interface UVUdp extends UV
 {
 }
 
@@ -124,14 +124,14 @@ interface UVPipe extends UVStream
  *
  * Note: On AIX, watching for disconnection is not supported.
  */
-interface UVPoll extends UVHandle
+interface UVPoll extends UV
 {
 }
 
 /**
  * Timer handles are used to schedule callbacks to be called in the future.
  */
-interface UVTimer extends UVHandle
+interface UVTimer extends UV
 {
 }
 
@@ -172,7 +172,7 @@ interface UVTimer extends UVHandle
  * Note that calls to raise() or abort() to programmatically raise a signal are
  * not detected by libuv; these will not trigger a signal watcher.
  */
-interface UVSignal extends UVHandle
+interface UVSignal extends UV
 {
 }
 
@@ -180,7 +180,7 @@ interface UVSignal extends UVHandle
  * Process handles will spawn a new process and allow the user to control it and
  * establish communication channels with it using streams.
  */
-interface UVProcess extends UVHandle
+interface UVProcess extends UV
 {
 }
 
@@ -188,14 +188,14 @@ interface UVProcess extends UVHandle
  * Async handles allow the user to wakeup the event loop and get a callback
  * called from another thread.
  */
-interface UVAsync extends UVHandle
+interface UVAsync extends UV
 {
 }
 
 /**
  *
  */
-interface UVStdio extends UVHandle
+interface UVStdio extends UV
 {
 }
 
@@ -216,7 +216,7 @@ interface UVTty extends UVStream
  * `Warning:` Despite the name, idle handles will get their callbacks called on every loop
  *  iteration, not when the loop is actually “idle”.
  */
-interface UVIdle extends UVHandle
+interface UVIdle extends UV
 {
 }
 
@@ -224,7 +224,7 @@ interface UVIdle extends UVHandle
  * Prepare handles will run the given callback once per loop iteration, right before
  * polling for i/o.
  */
-interface UVPrepare extends UVHandle
+interface UVPrepare extends UV
 {
 }
 
@@ -232,6 +232,13 @@ interface UVPrepare extends UVHandle
  * Check handles will run the given callback once per loop iteration, right after
  * polling for i/o.
  */
-interface UVCheck extends UVHandle
+interface UVCheck extends UV
+{
+}
+
+/**
+ * Address and port
+ */
+interface UVSockAddr
 {
 }

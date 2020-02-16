@@ -100,20 +100,20 @@ function uv_poll_stop(UVPoll $poll)
  * In-progress requests, like uv_connect_t or uv_write_t, are cancelled and
  * have their callbacks called asynchronously with status=UV_ECANCELED.
  *
- * @param UVHandle $handle
- * @param callable $callback - expects (UVHandle $handle, int $status)
+ * @param UV $handle
+ * @param callable $callback - expects (UV $handle, int $status)
  */
-function uv_close(UVHandle $handle, ?callable $callback = null)
+function uv_close(UV $handle, ?callable $callback = null)
 {
 }
 
 /**
  * shutdown uv handle.
  *
- * @param UVHandle $handle
- * @param callable $callback - expects (UVHandle $handle, int $status)
+ * @param UV $handle
+ * @param callable $callback - expects (UV $handle, int $status)
  */
-function uv_shutdown(UVHandle $handle, ?callable $callback = null)
+function uv_shutdown(UV $handle, ?callable $callback = null)
 {
 }
 
@@ -171,21 +171,21 @@ function uv_stop(UVLoop $loop)
 /**
  * send buffer to specified resource `$handle`.
  *
- * @param UVHandle $handle
+ * @param UV $handle
  * @param string $data
- * @param callable $callback expects (UVHandle $handle, int $status)
+ * @param callable $callback expects (UV $handle, int $status)
  */
-function uv_write(UVHandle $handle, string $data, callable $callback)
+function uv_write(UV $handle, string $data, callable $callback)
 {
 }
 
 /**
  * starts read callback for uv resources `$handle`.
  *
- * @param UVHandle $handle
- * @param callable $callback expects (UVHandle $handle, $data)
+ * @param UV $handle
+ * @param callable $callback expects (UV $handle, $data)
  */
-function uv_read_start(UVHandle $handle, callable $callback)
+function uv_read_start(UV $handle, callable $callback)
 {
 }
 
@@ -335,11 +335,11 @@ function uv_fs_sendfile(UVLoop $loop, $out_fd, $in_fd, int $offset, int $length,
  * function, then it's active from the moment that function is called.
  * Likewise, uv_foo_stop() deactivates the handle again.
  *
- * @param UVHandle $handle
+ * @param UV $handle
  *
  * @return bool
  */
-function uv_is_active(UVHandle $handle)
+function uv_is_active(UV $handle)
 {
 }
 
@@ -575,7 +575,7 @@ function uv_pipe_pending_instances(UVPipe $handle, $count)
 }
 
 /**
- * @param UVHandle|resource $fd
+ * @param UV|resource $fd
  * @param integer $flags
  *
  * @return UVStdio
@@ -734,26 +734,13 @@ function uv_check_stop(UVCheck $handle)
 {
 }
 
-// from https://github.com/JetBrains/phpstorm-stubs/blob/master/uv/uv_functions.php
-
-/**
- * Decrement reference.
- *
- * @param resource $uv_t resource handle.
- *
- * @return void
- */
-function uv_unref($uv_t)
-{
-}
-
 /**
  * Get last error code.
  *
  * @param UVLoop|null $uv_loop uv loop handle.
  * @return int
  */
-function uv_last_error($uv_loop = null)
+function uv_last_error(UVLoop $uv_loop = null)
 {
 }
 
@@ -778,22 +765,70 @@ function uv_strerror(int $error_code)
 }
 
 /**
+ * Update the event loop’s concept of “now”.
+ *
+ * `Libuv` caches the current time at the start of the event loop tick in order
+ * to reduce the number of time-related system calls.
+ *
+ * You won’t normally need to call this function unless you have callbacks that
+ * block the event loop for longer periods of time, where “longer” is somewhat
+ * subjective but probably on the order of a millisecond or more.
+ *
  * @param UVLoop $uv_loop uv loop handle.
  *
  * @return void
  */
-function uv_update_time($uv_loop)
+function uv_update_time(UVLoop $uv_loop)
 {
 }
 
 /**
- * Increment reference count.
+ * Reference the given handle.
  *
- * @param UVHandle $uv_handle uv resource.
+ * References are idempotent, that is, if a handle is already referenced calling
+ * this function again will have no effect.
+ *
+ * `Notes: Reference counting`
+ * The libuv event loop (if run in the default mode) will run until there are no active
+ *  and referenced handles left. The user can force the loop to exit early by unreferencing
+ * handles which are active, for example by calling `uv_unref()` after calling `uv_timer_start()`.
+ *
+ * A handle can be referenced or unreferenced, the refcounting scheme doesn’t use a counter,
+ * so both operations are idempotent.
+ *
+ * All handles are referenced when active by default, see `uv_is_active()` for a more detailed
+ * explanation on what being active involves.
+ *
+ * @param UV $uv_handle uv resource.
  *
  * @return void
  */
-function uv_ref(UVHandle $uv_handle)
+function uv_ref(UV $uv_handle)
+{
+}
+
+/**
+ * Un-reference the given handle.
+ *
+ * References are idempotent, that is, if a handle is not referenced calling
+ * this function again will have no effect.
+ *
+ * `Notes: Reference counting`
+ * The libuv event loop (if run in the default mode) will run until there are no active
+ *  and referenced handles left. The user can force the loop to exit early by unreferencing
+ * handles which are active, for example by calling `uv_unref()` after calling `uv_timer_start()`.
+ *
+ * A handle can be referenced or unreferenced, the refcounting scheme doesn’t use a counter,
+ * so both operations are idempotent.
+ *
+ * All handles are referenced when active by default, see `uv_is_active()` for a more detailed
+ * explanation on what being active involves.
+ *
+ * @param UV $uv_t UV handle.
+ *
+ * @return void
+ */
+function uv_unref(UV $uv_t)
 {
 }
 
@@ -803,6 +838,23 @@ function uv_ref(UVHandle $uv_handle)
  * @return void
  */
 function uv_run_once(UVLoop $uv_loop = null)
+{
+}
+
+/**
+ * Return the current timestamp in milliseconds.
+ *
+ * The timestamp is cached at the start of the event loop tick,
+ * see `uv_update_time()` for details and rationale.
+ *
+ * The timestamp increases monotonically from some arbitrary point in time.
+ * Don’t make assumptions about the starting point, you will only get disappointed.
+ *
+ * `Note:` Use `uv_hrtime()` if you need sub-millisecond granularity.
+ *
+ * @return int
+ */
+function uv_now(UVLoop $uv_loop = null)
 {
 }
 
@@ -818,9 +870,14 @@ function uv_loop_delete(UVLoop $uv_loop)
 }
 
 /**
- * @return int
+ * Bind the handle to an address and port.
+ *
+ * @param UVTcp $uv_tcp uv_tcp resource
+ * @param UVSockAddr|resource $uv_sockaddr uv sockaddr4 resource.
+ *
+ * @return void
  */
-function uv_now()
+function uv_tcp_bind(UVTcp $uv_tcp, UVSockAddr $uv_sockaddr)
 {
 }
 
@@ -828,37 +885,34 @@ function uv_now()
  * Binds a name to a socket.
  *
  * @param UVTcp $uv_tcp uv_tcp resource
- * @param resource $uv_sockaddr uv sockaddr4 resource.
+ * @param UVSockAddr|resource $uv_sockaddr uv sockaddr6 resource.
  *
  * @return void
  */
-function uv_tcp_bind(UVTcp $uv_tcp, $uv_sockaddr)
+function uv_tcp_bind6(UVTcp $uv_tcp, UVSockAddr $uv_sockaddr)
 {
 }
 
 /**
- * Binds a name to a socket.
+ * Extended write function for sending handles over a pipe.
  *
- * @param UVTcp $uv_tcp uv_tcp resource
- * @param resource $uv_sockaddr uv sockaddr6 resource.
+ * The pipe must be initialized with ipc == 1.
  *
- * @return void
- */
-function uv_tcp_bind6(UVTcp $uv_tcp, $uv_sockaddr)
-{
-}
-
-/**
- * @param UVHandle $handle
+ * `Note:` send_handle must be a TCP socket or pipe, which is a server or a connection
+ * (listening or connected state). Bound sockets or pipes will be assumed to be servers.
+ *
+ * @param UVTcp|UVPipe|UVTty $handle
  * @param string $data
- * @param resource $send
- * @param callable $callback
+ * @param UVTcp|UvPipe $send
+ * @param callable $callback expects ($handle, int $status).
  *
  * @return void
  */
-function uv_write2(UVHandle $handle, string $data, $send, callable $callback)
+function uv_write2($handle, string $data, $send, callable $callback)
 {
 }
+
+// from https://github.com/JetBrains/phpstorm-stubs/blob/master/uv/uv_functions.php
 
 /**
  * Set Nagel's flags for specified tcp resource.
