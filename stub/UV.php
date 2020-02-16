@@ -28,7 +28,7 @@
  *
  * @see https://libuv.org/
  */
-final class UV
+abstract class UV
 {
     /**
      * This flag indicates an event that becomes active when the provided file
@@ -505,33 +505,4 @@ final class UV
     const UV_SIGNAL = 16;
     const UV_FILE = 17;
     const UV_HANDLE_TYPE_MAX = 18;
-
-    /**
-     * Type definition for callback passed to `uv_close()`.
-     *
-     * @param callable $callback
-     * @return void
-     */
-    public function close(callable $callback): void
-    {}
-
-    /**
-     * Type of the underlying handle.
-     *
-     * @return string
-     */
-    public function type(): string
-    {
-        return '';
-    }
-
-    /**
-     * Pointer to loop instance the handle is running on.
-     *
-     * @return UVLoop
-     */
-    public function loop()
-    {
-        return UVLoop::class;
-    }
 }
