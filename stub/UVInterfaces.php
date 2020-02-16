@@ -179,8 +179,22 @@ interface UVCheck extends UV
 }
 
 /**
- * Address and port
+ * Address and port `resource`
  */
 interface UVSockAddr
+{
+}
+
+/**
+ * IP4 Address and port structure
+ */
+interface UVSockAddrIPv4 extends UVSockAddr
+{
+}
+
+/**
+ * IP6 Address and port structure
+ */
+interface UVSockAddrIPv6 extends UVSockAddr
 {
 }

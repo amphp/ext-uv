@@ -186,7 +186,7 @@ function uv_write(UV $handle, string $data, callable $callback)
 /**
  * Read data from an incoming stream.
  *
- * The uv_read_cb callback will be made several times until there is no more data to read
+ * The `uv_read` callback will be made several times until there is no more data to read
  * or uv_read_stop() is called.
  *
  * @param UVTcp|UVPipe|UVTty $handle
@@ -681,7 +681,7 @@ function uv_prepare_init(UVLoop $loop = null)
 /**
  * Start the handle with the given callback.
  *
- * @param UVPrepare $handle uv resource handle (prepare)
+ * @param UVPrepare $handle UV handle (prepare)
  * @param callable $callback expects (UVPrepare $prepare, int $status).
  */
 function uv_prepare_start(UVPrepare $handle, callable $callback)
@@ -691,7 +691,7 @@ function uv_prepare_start(UVPrepare $handle, callable $callback)
 /**
  * Stop the handle, the callback will no longer be called.
  *
- * @param UVPrepare $handle uv resource handle (prepare).
+ * @param UVPrepare $handle UV handle (prepare).
  */
 function uv_prepare_stop(UVPrepare $handle)
 {
@@ -725,7 +725,7 @@ function uv_check_init(UVLoop $loop = null)
  * will freeze and the user will face an unresponsive application. In such a case queue up and idle
  * watcher to keep the UI operational.
  *
- * @param UVCheck $handle uv resource handle (check).
+ * @param UVCheck $handle UV handle (check).
  * @param callable $callback expects (UVCheck $check, int $status).
  */
 function uv_check_start(UVCheck $handle, callable $callback)
@@ -735,7 +735,7 @@ function uv_check_start(UVCheck $handle, callable $callback)
 /**
  * Stop the handle, the callback will no longer be called.
  *
- * @param UVCheck $handle uv resource handle (check).
+ * @param UVCheck $handle UV handle (check).
  */
 function uv_check_stop(UVCheck $handle)
 {
@@ -806,7 +806,7 @@ function uv_update_time(UVLoop $uv_loop)
  * All handles are referenced when active by default, see `uv_is_active()` for a more detailed
  * explanation on what being active involves.
  *
- * @param UV $uv_handle uv resource.
+ * @param UV $uv_handle UV.
  *
  * @return void
  */
@@ -836,15 +836,6 @@ function uv_ref(UV $uv_handle)
  * @return void
  */
 function uv_unref(UV $uv_t)
-{
-}
-
-/**
- * @param UVLoop|null $uv_loop
- *
- * @return void
- */
-function uv_run_once(UVLoop $uv_loop = null)
 {
 }
 
@@ -930,14 +921,14 @@ function uv_tcp_nodelay(UVTcp $handle, bool $enable)
 }
 
 /**
- * This call is used in conjunction with uv_listen() to accept incoming connections.
+ * This call is used in conjunction with `uv_listen()` to accept incoming connections.
  *
- * Call this function after receiving a uv_connection_cb to accept the connection.
+ * Call this function after receiving a `uv_connection` to accept the connection.
  * Before calling this function the client handle must be initialized.
  *
- * When the uv_connection_cb callback is called it is guaranteed that this function
+ * When the `uv_connection` callback is called it is guaranteed that this function
  * will complete successfully the first time. If you attempt to use it more than once,
- * it may fail. It is suggested to only call this function once per uv_connection_cb call.
+ * it may fail. It is suggested to only call this function once per `uv_connection` call.
  *
  * `Note:` server and client must be handles running on the same loop.
  *
@@ -954,9 +945,9 @@ function uv_accept($server, $client)
  * Start listening for incoming connections.
  *
  * backlog indicates the number of connections the kernel might queue, same as listen(2).
- * When a new incoming connection is received the uv_connection_cb callback is called.
+ * When a new incoming connection is received the `uv_connection` callback is called.
  *
- * @param UVTcp|UVPipe $handle uv resource handle (tcp, udp and pipe).
+ * @param UVTcp|UVPipe $handle UV handle (tcp, udp and pipe).
  * @param int $backlog backlog.
  * @param callable $callback expects ($handle, int $status).
  *
@@ -967,11 +958,11 @@ function uv_listen($handle, int $backlog, callable $callback)
 }
 
 /**
- * Stop reading data from the stream. The uv_read_cb callback will no longer be called.
+ * Stop reading data from the stream. The `uv_read` callback will no longer be called.
  *
  * This function is idempotent and may be safely called on a stopped stream.
  *
- * @param UVTcp|UVPipe|UVTty $handle uv resource handle which started uv_read.
+ * @param UVTcp|UVPipe|UVTty $handle UV handle which started uv_read.
  *
  * @return void
  */
@@ -979,195 +970,310 @@ function uv_read_stop($handle)
 {
 }
 
-// from https://github.com/JetBrains/phpstorm-stubs/blob/master/uv/uv_functions.php
-
-
 /**
- * Create a ipv4 sockaddr.
+ * Convert a string containing an IPv4 addresses to a binary structure.
  *
  * @param string $ipv4_addr ipv4 address
  * @param int $port port number.
  *
- * @return resource
+ * @return UVSockAddrIPv4 resource
  */
 function uv_ip4_addr(string $ipv4_addr, int $port)
 {
 }
 
 /**
- * Create a ipv6 sockaddr.
+ * Convert a string containing an IPv6 addresses to a binary structure.
  *
  * @param string $ipv6_addr ipv6 address.
  * @param int $port port number.
  *
- * @return resource
+ * @return UVSockAddrIPv6 resource
  */
 function uv_ip6_addr(string $ipv6_addr, int $port)
 {
 }
 
 /**
- * Connect to specified ip address and port.
+ * Establish an IPv4 TCP connection.
  *
- * @param resource $handle requires uv_tcp_init() resource.
- * @param resource $ipv4_addr requires uv_sockaddr resource.
- * @param callable $callback callable variables. This callback expects (resource $tcp_handle, $status).
+ * Provide an initialized TCP handle and an uninitialized uv_connect_t. addr
+ * should point to an initialized struct sockaddr_in.
+ *
+ * On Windows if the addr is initialized to point to an unspecified address (0.0.0.0 or ::)
+ * it will be changed to point to localhost. This is done to match the behavior of Linux systems.
+ *
+ * The callback is made when the connection has been established
+ * or when a connection error happened.
+ *
+ * @param UVTcp $handle requires uv_tcp_init() resource.
+ * @param UVSockAddr $ipv4_addr requires uv_sockaddr resource.
+ * @param callable $callback callable expects (UVTcp $tcp_handle, int $status).
  *
  * @return void
  */
-function uv_tcp_connect($handle, $ipv4_addr, callable $callback)
+function uv_tcp_connect(UVTcp $handle, UVSockAddr $ipv4_addr, callable $callback)
 {
 }
 
 /**
- * Connect to specified ip address and port.
+ * Establish an IPv6 TCP connection.
  *
- * @param resource $handle requires uv_tcp_init() resource.
- * @param resource $ipv6_addr requires uv_sockaddr resource.
- * @param callable $callback callable variables. This callback expects (resource $tcp_handle, $status).
+ * Provide an initialized TCP handle and an uninitialized uv_connect_t. addr
+ * should point to an initialized struct sockaddr_in6.
+ *
+ * On Windows if the addr is initialized to point to an unspecified address (0.0.0.0 or ::)
+ * it will be changed to point to localhost. This is done to match the behavior of Linux systems.
+ *
+ * The callback is made when the connection has been established
+ * or when a connection error happened.
+ *
+ * @param UVTcp $handle requires uv_tcp_init() resource.
+ * @param UVSockAddrIPv6 $ipv6_addr requires uv_sockaddr resource.
+ * @param callable $callback callable expects (UVTcp $tcp_handle, int $status).
  *
  * @return void
  */
-function uv_tcp_connect6($handle, $ipv6_addr, callable $callback)
+function uv_tcp_connect6(UVTcp $handle, UVSockAddrIPv6 $ipv6_addr, callable $callback)
 {
 }
 
 /**
- * Restart timer.
+ * Stop the timer, and if it is repeating restart it using the repeat value as the timeout.
  *
- * @param resource $timer uv_timer resource.
+ * ~~If the timer has never been started before it returns UV_EINVAL.~~
+ *
+ * @param UVTimer $timer uv_timer resource.
  *
  * @return void
  */
-function uv_timer_again($timer)
+function uv_timer_again(UVTimer $timer)
 {
 }
 
 /**
- * Set repeat count.
+ * Set the repeat interval value in milliseconds.
  *
- * @param resource $timer uv_timer resource.
+ * The timer will be scheduled to run on the given interval, regardless of
+ * the callback execution duration, and will follow normal timer semantics
+ * in the case of a time-slice overrun.
+ *
+ * For example, if a 50ms repeating timer first runs for 17ms, it will be scheduled
+ * to run again 33ms later. If other tasks consume more than the 33ms following the
+ * first timer callback, then the callback will run as soon as possible.
+ *
+ * `Note:` If the repeat value is set from a timer callback it does not immediately
+ * take effect. If the timer was non-repeating before, it will have been stopped.
+ * If it was repeating, then the old repeat value will have been used to schedule
+ * the next timeout.
+
+ *
+ * @param UVTimer $timer uv_timer resource.
  * @param int $repeat repeat count.
  *
  * @return void
  */
-function uv_timer_set_repeat($timer, int $repeat)
+function uv_timer_set_repeat(UVTimer $timer, int $repeat)
 {
 }
 
 /**
- * Returns repeat interval.
+ * Get the timer repeat value.
  *
- * @param resource $timer uv_timer resource.
+ * @param UVTimer $timer uv_timer resource.
  *
  * @return int
  */
-function uv_timer_get_repeat($timer)
+function uv_timer_get_repeat(UVTimer $timer)
 {
 }
 
 /**
+ * Asynchronous `getaddrinfo(3)`
+ *
+ * That returns one or more addrinfo structures, each of which contains an Internet address that
+ * can be specified in a call to bind(2) or connect(2).
+ *
+ * The getaddrinfo() function combines the functionality provided by the gethostbyname(3)
+ * and getservbyname(3) functions into a single interface.
+ *
+ * Either $node or $service may be NULL but not both.
+ *
+ * $hints is a pointer to a struct addrinfo with additional address type constraints, or NULL.
+ *
+ * ~~Consult man -s 3 getaddrinfo for more details.~~
+ *
+ * Returns 0 on success or an error code < 0 on failure. If successful, the callback will get
+ * called sometime in the future with the lookup result, which is either:
+ *
+ * ~~ status == 0, the res argument points to a valid struct addrinfo, or ~~
+ * ~~ status < 0, the res argument is NULL. See the UV_EAI_* constants. ~~
+ *
+ * ~~ Call uv_freeaddrinfo() to free the addrinfo structure. ~~
+ *
  * @param UVLoop $loop
- * @param callable $callback
+ * @param callable $callback callable expects (array|long $addresses_or_error).
  * @param string $node
  * @param string $service
  * @param array $hints
  *
  * @return void
  */
-function uv_getaddrinfo(UVLoop $loop, callable $callback, string $node, string $service, array $hints)
+function uv_getaddrinfo(UVLoop $loop, callable $callback, string $node = null, string $service = null, array $hints = [])
 {
 }
 
 /**
- * Create a tcp socket.
+ * Convert a binary structure containing an IPv4 address to a string.
  *
- * @param resource|null $loop loop resource or null. if not specified loop resource then use uv_default_loop resource.
+ * @param UVSockAddr $address
  *
- * @return resource uv resource which initialized for tcp.
+ * @return string
  */
-function uv_tcp_init($loop = null)
+function uv_ip4_name(UVSockAddr $address)
 {
 }
 
 /**
- * Create a udp socket.
+ * Convert a binary structure containing an IPv6 address to a string.
  *
- * @param resource|null $loop loop resource or null. if not specified loop resource then use uv_default_loop resource.
+ * @param UVSockAddr $address
  *
- * @return resource uv resource which initialized for udp.
+ * @return string
  */
-function uv_udp_init($loop = null)
+function uv_ip6_name(UVSockAddr $address)
 {
 }
 
 /**
- * Listens for a connection on a uv udp handle.
+ * Initialize the handle. No socket is created as of yet.
  *
- * @param resource $resource uv resource handle (udp).
- * @param resource $address uv sockaddr(ipv4) resource.
+ * @param UVLoop|null $loop loop resource or null.
+ * - if not specified loop resource then use uv_default_loop resource.
+ *
+ * @return UVTcp UV which initialized for tcp.
+ */
+function uv_tcp_init(UVLoop $loop = null)
+{
+}
+
+/**
+ * Initialize a new UDP handle. The actual socket is created lazily. Returns 0 on success.
+ *
+ * @param UVLoop|null $loop loop resource or null.
+ * - if not specified loop resource then use uv_default_loop resource.
+ *
+ * @return UVUdp UV which initialized for udp.
+ */
+function uv_udp_init(UVLoop $loop = null)
+{
+}
+
+/**
+ * Bind the UDP handle to an IP address and port.
+ *
+ * - resource – UDP handle. Should have been initialized with uv_udp_init().
+ * - address – struct sockaddr_in or struct sockaddr_in6 with the address and port to bind to.
+ * - flags – Indicate how the socket will be bound, UV_UDP_IPV6ONLY and UV_UDP_REUSEADDR are supported.
+ *
+ * @param UVUdp $resource UV handle (udp).
+ * @param UVSockAddr $address uv sockaddr(ipv4) resource.
  * @param int $flags unused.
  *
  * @return void
  */
-function uv_udp_bind($resource, $address, int $flags)
+function uv_udp_bind(UVUdp $resource, UVSockAddr $address, int $flags = 0)
 {
 }
 
 /**
- * Listens for a connection on a uv udp handle.
+ * Bind the UDP handle to an IP6 address and port.
  *
- * @param resource $resource uv resource handle (udp).
- * @param resource $address uv sockaddr(ipv6) resource.
+ * - resource – UDP handle. Should have been initialized with uv_udp_init().
+ * - address – struct sockaddr_in6 with the address and port to bind to.
+ * - flags – Indicate how the socket will be bound, UV_UDP_IPV6ONLY and UV_UDP_REUSEADDR are supported.
+ *
+ * @param UVUdp $resource UV handle (udp).
+ * @param UVSockAddr $address uv sockaddr(ipv6) resource.
  * @param int $flags Should be 0 or UV::UDP_IPV6ONLY.
  *
  * @return void
  */
-function uv_udp_bind6($resource, $address, int $flags)
+function uv_udp_bind6(UVUdp $resource, UVSockAddr $address, int $flags = 0)
 {
 }
 
 /**
- * Start receive callback.
+ * Prepare for receiving data.
  *
- * @param resource $handle uv resource handle (udp).
- * @param callable $callback this callback parameter expects (resource $stream, $data)..
+ * If the socket has not previously been bound with uv_udp_bind() it is bound to 0.0.0.0
+ * (the “all interfaces” IPv4 address) and a random port number.
+ *
+ * - handle – UDP handle. Should have been initialized with uv_udp_init().
+ * - callback – Callback to invoke with received data.
+ *
+ * ~~Returns:	0 on success, or an error code < 0 on failure.~~
+ *
+ * @param UVUdp $handle UV handle (udp).
+ * @param callable $callback callback expects (UVUdp $handle, $data, int $flags).
  *
  * @return void
  */
-function uv_udp_recv_start($handle, callable $callback)
+function uv_udp_recv_start(UVUdp $handle, callable $callback)
 {
 }
 
 /**
- * Stop receive callback.
+ * Stop listening for incoming datagrams.
  *
- * @param resource $handle
+ * - handle – UDP handle. Should have been initialized with uv_udp_init().
+ *
+ * ~~Returns:	0 on success, or an error code < 0 on failure.~~
+ *
+ * @param UVUdp $handle
  *
  * @return void
  */
-function uv_udp_recv_stop($handle)
+function uv_udp_recv_stop(UVUdp $handle)
 {
 }
 
 /**
- * Join or leave udp muticast group.
+ * Set membership for a multicast address
  *
- * @param resource $handle uv resource handle (udp).
+ * - handle – UDP handle. Should have been initialized with uv_udp_init().
+ * - multicast_addr – Multicast address to set membership for.
+ * - interface_addr – Interface address.
+ * - membership – Should be UV_JOIN_GROUP or UV_LEAVE_GROUP.
+ *
+ * @param UVUdp $handle UV handle (udp).
  * @param string $multicast_addr multicast address.
  * @param string $interface_addr interface address.
  * @param int $membership UV::JOIN_GROUP or UV::LEAVE_GROUP
  *
- * @return int
+ * @return int 0 on success, or an error code < 0 on failure.
  */
-function uv_udp_set_membership($handle, string $multicast_addr, string $interface_addr, int $membership)
+function uv_udp_set_membership(UVUdp $handle, string $multicast_addr, string $interface_addr, int $membership)
 {
 }
+
+
+// from https://github.com/JetBrains/phpstorm-stubs/blob/master/uv/uv_functions.php
+
+/**
+ * @param UVLoop|null $uv_loop
+ *
+ * @return void
+ */
+function uv_run_once(UVLoop $uv_loop = null)
+{
+}
+
 
 /**
  * Set multicast loop.
  *
- * @param resource $handle uv resource handle (udp).
+ * @param resource $handle UV handle (udp).
  * @param int $enabled
  *
  * @return void
@@ -1179,7 +1285,7 @@ function uv_udp_set_multicast_loop($handle, int $enabled)
 /**
  * Set multicast ttl.
  *
- * @param resource $handle uv resource handle (udp).
+ * @param resource $handle UV handle (udp).
  * @param int $ttl multicast ttl.
  *
  * @return void
@@ -1191,7 +1297,7 @@ function uv_udp_set_multicast_ttl($handle, int $ttl)
 /**
  * Set udp broadcast.
  *
- * @param resource $handle uv resource handle (udp).
+ * @param resource $handle UV handle (udp).
  * @param bool $enabled
  *
  * @return void
@@ -1203,7 +1309,7 @@ function uv_udp_set_broadcast($handle, bool $enabled)
 /**
  * Send buffer to specified address.
  *
- * @param resource $handle uv resource handle (udp).
+ * @param resource $handle UV handle (udp).
  * @param string $data data.
  * @param resource $uv_addr uv_ip4_addr.
  * @param callable $callback this callback parameter expects (resource $stream, int $status).
@@ -1217,7 +1323,7 @@ function uv_udp_send($handle, string $data, $uv_addr, callable $callback)
 /**
  * Send buffer to specified address.
  *
- * @param resource $handle uv resource handle (udp).
+ * @param resource $handle UV handle (udp).
  * @param string $data data.
  * @param resource $uv_addr6 uv_ip6_addr.
  * @param callable $callback this callback parameter expects (resource $stream, int $status).
@@ -1374,7 +1480,7 @@ function uv_rwlock_init()
 /**
  * Set read lock.
  *
- * @param resource $handle uv resource handle (uv rwlock).
+ * @param resource $handle UV handle (uv rwlock).
  */
 function uv_rwlock_rdlock($handle)
 {
@@ -1392,7 +1498,7 @@ function uv_rwlock_tryrdlock($handle)
 /**
  * Unlock read lock.
  *
- * @param resource $handle uv resource handle (uv rwlock)
+ * @param resource $handle UV handle (uv rwlock)
  *
  * @return void
  */
@@ -1403,7 +1509,7 @@ function uv_rwlock_rdunlock($handle)
 /**
  * Set write lock.
  *
- * @param resource $handle uv resource handle (uv rwlock).
+ * @param resource $handle UV handle (uv rwlock).
  *
  * @return void
  */
@@ -1421,7 +1527,7 @@ function uv_rwlock_trywrlock($handle)
 /**
  * Unlock write lock.
  *
- * @param resource $handle uv resource handle (uv rwlock).
+ * @param resource $handle UV handle (uv rwlock).
  */
 function uv_rwlock_wrunlock($handle)
 {
@@ -1439,7 +1545,7 @@ function uv_mutex_init()
 /**
  * Lock mutex.
  *
- * @param resource $lock uv resource handle (uv mutex).
+ * @param resource $lock UV handle (uv mutex).
  *
  * @return void
  */
@@ -1469,7 +1575,7 @@ function uv_sem_init(int $value)
 /**
  * Post semaphore.
  *
- * @param resource $sem uv resource handle (uv sem).
+ * @param resource $sem UV handle (uv sem).
  *
  * @return void
  */
@@ -1806,23 +1912,5 @@ function uv_udp_getsockname($uv_sockaddr)
  * @return int
  */
 function uv_resident_set_memory()
-{
-}
-
-/**
- * @param resource $address
- *
- * @return string
- */
-function uv_ip4_name($address)
-{
-}
-
-/**
- * @param resource $address
- *
- * @return string
- */
-function uv_ip6_name($address)
 {
 }
