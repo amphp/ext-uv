@@ -5,7 +5,7 @@
  * It takes care of polling for i/o and scheduling callbacks to
  * be run based on different sources of events.
  */
-interface UVLoop extends Object
+final class UVLoop
 {
 }
 
@@ -14,21 +14,21 @@ interface UVLoop extends Object
  * `UVStream` is an abstract type, `libuv` provides 3 stream implementations
  * in the form of `UVTcp`, `UVPipe` and `UVTty`
  */
-interface UVStream extends UV
+final class UVStream extends UV
 {
 }
 
 /**
  * TCP handles are used to represent both TCP streams and servers.
  */
-interface UVTcp extends UVStream
+final class UVTcp extends UVStream
 {
 }
 
 /**
  * UDP handles encapsulate UDP communication for both clients and servers.
  */
-interface UVUdp extends UV
+final class UVUdp extends UV
 {
 }
 
@@ -36,7 +36,7 @@ interface UVUdp extends UV
  * Pipe handles provide an abstraction over streaming files on
  * Unix (including local domain sockets, pipes, and FIFOs) and named pipes on Windows.
  */
-interface UVPipe extends UVStream
+final class UVPipe extends UVStream
 {
 }
 
@@ -66,14 +66,14 @@ interface UVPipe extends UVStream
  *
  * Note: On AIX, watching for disconnection is not supported.
  */
-interface UVPoll extends UV
+final class UVPoll extends UV
 {
 }
 
 /**
  * Timer handles are used to schedule callbacks to be called in the future.
  */
-interface UVTimer extends UV
+final class UVTimer extends UV
 {
 }
 
@@ -114,7 +114,7 @@ interface UVTimer extends UV
  * Note that calls to raise() or abort() to programmatically raise a signal are
  * not detected by libuv; these will not trigger a signal watcher.
  */
-interface UVSignal extends UV
+final class UVSignal extends UV
 {
 }
 
@@ -122,7 +122,7 @@ interface UVSignal extends UV
  * Process handles will spawn a new process and allow the user to control it and
  * establish communication channels with it using streams.
  */
-interface UVProcess extends UV
+final class UVProcess extends UV
 {
 }
 
@@ -130,21 +130,14 @@ interface UVProcess extends UV
  * Async handles allow the user to wakeup the event loop and get a callback
  * called from another thread.
  */
-interface UVAsync extends UV
-{
-}
-
-/**
- *
- */
-interface UVStdio extends UV
+final class UVAsync extends UV
 {
 }
 
 /**
  * TTY handles represent a stream for the console.
  */
-interface UVTty extends UVStream
+final class UVTty extends UVStream
 {
 }
 
@@ -158,7 +151,7 @@ interface UVTty extends UVStream
  * `Warning:` Despite the name, idle handles will get their callbacks called on every loop
  *  iteration, not when the loop is actually “idle”.
  */
-interface UVIdle extends UV
+final class UVIdle extends UV
 {
 }
 
@@ -166,7 +159,7 @@ interface UVIdle extends UV
  * Prepare handles will run the given callback once per loop iteration, right before
  * polling for i/o.
  */
-interface UVPrepare extends UV
+final class UVPrepare extends UV
 {
 }
 
@@ -174,27 +167,42 @@ interface UVPrepare extends UV
  * Check handles will run the given callback once per loop iteration, right after
  * polling for i/o.
  */
-interface UVCheck extends UV
+final class UVCheck extends UV
 {
 }
 
 /**
- * Address and port `resource`
+ * Stdio is an I/O wrapper to be passed to uv_spawn().
  */
-interface UVSockAddr
+final class UVStdio
 {
 }
 
 /**
- * IP4 Address and port structure
+ * Address and port base structure
  */
-interface UVSockAddrIPv4 extends UVSockAddr
+abstract class UVSockAddr
 {
 }
 
 /**
- * IP6 Address and port structure
+ * IPv4 Address and port structure
  */
-interface UVSockAddrIPv6 extends UVSockAddr
+final class UVSockAddrIPv4 extends UVSockAddr
 {
 }
+
+/**
+ * IPv6 Address and port structure
+ */
+final class UVSockAddrIPv6 extends UVSockAddr
+{
+}
+
+/*
+ * Lock handle (Lock, Mutex, Semaphore)
+ */
+final class UVLock
+{
+}
+
