@@ -305,6 +305,8 @@ static zend_object_handlers uv_default_handlers;
 static zend_class_entry *uv_ce;
 static zend_object_handlers uv_handlers;
 
+static zend_class_entry *uv_stream_ce;
+
 static zend_class_entry *uv_tcp_ce;
 static zend_class_entry *uv_udp_ce;
 static zend_class_entry *uv_pipe_ce;
@@ -2672,13 +2674,16 @@ PHP_MINIT_FUNCTION(uv)
 
 	php_uv_init(uv_ce);
 
-	uv_tcp_ce = php_uv_register_internal_class_ex("UVTcp", uv_ce);
+	uv_stream_ce = php_uv_register_internal_class_ex("UVStream", uv_ce);
+	uv_stream_ce->ce_flags |= ZEND_ACC_ABSTRACT;
+	uv_stream_ce->ce_flags &= ~ZEND_ACC_FINAL;
+
+	uv_tcp_ce = php_uv_register_internal_class_ex("UVTcp", uv_stream_ce);
 	uv_udp_ce = php_uv_register_internal_class_ex("UVUdp", uv_ce);
-	uv_pipe_ce = php_uv_register_internal_class_ex("UVPipe", uv_ce);
+	uv_pipe_ce = php_uv_register_internal_class_ex("UVPipe", uv_stream_ce);
 	uv_idle_ce = php_uv_register_internal_class_ex("UVIdle", uv_ce);
 	uv_timer_ce = php_uv_register_internal_class_ex("UVTimer", uv_ce);
 	uv_async_ce = php_uv_register_internal_class_ex("UVAsync", uv_ce);
-	uv_stream_ce = php_uv_register_internal_class_ex("UVStream", uv_ce);
 	uv_addrinfo_ce = php_uv_register_internal_class_ex("UVAddrinfo", uv_ce);
 	uv_process_ce = php_uv_register_internal_class_ex("UVProcess", uv_ce);
 	uv_prepare_ce = php_uv_register_internal_class_ex("UVPrepare", uv_ce);
@@ -2686,7 +2691,7 @@ PHP_MINIT_FUNCTION(uv)
 	uv_work_ce = php_uv_register_internal_class_ex("UVWork", uv_ce);
 	uv_fs_ce = php_uv_register_internal_class_ex("UVFs", uv_ce);
 	uv_fs_event_ce = php_uv_register_internal_class_ex("UVFsEvent", uv_ce);
-	uv_tty_ce = php_uv_register_internal_class_ex("UVTty", uv_ce);
+	uv_tty_ce = php_uv_register_internal_class_ex("UVTty", uv_stream_ce);
 	uv_fs_poll_ce = php_uv_register_internal_class_ex("UVFsPoll", uv_ce);
 	uv_poll_ce = php_uv_register_internal_class_ex("UVPoll", uv_ce);
 	uv_signal_ce = php_uv_register_internal_class_ex("UVSignal", uv_ce);
@@ -3697,7 +3702,7 @@ PHP_FUNCTION(uv_tcp_bind6)
 /* }}} */
 
 
-/* {{{ proto void uv_write<UVTcp|UVPipe|UVTty>(T $handle, string $data[, callable(T $handle, long $status) $callback = function() {}])
+/* {{{ proto void uv_write(UVStream $handle, string $data[, callable(UVStream $handle, long $status) $callback = function() {}])
 */
 PHP_FUNCTION(uv_write)
 {
@@ -3710,7 +3715,7 @@ PHP_FUNCTION(uv_write)
 	php_uv_cb_t *cb;
 
 	ZEND_PARSE_PARAMETERS_START(2, 3)
-		UV_PARAM_OBJ(uv, php_uv_t, uv_tcp_ce, uv_pipe_ce, uv_tty_ce)
+		UV_PARAM_OBJ(uv, php_uv_t, uv_stream_ce)
 		Z_PARAM_STR(data)
 		Z_PARAM_OPTIONAL
 		Z_PARAM_FUNC_EX(fci, fcc, 1, 0)
@@ -3730,7 +3735,7 @@ PHP_FUNCTION(uv_write)
 }
 /* }}} */
 
-/* {{{ proto void uv_write2<T = UVTcp|UVPipe|UVTty>(T $handle, string $data, UVTcp|UvPipe $send, callable(T $handle, long $status) $callback)
+/* {{{ proto void uv_write2(UvStream $handle, string $data, UVTcp|UvPipe $send, callable(UVStream $handle, long $status) $callback)
 */
 PHP_FUNCTION(uv_write2)
 {
@@ -3743,7 +3748,7 @@ PHP_FUNCTION(uv_write2)
 	php_uv_cb_t *cb;
 
 	ZEND_PARSE_PARAMETERS_START(4, 4)
-		UV_PARAM_OBJ(uv, php_uv_t, uv_tcp_ce, uv_pipe_ce, uv_tty_ce)
+		UV_PARAM_OBJ(uv, php_uv_t, uv_stream_ce)
 		Z_PARAM_STR(data)
 		UV_PARAM_OBJ(send, php_uv_t, uv_tcp_ce, uv_pipe_ce)
 		Z_PARAM_FUNC(fci, fcc)
@@ -3806,7 +3811,7 @@ PHP_FUNCTION(uv_accept)
 /* }}} */
 
 
-/* {{{ proto void uv_shutdown<T = UVTcp|UVPipe|UVTty>(T $handle, callable(T $handle, long $status) $callback)
+/* {{{ proto void uv_shutdown(UVStream $handle, callable(UVStream $handle, long $status) $callback)
 */
 PHP_FUNCTION(uv_shutdown)
 {
@@ -3818,7 +3823,7 @@ PHP_FUNCTION(uv_shutdown)
 	int r = 0;
 
 	ZEND_PARSE_PARAMETERS_START(1, 2)
-		UV_PARAM_OBJ(uv, php_uv_t, uv_tcp_ce, uv_pipe_ce, uv_tty_ce)
+		UV_PARAM_OBJ(uv, php_uv_t, uv_stream_ce)
 		Z_PARAM_OPTIONAL
 		Z_PARAM_FUNC_EX(fci, fcc, 1, 0)
 	ZEND_PARSE_PARAMETERS_END();
@@ -3865,7 +3870,7 @@ PHP_FUNCTION(uv_close)
 }
 /* }}} */
 
-/* {{{ proto void uv_read_start<T = UVTcp|UVPipe|UVTty>(T $handle, callable(T $handle, string|long $read) $callback)
+/* {{{ proto void uv_read_start(UVStream $handle, callable(UVStream $handle, string|long $read) $callback)
 */
 PHP_FUNCTION(uv_read_start)
 {
@@ -3879,7 +3884,7 @@ PHP_FUNCTION(uv_read_start)
 	PHP_UV_DEBUG_PRINT("uv_read_start\n");
 
 	ZEND_PARSE_PARAMETERS_START(2, 2)
-		UV_PARAM_OBJ(uv, php_uv_t, uv_tcp_ce, uv_pipe_ce, uv_tty_ce)
+		UV_PARAM_OBJ(uv, php_uv_t, uv_stream_ce)
 		Z_PARAM_FUNC(fci, fcc)
 	ZEND_PARSE_PARAMETERS_END();
 
@@ -3901,14 +3906,14 @@ PHP_FUNCTION(uv_read_start)
 }
 /* }}} */
 
-/* {{{ proto void uv_read_stop(UVTcp|UVPipe|UVTty $handle)
+/* {{{ proto void uv_read_stop(UVStream $handle)
 */
 PHP_FUNCTION(uv_read_stop)
 {
 	php_uv_t *uv;
 
 	ZEND_PARSE_PARAMETERS_START(1, 1)
-		UV_PARAM_OBJ(uv, php_uv_t, uv_tcp_ce, uv_pipe_ce, uv_tty_ce)
+		UV_PARAM_OBJ(uv, php_uv_t, uv_stream_ce)
 	ZEND_PARSE_PARAMETERS_END();
 
 	if (!uv_is_active(&uv->uv.handle)) {
@@ -4564,28 +4569,28 @@ PHP_FUNCTION(uv_is_closing)
 }
 /* }}} */
 
-/* {{{ proto bool uv_is_readable(UVTcp|UVPipe|UVTty $handle)
+/* {{{ proto bool uv_is_readable(UVStream $handle)
 */
 PHP_FUNCTION(uv_is_readable)
 {
 	php_uv_t *uv;
 
 	ZEND_PARSE_PARAMETERS_START(1, 1)
-		UV_PARAM_OBJ(uv, php_uv_t, uv_tcp_ce, uv_pipe_ce, uv_tty_ce)
+		UV_PARAM_OBJ(uv, php_uv_t, uv_stream_ce)
 	ZEND_PARSE_PARAMETERS_END();
 
 	RETURN_BOOL(uv_is_readable(&uv->uv.stream));
 }
 /* }}} */
 
-/* {{{ proto bool uv_is_writable(UVTcp|UVPipe|UVTty $handle)
+/* {{{ proto bool uv_is_writable(UVStream $handle)
 */
 PHP_FUNCTION(uv_is_writable)
 {
 	php_uv_t *uv;
 
 	ZEND_PARSE_PARAMETERS_START(1, 1)
-		UV_PARAM_OBJ(uv, php_uv_t, uv_tcp_ce, uv_pipe_ce, uv_tty_ce)
+		UV_PARAM_OBJ(uv, php_uv_t, uv_stream_ce)
 	ZEND_PARSE_PARAMETERS_END();
 
 	RETURN_BOOL(uv_is_writable(&uv->uv.stream));
