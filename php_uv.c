@@ -1468,10 +1468,6 @@ static int php_uv_do_callback3(zval *retval_ptr, php_uv_t *uv, zval *params, int
 
 	//zend_fcall_info_args_clear(&uv->callback[type]->fci, 0);
 
-	if (EG(exception)) {
-		uv_stop(uv->uv.handle.loop);
-	}
-
 	return error;
 }
 #endif
