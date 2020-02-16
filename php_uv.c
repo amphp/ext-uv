@@ -313,7 +313,6 @@ static zend_class_entry *uv_pipe_ce;
 static zend_class_entry *uv_idle_ce;
 static zend_class_entry *uv_timer_ce;
 static zend_class_entry *uv_async_ce;
-static zend_class_entry *uv_stream_ce;
 static zend_class_entry *uv_addrinfo_ce;
 static zend_class_entry *uv_process_ce;
 static zend_class_entry *uv_prepare_ce;
