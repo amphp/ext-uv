@@ -1112,7 +1112,7 @@ function uv_timer_get_repeat(UVTimer $timer)
  * ~~ Call uv_freeaddrinfo() to free the addrinfo structure. ~~
  *
  * @param UVLoop $loop
- * @param callable $callback callable expects (array|long $addresses_or_error).
+ * @param callable $callback callable expects (array|int $addresses_or_error).
  * @param string $node
  * @param string $service
  * @param array $hints
@@ -1585,7 +1585,7 @@ function uv_hrtime()
  *
  * @param UVLoop $loop uv loop handle.
  * @param resource $fd
- * @param callable $callback callback expects (resource $fd, long $result).
+ * @param callable $callback callback expects (resource $fd, int $result).
  *
  * @return void
  */
@@ -1599,7 +1599,7 @@ function uv_fs_fsync(UVLoop $loop, $fd, callable $callback)
  * @param UVLoop $loop uv loop handle.
  * @param resource $fd
  * @param int $offset
- * @param callable $callback callback expects (resource $fd, long $result).
+ * @param callable $callback callback expects (resource $fd, int $result).
  *
  * @return void
  */
@@ -1613,7 +1613,7 @@ function uv_fs_ftruncate(UVLoop $loop, $fd, int $offset, callable $callback)
  * @param UVLoop $loop uv loop handle
  * @param string $path
  * @param int $mode
- * @param callable $callback callback expects (resource $fd, long $result).
+ * @param callable $callback callback expects (resource $fd, int $result).
  *
  * @return void
  */
@@ -1626,7 +1626,7 @@ function uv_fs_mkdir(UVLoop $loop, string $path, int $mode, callable $callback)
  *
  * @param UVLoop $loop uv loop handle
  * @param string $path
- * @param callable $callback callback expects (resource $fd, long $result).
+ * @param callable $callback callback expects (resource $fd, int $result).
  *
  * @return void
  */
@@ -1639,7 +1639,7 @@ function uv_fs_rmdir(UVLoop $loop, string $path, callable $callback)
  *
  * @param UVLoop $loop uv loop handle
  * @param string $path
- * @param callable $callback callback expects (resource $fd, long $result).
+ * @param callable $callback callback expects (resource $fd, int $result).
  *
  * @return void
  */
@@ -1653,7 +1653,7 @@ function uv_fs_unlink(UVLoop $loop, string $path, callable $callback)
  * @param UVLoop $loop uv loop handle.
  * @param string $from
  * @param string $to
- * @param callable $callback callback expects (resource $fd, long $result).
+ * @param callable $callback callback expects (resource $fd, int $result).
  *
  * @return void
  */
@@ -1668,7 +1668,7 @@ function uv_fs_rename(UVLoop $loop, string $from, string $to, callable $callback
  * @param string $path
  * @param int $utime
  * @param int $atime
- * @param callable $callback callback expects (resource $fd, long $result).
+ * @param callable $callback callback expects (resource $fd, int $result).
  *
  * @return void
  */
@@ -1683,7 +1683,7 @@ function uv_fs_utime(UVLoop $loop, string $path, int $utime, int $atime, callabl
  * @param resource $fd
  * @param int $utime
  * @param int $atime
- * @param callable $callback callback expects (resource $fd, long $result).
+ * @param callable $callback callback expects (resource $fd, int $result).
  *
  * @return void
  */
@@ -1697,7 +1697,7 @@ function uv_fs_futime(UVLoop $loop, $fd, int $utime, int $atime, callable $callb
  * @param UVLoop $loop uv loop handle.
  * @param string $path
  * @param int $mode
- * @param callable $callback callback expects (resource $fd, long $result).
+ * @param callable $callback callback expects (resource $fd, int $result).
  *
  * @return void
  */
@@ -1711,7 +1711,7 @@ function uv_fs_chmod(UVLoop $loop, string $path, int $mode, callable $callback)
  * @param UVLoop $loop uv loop handle.
  * @param resource $fd
  * @param int $mode
- * @param callable $callback callback expects (resource $fd, long $result).
+ * @param callable $callback callback expects (resource $fd, int $result).
  *
  * @return void
  */
@@ -1726,7 +1726,7 @@ function uv_fs_fchmod(UVLoop $loop, $fd, int $mode, callable $callback)
  * @param string $path
  * @param int $uid
  * @param int $gid
- * @param callable $callback callback expects (resource $fd, long $result).
+ * @param callable $callback callback expects (resource $fd, int $result).
  *
  * @return void
  */
@@ -1741,7 +1741,7 @@ function uv_fs_chown(UVLoop $loop, string $path, int $uid, int $gid, callable $c
  * @param resource $fd
  * @param int $uid
  * @param int $gid
- * @param callable $callback callback expects (resource $fd, long $result).
+ * @param callable $callback callback expects (resource $fd, int $result).
  *
  * @return void
  */
@@ -1755,7 +1755,7 @@ function uv_fs_fchown(UVLoop $loop, $fd, int $uid, int $gid, callable $callback)
  * @param UVLoop $loop uv loop handle.
  * @param string $from
  * @param string $to
- * @param callable $callback callback expects (resource $fd, long $result).
+ * @param callable $callback callback expects (resource $fd, int $result).
  *
  * @return void
  */
@@ -1770,7 +1770,7 @@ function uv_fs_link(UVLoop $loop, string $from, string $to, callable $callback)
  * @param string $from
  * @param string $to
  * @param int $flags
- * @param callable $callback callback expects (resource $fd, long $result).
+ * @param callable $callback callback expects (resource $fd, int $result).
  *
  * @return void
  */
@@ -1783,7 +1783,7 @@ function uv_fs_symlink(UVLoop $loop, string $from, string $to, int $flags, calla
  *
  * @param UVLoop $loop uv loop handle
  * @param string $path
- * @param callable $callback callback expects (resource $fd, long $result).
+ * @param callable $callback callback expects (resource $fd, int $result).
  *
  * @return void
  */
@@ -1797,7 +1797,7 @@ function uv_fs_readlink(UVLoop $loop, string $path, callable $callback)
  * @param UVLoop $loop  uv loop handle
  * @param string $path
  * @param int $flags
- * @param callable $callback callback expects (resource $fd, long $result).
+ * @param callable $callback callback expects (resource $fd, int $result).
  *
  * @return void
  */
@@ -1810,7 +1810,7 @@ function uv_fs_readdir(UVLoop $loop, string $path, int $flags, callable $callbac
  *
  * @param UVLoop $loop uv loop handle
  * @param string $path
- * @param callable $callback callback expects (resource $fd, long $result).
+ * @param callable $callback callback expects (resource $fd, int $result).
  * @param int $flags
  *
  * @return resource
@@ -1819,9 +1819,172 @@ function uv_fs_event_init(UVLoop $loop, string $path, callable $callback, int $f
 {
 }
 
-//
-// still needs more checking and some not part of `libuv`
-//
+/**
+ * Initialize a new TTY stream with the given file descriptor.
+ *
+ * Usually the file descriptor will be:
+ *  0 = stdin
+ *  1 = stdout
+ *  2 = stderr
+ *
+ * On Unix this function will determine the path of the fd of the terminal using ttyname_r(3),
+ * open it, and use it if the passed file descriptor refers to a TTY. This lets libuv put the
+ * tty in non-blocking mode without affecting other processes that share the tty.
+ *
+ * This function is not thread safe on systems that don’t support ioctl TIOCGPTN or TIOCPTYGNAME,
+ * for instance OpenBSD and Solaris.
+ *
+ * `Note:` If reopening the TTY fails, `libuv` falls back to blocking writes.
+ *
+ * @param UVLoop $loop uv loop handle.
+ * @param resource $fd
+ * @param int $readable
+ *
+ * @return UVTty
+ */
+function uv_tty_init(UVLoop $loop, $fd, int $readable)
+{
+}
+
+/**
+ * Gets the current Window size. On success it returns 0.
+ *
+ * @param UVTty $tty
+ * @param int $width
+ * @param int $height
+ *
+ * @return int
+ */
+function uv_tty_get_winsize(UVTty $tty, int &$width, int &$height)
+{
+}
+
+/**
+ * Set the TTY using the specified terminal mode.
+ *
+ * @param UVTty $tty
+ * @param int $mode
+ *
+ * @return int
+ */
+function uv_tty_set_mode(UVTty $tty, int $mode)
+{
+}
+
+/**
+ * To be called when the program exits.
+ *
+ * Resets TTY settings to default values for the next process to take over.
+ *
+ * This function is async signal-safe on Unix platforms but can fail with error code
+ * UV_EBUSY if you call it when execution is inside uv_tty_set_mode().
+ *
+ * @return void
+ */
+function uv_tty_reset_mode()
+{
+}
+
+/**
+ * Gets the current system uptime.
+ *
+ * @return float
+ */
+function uv_uptime()
+{
+}
+
+/**
+ * Returns current free memory size.
+ *
+ * @return int
+ */
+function uv_get_free_memory()
+{
+}
+
+/**
+ * Gets memory information (in bytes).
+ *
+ * @return int
+ */
+function uv_get_total_memory()
+{
+}
+
+/**
+ * Gets address information about the network interfaces on the system.
+ *
+ * An array of count elements is allocated and returned in addresses.
+ * It must be freed by the user, calling uv_free_interface_addresses().
+ *
+ * @return array
+ */
+function uv_interface_addresses()
+{
+}
+
+/**
+ * Change working directory.
+ *
+ * @param string $directory
+ * @return bool
+ */
+function uv_chdir(string $directory)
+{
+}
+
+/**
+ * Get the current address to which the handle is bound.
+ *
+ * Name must point to a valid and big enough chunk of memory,
+ * struct sockaddr_storage is recommended for IPv4 and IPv6 support.
+ *
+ * @param UVTcp $uv_sock
+ *
+ * @return string
+ */
+function uv_tcp_getsockname(UVTcp $uv_sock)
+{
+}
+
+/**
+ * Get the address of the peer connected to the handle.
+ *
+ * Name must point to a valid and big enough chunk of memory,
+ * struct sockaddr_storage is recommended for IPv4 and IPv6 support.
+ *
+ * @param UVTcp $uv_sock
+ *
+ * @return string
+ */
+function uv_tcp_getpeername(UVTcp $uv_sock)
+{
+}
+
+/**
+ * Get the local IP and port of the UDP handle.
+ *
+ * @param UVUdp $uv_sockaddr
+ *
+ * @return string
+ */
+function uv_udp_getsockname(UVUdp $uv_sock)
+{
+}
+
+/**
+ * Gets the resident set size (RSS) for the current process.
+ *
+ * @return int
+ */
+function uv_resident_set_memory()
+{
+}
+
+////////////////////////
+// Not part of `libuv`
+////////////////////////
 
 /**
  * @param UVLoop|null $uv_loop
@@ -1863,124 +2026,5 @@ function uv_ares_init_options(UVLoop $loop, array $options, int $optmask)
  * @return void
  */
 function ares_gethostbyname($handle, string $name, int $flag, callable $callback)
-{
-}
-
-/**
- * Returns current uptime.
- *
- * @return float
- */
-function uv_uptime()
-{
-}
-
-/**
- * Returns current free memory size.
- *
- * @return int
- */
-function uv_get_free_memory()
-{
-}
-
-/**
- * Returns total memory size.
- *
- * @return int
- */
-function uv_get_total_memory()
-{
-}
-
-/**
- * @return array
- */
-function uv_interface_addresses()
-{
-}
-
-/**
- * Change working directory.
- *
- * @param string $directory
- * @return bool
- */
-function uv_chdir(string $directory)
-{
-}
-
-/**
- * Initialize tty resource. you have to open tty your hand.
- *
- * @param UVLoop $loop uv loop handle.
- * @param resource $fd
- * @param int $readable
- *
- * @return resource
- */
-function uv_tty_init(UVLoop $loop, $fd, int $readable)
-{
-}
-
-/**
- * @param resource $tty
- * @param int $width
- * @param int $height
- *
- * @return int
- */
-function uv_tty_get_winsize($tty, int &$width, int &$height)
-{
-}
-
-/**
- * @param resource $tty
- * @param int $mode
- *
- * @return int
- */
-function uv_tty_set_mode($tty, int $mode)
-{
-}
-
-/**
- * @return void
- */
-function uv_tty_reset_mode()
-{
-}
-
-/**
- * @param resource $uv_sockaddr
- *
- * @return string
- */
-function uv_tcp_getsockname($uv_sockaddr)
-{
-}
-
-/**
- * @param resource $uv_sockaddr
- *
- * @return string
- */
-function uv_tcp_getpeername($uv_sockaddr)
-{
-}
-
-/**
- * @param resource $uv_sockaddr
- *
- * @return string
- */
-function uv_udp_getsockname($uv_sockaddr)
-{
-}
-
-/**
- * @return int
- */
-function uv_resident_set_memory()
 {
 }
