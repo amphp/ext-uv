@@ -2016,15 +2016,3 @@ function uv_handle_type($uv)
 function uv_ares_init_options(UVLoop $loop, array $options, int $optmask)
 {
 }
-
-/**
- * @param resource $handle
- * @param string $name
- * @param int $flag
- * @param callable $callback
- *
- * @return void
- */
-function ares_gethostbyname($handle, string $name, int $flag, callable $callback)
-{
-}
