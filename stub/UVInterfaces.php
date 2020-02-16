@@ -199,10 +199,13 @@ final class UVSockAddrIPv6 extends UVSockAddr
 {
 }
 
-/*
+/**
  * Lock handle (Lock, Mutex, Semaphore)
+ *
+ * `libuv` provides cross-platform implementations for multiple threading and synchronization primitives.
+ *
+ * The API largely follows the pthreads API.
  */
 final class UVLock
 {
 }
-
