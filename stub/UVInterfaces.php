@@ -10,64 +10,6 @@ interface UVLoop extends Object
 }
 
 /**
- * Base handle type for `libuv` handles.
- * All handle types (including stream types) subclass
- * - UVTcp,
- * - UVUdp,
- * - UVPipe,
- * - ...etc
- *
- * All API functions defined here work with any handle type.
- * `Libuv` handles are not movable. Pointers to handle structures passed
- * to functions must remain valid for the duration of the requested operation.
- * Take care when using stack allocated handles.
- */
-interface UV extends \UV
-{
-    const UV_UNKNOWN_HANDLE = 0;
-    const UV_ASYNC = 1;
-    const UV_CHECK = 2;
-    const UV_FS_EVENT = 3;
-    const UV_FS_POLL = 4;
-    const UV_HANDLE = 5;
-    const UV_IDLE = 6;
-    const UV_NAMED_PIPE = 7;
-    const UV_POLL = 8;
-    const UV_PREPARE = 9;
-    const UV_PROCESS = 10;
-    const UV_STREAM = 11;
-    const UV_TCP = 12;
-    const UV_TIMER = 13;
-    const UV_TTY = 14;
-    const UV_UDP = 15;
-    const UV_SIGNAL = 16;
-    const UV_FILE = 17;
-    const UV_HANDLE_TYPE_MAX = 18;
-
-    /**
-     * Type definition for callback passed to `uv_close()`.
-     *
-     * @param callable $callback
-     * @return void
-     */
-    public function close(callable $callback): void;
-
-    /**
-     * Type of the underlying handle.
-     *
-     * @return string
-     */
-    public function type(): string;
-
-    /**
-     * Pointer to loop instance the handle is running on.
-     *
-     * @return UVLoop
-     */
-    public function loop(): UVLoop;
-}
-
-/**
  * Stream handles provide an abstraction of a duplex communication channel.
  * `UVStream` is an abstract type, `libuv` provides 3 stream implementations
  * in the form of `UVTcp`, `UVPipe` and `UVTty`

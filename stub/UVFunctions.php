@@ -184,10 +184,13 @@ function uv_write(UV $handle, string $data, callable $callback)
 }
 
 /**
- * starts read callback for uv resources `$handle`.
+ * Read data from an incoming stream.
  *
- * @param UV $handle
- * @param callable $callback expects (UV $handle, $data)
+ * The uv_read_cb callback will be made several times until there is no more data to read
+ * or uv_read_stop() is called.
+ *
+ * @param UVTcp|UVPipe|UVTty $handle
+ * @param callable $callback expects ($handle, $data)
  */
 function uv_read_start(UV $handle, callable $callback)
 {
@@ -947,28 +950,37 @@ function uv_accept($server, $client)
 {
 }
 
-// from https://github.com/JetBrains/phpstorm-stubs/blob/master/uv/uv_functions.php
-
 /**
- * @param resource $handle
- * @param callable $callback
+ * Start listening for incoming connections.
+ *
+ * backlog indicates the number of connections the kernel might queue, same as listen(2).
+ * When a new incoming connection is received the uv_connection_cb callback is called.
+ *
+ * @param UVTcp|UVPipe $handle uv resource handle (tcp, udp and pipe).
+ * @param int $backlog backlog.
+ * @param callable $callback expects ($handle, int $status).
  *
  * @return void
  */
-function uv_read2_start($handle, callable $callback)
+function uv_listen($handle, int $backlog, callable $callback)
 {
 }
 
 /**
- * Stop read callback.
+ * Stop reading data from the stream. The uv_read_cb callback will no longer be called.
  *
- * @param resource $handle uv resource handle which started uv_read.
+ * This function is idempotent and may be safely called on a stopped stream.
+ *
+ * @param UVTcp|UVPipe|UVTty $handle uv resource handle which started uv_read.
  *
  * @return void
  */
 function uv_read_stop($handle)
 {
 }
+
+// from https://github.com/JetBrains/phpstorm-stubs/blob/master/uv/uv_functions.php
+
 
 /**
  * Create a ipv4 sockaddr.
@@ -991,19 +1003,6 @@ function uv_ip4_addr(string $ipv4_addr, int $port)
  * @return resource
  */
 function uv_ip6_addr(string $ipv6_addr, int $port)
-{
-}
-
-/**
- * Listens for a connection on a uv handle.
- *
- * @param resource $handle uv resource handle (tcp, udp and pipe).
- * @param int $backlog backlog.
- * @param callable $callback this callback parameter expects (resource $connection, int $status).
- *
- * @return void
- */
-function uv_listen($handle, int $backlog, callable $callback)
 {
 }
 
