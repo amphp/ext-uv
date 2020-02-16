@@ -2005,14 +2005,3 @@ function uv_run_once(UVLoop $uv_loop = null)
 function uv_handle_type($uv)
 {
 }
-
-/**
- * @param UVLoop $loop
- * @param array $options
- * @param int $optmask
- *
- * @return resource
- */
-function uv_ares_init_options(UVLoop $loop, array $options, int $optmask)
-{
-}
