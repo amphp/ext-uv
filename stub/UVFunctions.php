@@ -108,12 +108,16 @@ function uv_close(UV $handle, ?callable $callback = null)
 }
 
 /**
- * shutdown uv handle.
+ * Shutdown the outgoing (write) side of a duplex stream.
  *
- * @param UV $handle
- * @param callable $callback - expects (UV $handle, int $status)
+ * It waits for pending write requests to complete. The handle should refer to a initialized
+ * stream. req should be an uninitialized shutdown request struct. The cb is called after
+ * shutdown is complete.
+ *
+ * @param UVTcp|UVPipe|UVTty $handle
+ * @param callable $callback - expects ($handle, int $status)
  */
-function uv_shutdown(UV $handle, ?callable $callback = null)
+function uv_shutdown($handle, ?callable $callback = null)
 {
 }
 
@@ -873,7 +877,7 @@ function uv_loop_delete(UVLoop $uv_loop)
  * Bind the handle to an address and port.
  *
  * @param UVTcp $uv_tcp uv_tcp resource
- * @param UVSockAddr|resource $uv_sockaddr uv sockaddr4 resource.
+ * @param UVSockAddr|resource|int $uv_sockaddr uv sockaddr4 resource.
  *
  * @return void
  */
@@ -882,10 +886,10 @@ function uv_tcp_bind(UVTcp $uv_tcp, UVSockAddr $uv_sockaddr)
 }
 
 /**
- * Binds a name to a socket.
+ * Bind the handle to an address and port.
  *
  * @param UVTcp $uv_tcp uv_tcp resource
- * @param UVSockAddr|resource $uv_sockaddr uv sockaddr6 resource.
+ * @param UVSockAddr|resource|int $uv_sockaddr uv sockaddr6 resource.
  *
  * @return void
  */
@@ -898,12 +902,12 @@ function uv_tcp_bind6(UVTcp $uv_tcp, UVSockAddr $uv_sockaddr)
  *
  * The pipe must be initialized with ipc == 1.
  *
- * `Note:` send_handle must be a TCP socket or pipe, which is a server or a connection
+ * `Note:` $send must be a TCP socket or pipe, which is a server or a connection
  * (listening or connected state). Bound sockets or pipes will be assumed to be servers.
  *
  * @param UVTcp|UVPipe|UVTty $handle
  * @param string $data
- * @param UVTcp|UvPipe $send
+ * @param UVTcp|UVPipe $send
  * @param callable $callback expects ($handle, int $status).
  *
  * @return void
@@ -912,29 +916,38 @@ function uv_write2($handle, string $data, $send, callable $callback)
 {
 }
 
-// from https://github.com/JetBrains/phpstorm-stubs/blob/master/uv/uv_functions.php
-
 /**
- * Set Nagel's flags for specified tcp resource.
+ * Enable TCP_NODELAY, which disables Nagle’s algorithm.
  *
- * @param resource $handle libuv tcp resource.
+ * @param UVTcp $handle libuv tcp resource.
  * @param bool $enable true means enabled. false means disabled.
  */
-function uv_tcp_nodelay($handle, bool $enable)
+function uv_tcp_nodelay(UVTcp $handle, bool $enable)
 {
 }
 
 /**
- * Accepts a connection on a socket.
+ * This call is used in conjunction with uv_listen() to accept incoming connections.
  *
- * @param resource $server uv_tcp or uv_pipe server resource.
- * @param resource $client uv_tcp or uv_pipe client resource.
+ * Call this function after receiving a uv_connection_cb to accept the connection.
+ * Before calling this function the client handle must be initialized.
+ *
+ * When the uv_connection_cb callback is called it is guaranteed that this function
+ * will complete successfully the first time. If you attempt to use it more than once,
+ * it may fail. It is suggested to only call this function once per uv_connection_cb call.
+ *
+ * `Note:` server and client must be handles running on the same loop.
+ *
+ * @param UVTcp|UVPipe $server uv_tcp or uv_pipe server resource.
+ * @param UVTcp|UVPipe $client uv_tcp or uv_pipe client resource.
  *
  * @return void
  */
 function uv_accept($server, $client)
 {
 }
+
+// from https://github.com/JetBrains/phpstorm-stubs/blob/master/uv/uv_functions.php
 
 /**
  * @param resource $handle
