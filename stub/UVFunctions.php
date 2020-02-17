@@ -273,6 +273,18 @@ function uv_fs_fdatasync(UVLoop $loop, $fd, callable $callback)
 }
 
 /**
+ * async scandir.
+ *
+ * @param UVLoop $loop
+ * @param string $path
+ * @param callable $callback expects (int|array $result_or_dir_contents)
+ * @param int $flags
+ */
+function uv_fs_scandir(UVLoop $loop, string $path, callable $callback, int $flags = 0)
+{
+}
+
+/**
  * async stat,
  * execute a blocking system call asynchronously (in a thread pool) and call the specified callback in the specified loop after completion.
  *
