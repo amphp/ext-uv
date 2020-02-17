@@ -1996,12 +1996,32 @@ function uv_run_once(UVLoop $uv_loop = null)
 }
 
 /**
- * Returns current uv type. (this is not libuv function. util for php-uv).
+ * Returns UV handle type.
  *
- * @param resource $uv uv_handle.
+ * @param UV $uv uv_handle.
  *
- * @return int  should return UV::IS_UV_* constatns. e.g) UV::IS_UV_TCP.
+ * @return int
+ * The kind of the `libuv` handle.
+ * - UV_UNKNOWN_HANDLE = 0;
+ * - UV_ASYNC = 1;
+ * - UV_CHECK = 2;
+ * - UV_FS_EVENT = 3;
+ * - UV_FS_POLL = 4;
+ * - UV_HANDLE = 5;
+ * - UV_IDLE = 6;
+ * - UV_NAMED_PIPE = 7;
+ * - UV_POLL = 8;
+ * - UV_PREPARE = 9;
+ * - UV_PROCESS = 10;
+ * - UV_STREAM = 11;
+ * - UV_TCP = 12;
+ * - UV_TIMER = 13;
+ * - UV_TTY = 14;
+ * - UV_UDP = 15;
+ * - UV_SIGNAL = 16;
+ * - UV_FILE = 17;
+ * - UV_HANDLE_TYPE_MAX = 18;
  */
-function uv_handle_type($uv)
+function uv_handle_get_type(UV $uv)
 {
 }
