@@ -2379,16 +2379,18 @@ static void php_uv_socket_getname(int type, INTERNAL_FUNCTION_PARAMETERS)
 
 static void php_uv_handle_open(int (*open_cb)(uv_handle_t *, long), zend_class_entry *ce, INTERNAL_FUNCTION_PARAMETERS) {
 	php_uv_t *uv;
+	zval *zstream;
 	zend_long fd; // file handle
 	int error;
 
 	ZEND_PARSE_PARAMETERS_START(2, 2)
 		UV_PARAM_OBJ(uv, php_uv_t, ce)
-		Z_PARAM_LONG(fd)
+		Z_PARAM_ZVAL(zstream)
 	ZEND_PARSE_PARAMETERS_END();
 
+	fd = php_uv_zval_to_fd(zstream);
 	if (fd < 0) {
-		php_error_docref(NULL, E_WARNING, "file descriptor must be unsigned value");
+		php_error_docref(NULL, E_WARNING, "file descriptor must be unsigned value or a valid resource");
 		RETURN_FALSE;
 	}
 
@@ -4326,7 +4328,7 @@ PHP_FUNCTION(uv_tcp_init)
 }
 /* }}} */
 
-/* {{{ proto int|false uv_tcp_open(UVTcp $handle, long $tcpfd)
+/* {{{ proto int|false uv_tcp_open(UVTcp $handle, long|resource $tcpfd)
 */
 PHP_FUNCTION(uv_tcp_open)
 {
@@ -4372,7 +4374,7 @@ PHP_FUNCTION(uv_udp_init)
 }
 /* }}} */
 
-/* {{{ proto int|false uv_udp_open(UVUdp $handle, long $udpfd)
+/* {{{ proto int|false uv_udp_open(UVUdp $handle, long|resource $udpfd)
 */
 PHP_FUNCTION(uv_udp_open)
 {
@@ -4692,7 +4694,7 @@ PHP_FUNCTION(uv_pipe_init)
 }
 /* }}} */
 
-/* {{{ proto long|false uv_pipe_open(UVPipe $handle, long $pipe)
+/* {{{ proto long|false uv_pipe_open(UVPipe $handle, resource|long $pipe)
 */
 PHP_FUNCTION(uv_pipe_open)
 {
