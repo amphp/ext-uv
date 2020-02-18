@@ -552,13 +552,16 @@ function uv_pipe_init(UVLoop $loop, bool $ipc)
 
 /**
  * Open an existing file descriptor or HANDLE as a pipe.
+ *
  * The file descriptor is set to non-blocking mode.
  *
  * `Note:` The passed file descriptor or HANDLE is not checked for its type,
  * but it’s required that it represents a valid pipe.
  *
  * @param UVPipe $handle
- * @param int $pipe dunnno. maybe file descriptor.
+ * @param int|resource $pipe
+ *
+ * @return int|false
  */
 function uv_pipe_open(UVPipe $handle, int $pipe)
 {
@@ -2028,6 +2031,45 @@ function uv_resident_set_memory()
  * - UV_HANDLE_TYPE_MAX = 18;
  */
 function uv_handle_get_type(UV $uv)
+{
+}
+
+/**
+ * Open an existing file descriptor or SOCKET as a TCP handle.
+ *
+ * The file descriptor is set to non-blocking mode.
+ *
+ * `Note:` The passed file descriptor or SOCKET is not checked for its type,
+ * but it’s required that it represents a valid stream socket.
+ *
+ * @param UVTcp $handle
+ * @param int|resource $tcpfd
+ *
+ * @return int|false
+ */
+function uv_tcp_open(UVTcp $handle, int $tcpfd)
+{
+}
+
+/**
+ * Opens an existing file descriptor or Windows SOCKET as a UDP handle.
+ *
+ * The file descriptor is set to non-blocking mode.
+ *
+ * `Unix only:` The only requirement of the sock argument is that it follows
+ * the datagram contract (works in unconnected mode, supports sendmsg()/recvmsg(), etc).
+ * In other words, other datagram-type sockets like raw sockets or netlink sockets
+ * can also be passed to this function.
+ *
+ * `Note:` The passed file descriptor or SOCKET is not checked for its type,
+ * but it’s required that it represents a valid datagram socket..
+ *
+ * @param UVUdp $handle
+ * @param int|resource $udpfd
+ *
+ * @return int|false
+ */
+function uv_udp_open(UVUdp $handle, int $udpfd)
 {
 }
 
