@@ -2486,6 +2486,29 @@ int php_uv_cast_object(zval *readobj_zv, zval *writeobj, int type) {
 }
 
 #if PHP_VERSION_ID >= 80000
+static HashTable *php_uv_get_debug_info(zend_object *object, int *is_temp) {
+	php_uv_t *uv = (php_uv_t *) object;
+#else
+static HashTable *php_uv_get_debug_info(zval *object, int *is_temp) {
+	php_uv_t *uv = (php_uv_t *) Z_OBJ_P(object);
+#endif
+	HashTable *ht = zend_std_get_debug_info(object, is_temp);
+	if (uv->std.ce == uv_poll_ce) {
+		if (!*is_temp) {
+			int fd;
+			if (uv_fileno(&uv->uv.handle, (uv_os_fd_t *)&fd) == 0) { /* not actually a fd on windows but a handle pointr address, but okay. */
+				*is_temp = 1;
+				ht = zend_array_dup(ht);
+				zval fdzv;
+				ZVAL_LONG(&fdzv, fd);
+				zend_hash_update(ht, zend_string_init("@fd", sizeof("@fd")-1, 0), &fdzv);
+			}
+		}
+	}
+	return ht;
+}
+
+#if PHP_VERSION_ID >= 80000
 static HashTable *php_uv_get_gc(zend_object *object, zval **table, int *n) {
 	php_uv_t *uv = (php_uv_t *) object;
 #else
@@ -2670,6 +2693,7 @@ PHP_MINIT_FUNCTION(uv)
 	memcpy(&uv_handlers, &uv_default_handlers, sizeof(zend_object_handlers));
 	uv_handlers.get_gc = php_uv_get_gc;
 	uv_handlers.dtor_obj = destruct_uv;
+	uv_handlers.get_debug_info = php_uv_get_debug_info;
 
 	php_uv_init(uv_ce);
 
