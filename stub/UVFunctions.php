@@ -239,10 +239,6 @@ function uv_fs_close(UVLoop $loop, $fd, callable $callback)
  *
  * The callee is responsible for closing the `$stream` when an error happens.
  * Trying to read from the `$stream` again is undefined.
- *
- * The callee is responsible for freeing the `$buffer`, libuv does not reuse it.
- * The `$buffer` may be a null `$buffer` (where buf->base=NULL and buf->len=0) on
- * EOF or error.
  */
 function uv_fs_read(UVLoop $loop, $fd, int $offset, int $length, callable $callback)
 {
