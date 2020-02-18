@@ -2379,16 +2379,18 @@ static void php_uv_socket_getname(int type, INTERNAL_FUNCTION_PARAMETERS)
 
 static void php_uv_handle_open(int (*open_cb)(uv_handle_t *, long), zend_class_entry *ce, INTERNAL_FUNCTION_PARAMETERS) {
 	php_uv_t *uv;
+	zval *zstream;
 	zend_long fd; // file handle
 	int error;
 
 	ZEND_PARSE_PARAMETERS_START(2, 2)
 		UV_PARAM_OBJ(uv, php_uv_t, ce)
-		Z_PARAM_LONG(fd)
+		Z_PARAM_ZVAL(zstream)
 	ZEND_PARSE_PARAMETERS_END();
 
+	fd = php_uv_zval_to_fd(zstream);
 	if (fd < 0) {
-		php_error_docref(NULL, E_WARNING, "file descriptor must be unsigned value");
+		php_error_docref(NULL, E_WARNING, "file descriptor must be unsigned value or a valid resource");
 		RETURN_FALSE;
 	}
 
@@ -2483,6 +2485,29 @@ int php_uv_cast_object(zval *readobj_zv, zval *writeobj, int type) {
 		return zend_std_cast_object_tostring(readobj_zv, writeobj, type);
 #endif
 	}
+}
+
+#if PHP_VERSION_ID >= 80000
+static HashTable *php_uv_get_debug_info(zend_object *object, int *is_temp) {
+	php_uv_t *uv = (php_uv_t *) object;
+#else
+static HashTable *php_uv_get_debug_info(zval *object, int *is_temp) {
+	php_uv_t *uv = (php_uv_t *) Z_OBJ_P(object);
+#endif
+	HashTable *ht = zend_std_get_debug_info(object, is_temp);
+	if (uv->std.ce == uv_poll_ce) {
+		if (!*is_temp) {
+			int fd;
+			if (uv_fileno(&uv->uv.handle, (uv_os_fd_t *)&fd) == 0) { /* not actually a fd on windows but a handle pointr address, but okay. */
+				*is_temp = 1;
+				ht = zend_array_dup(ht);
+				zval fdzv;
+				ZVAL_LONG(&fdzv, fd);
+				zend_hash_update(ht, zend_string_init("@fd", sizeof("@fd")-1, 0), &fdzv);
+			}
+		}
+	}
+	return ht;
 }
 
 #if PHP_VERSION_ID >= 80000
@@ -2670,6 +2695,7 @@ PHP_MINIT_FUNCTION(uv)
 	memcpy(&uv_handlers, &uv_default_handlers, sizeof(zend_object_handlers));
 	uv_handlers.get_gc = php_uv_get_gc;
 	uv_handlers.dtor_obj = destruct_uv;
+	uv_handlers.get_debug_info = php_uv_get_debug_info;
 
 	php_uv_init(uv_ce);
 
@@ -4302,7 +4328,7 @@ PHP_FUNCTION(uv_tcp_init)
 }
 /* }}} */
 
-/* {{{ proto int|false uv_tcp_open(UVTcp $handle, long $tcpfd)
+/* {{{ proto int|false uv_tcp_open(UVTcp $handle, long|resource $tcpfd)
 */
 PHP_FUNCTION(uv_tcp_open)
 {
@@ -4348,7 +4374,7 @@ PHP_FUNCTION(uv_udp_init)
 }
 /* }}} */
 
-/* {{{ proto int|false uv_udp_open(UVUdp $handle, long $udpfd)
+/* {{{ proto int|false uv_udp_open(UVUdp $handle, long|resource $udpfd)
 */
 PHP_FUNCTION(uv_udp_open)
 {
@@ -4668,7 +4694,7 @@ PHP_FUNCTION(uv_pipe_init)
 }
 /* }}} */
 
-/* {{{ proto long|false uv_pipe_open(UVPipe $handle, long $pipe)
+/* {{{ proto long|false uv_pipe_open(UVPipe $handle, resource|long $pipe)
 */
 PHP_FUNCTION(uv_pipe_open)
 {
