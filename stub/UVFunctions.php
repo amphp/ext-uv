@@ -325,7 +325,7 @@ function uv_fs_fstat(UVLoop $loop, $fd, callable $callback)
 }
 
 /**
- * async fstat.
+ * async sendfile.
  * Executes a blocking system call asynchronously (in a thread pool) and call the specified callback in
  * the specified loop after completion.
  *
