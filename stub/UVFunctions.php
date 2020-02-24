@@ -2073,6 +2073,20 @@ function uv_udp_open(UVUdp $handle, int $udpfd)
 {
 }
 
+/**
+ * Returns non-zero if the handle is closing or closed, zero otherwise.
+ *
+ * `Note:` This function should only be used between the initialization of
+ * the handle and the arrival of the close callback.
+ *
+ * @param UV $handle
+ *
+ * @return bool
+ */
+function uv_is_closing(UV $handle)
+{
+}
+
 ////////////////////////
 // Not part of `libuv`
 ////////////////////////
