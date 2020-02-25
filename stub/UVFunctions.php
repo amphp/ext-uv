@@ -265,7 +265,7 @@ function uv_fs_write(UVLoop $loop, $fd, string $buffer, int $offset = -1, callab
  *
  * @param UVLoop $loop
  * @param resource $fd
- * @param callable $callback expects (resource $stream, int $status)
+ * @param callable $callback expects (resource $stream, int $result)
  */
 function uv_fs_fdatasync(UVLoop $loop, $fd, callable $callback)
 {
@@ -1783,6 +1783,10 @@ function uv_fs_link(UVLoop $loop, string $from, string $to, callable $callback)
  * Executes a blocking system call asynchronously (in a thread pool) and call the specified callback in
  * the specified loop after completion.
  *
+ * `Note:` On Windows the flags parameter can be specified to control how the symlink will be created:
+ * - UV_FS_SYMLINK_DIR: indicates that path points to a directory.
+ * - UV_FS_SYMLINK_JUNCTION: request that the symlink is created using junction points.
+ *
  * @param UVLoop $loop uv loop handle.
  * @param string $from
  * @param string $to
@@ -1831,10 +1835,10 @@ function uv_fs_readdir(UVLoop $loop, string $path, int $flags, callable $callbac
  *
  * @param UVLoop $loop uv loop handle
  * @param string $path
- * @param callable $callback callback expects (resource $fd, int $result).
+ * @param callable $callback callback expects (UVFsEvent $handle, ?string $filename, int $events, int $status).
  * @param int $flags
  *
- * @return resource
+ * @return UVFsEvent
  */
 function uv_fs_event_init(UVLoop $loop, string $path, callable $callback, int $flags = 0)
 {

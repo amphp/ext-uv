@@ -209,3 +209,13 @@ final class UVSockAddrIPv6 extends UVSockAddr
 final class UVLock
 {
 }
+
+/**
+ * FS Event handles allow the user to monitor a given path for changes, for example,
+ * if the file was renamed or there was a generic change in it.
+ *
+ * This handle uses the best backend for the job on each platform.
+ */
+final class UVFsEvent extends UV
+{
+}
