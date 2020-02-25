@@ -217,7 +217,7 @@ function uv_fs_open(UVLoop $loop, string $path, int $flag, int $mode, callable $
  *
  * @param UVLoop $loop
  * @param resource $fd PHP `stream`, or `socket`
- * @param callable $callback expects (resource $stream)
+ * @param callable $callback expects (bool $success)
  */
 function uv_fs_close(UVLoop $loop, $fd, callable $callback)
 {
@@ -232,7 +232,7 @@ function uv_fs_close(UVLoop $loop, $fd, callable $callback)
  * @param resource $fd PHP `stream`, or `socket`
  * @param int $offset
  * @param int $length
- * @param callable $callback - `$callable` expects (resource $stream, $data).
+ * @param callable $callback - `$callable` expects (resource $fd, $data).
  *
  * `$data` is > 0 if there is data available, 0 if libuv is done reading for
  * now, or < 0 on error.
@@ -253,9 +253,9 @@ function uv_fs_read(UVLoop $loop, $fd, int $offset, int $length, callable $callb
  * @param resource $fd PHP `stream`, or `socket`
  * @param string $buffer data
  * @param int $offset
- * @param callable $callback expects (resource $stream, int $status)
+ * @param callable $callback expects (resource $fd, int $result)
  */
-function uv_fs_write(UVLoop $loop, $fd, string $buffer, int $offset, callable $callback)
+function uv_fs_write(UVLoop $loop, $fd, string $buffer, int $offset = -1, callable $callback)
 {
 }
 
@@ -292,7 +292,7 @@ function uv_fs_scandir(UVLoop $loop, string $path, callable $callback, int $flag
  *
  * @param UVLoop $loop
  * @param string $path
- * @param callable $callback expects (resource $stream, int $stat)
+ * @param callable $callback expects ($result_or_stat)
  */
 function uv_fs_stat(UVLoop $loop, string $path, callable $callback)
 {
@@ -305,7 +305,7 @@ function uv_fs_stat(UVLoop $loop, string $path, callable $callback)
  *
  * @param UVLoop $loop
  * @param string $path
- * @param callable $callback expects (resource $stream, int $stat)
+ * @param callable $callback expects ($result_or_stat)
  */
 function uv_fs_lstat(UVLoop $loop, string $path, callable $callback)
 {
@@ -334,7 +334,7 @@ function uv_fs_fstat(UVLoop $loop, $fd, callable $callback)
  * @param resource $in_fd
  * @param int $offset
  * @param int $length
- * @param callable $callback expects ($result)
+ * @param callable $callback expects (resource $out_fd, int $result)
  */
 function uv_fs_sendfile(UVLoop $loop, $out_fd, $in_fd, int $offset, int $length, callable $callback)
 {
@@ -1608,7 +1608,7 @@ function uv_fs_ftruncate(UVLoop $loop, $fd, int $offset, callable $callback)
  * @param UVLoop $loop uv loop handle
  * @param string $path
  * @param int $mode
- * @param callable $callback callback expects (resource $fd, int $result).
+ * @param callable $callback callback expects (int $result).
  *
  * @return void
  */
@@ -1623,7 +1623,7 @@ function uv_fs_mkdir(UVLoop $loop, string $path, int $mode, callable $callback)
  *
  * @param UVLoop $loop uv loop handle
  * @param string $path
- * @param callable $callback callback expects (resource $fd, int $result).
+ * @param callable $callback callback expects (int $result).
  *
  * @return void
  */
@@ -1638,7 +1638,7 @@ function uv_fs_rmdir(UVLoop $loop, string $path, callable $callback)
  *
  * @param UVLoop $loop uv loop handle
  * @param string $path
- * @param callable $callback callback expects (resource $fd, int $result).
+ * @param callable $callback callback expects (int $result).
  *
  * @return void
  */
@@ -1654,7 +1654,7 @@ function uv_fs_unlink(UVLoop $loop, string $path, callable $callback)
  * @param UVLoop $loop uv loop handle.
  * @param string $from
  * @param string $to
- * @param callable $callback callback expects (resource $fd, int $result).
+ * @param callable $callback callback expects (int $result).
  *
  * @return void
  */
@@ -1671,7 +1671,7 @@ function uv_fs_rename(UVLoop $loop, string $from, string $to, callable $callback
  * @param string $path
  * @param int $utime
  * @param int $atime
- * @param callable $callback callback expects (resource $fd, int $result).
+ * @param callable $callback callback expects (int $result).
  *
  * @return void
  */
@@ -1688,7 +1688,7 @@ function uv_fs_utime(UVLoop $loop, string $path, int $utime, int $atime, callabl
  * @param resource $fd
  * @param int $utime
  * @param int $atime
- * @param callable $callback callback expects (resource $fd, int $result).
+ * @param callable $callback callback expects (int $result).
  *
  * @return void
  */
@@ -1704,7 +1704,7 @@ function uv_fs_futime(UVLoop $loop, $fd, int $utime, int $atime, callable $callb
  * @param UVLoop $loop uv loop handle.
  * @param string $path
  * @param int $mode
- * @param callable $callback callback expects (resource $fd, int $result).
+ * @param callable $callback callback expects (int $result).
  *
  * @return void
  */
@@ -1720,7 +1720,7 @@ function uv_fs_chmod(UVLoop $loop, string $path, int $mode, callable $callback)
  * @param UVLoop $loop uv loop handle.
  * @param resource $fd
  * @param int $mode
- * @param callable $callback callback expects (resource $fd, int $result).
+ * @param callable $callback callback expects (int $result).
  *
  * @return void
  */
@@ -1737,7 +1737,7 @@ function uv_fs_fchmod(UVLoop $loop, $fd, int $mode, callable $callback)
  * @param string $path
  * @param int $uid
  * @param int $gid
- * @param callable $callback callback expects (resource $fd, int $result).
+ * @param callable $callback callback expects (int $result).
  *
  * @return void
  */
@@ -1754,7 +1754,7 @@ function uv_fs_chown(UVLoop $loop, string $path, int $uid, int $gid, callable $c
  * @param resource $fd
  * @param int $uid
  * @param int $gid
- * @param callable $callback callback expects (resource $fd, int $result).
+ * @param callable $callback callback expects (int $result).
  *
  * @return void
  */
@@ -1770,7 +1770,7 @@ function uv_fs_fchown(UVLoop $loop, $fd, int $uid, int $gid, callable $callback)
  * @param UVLoop $loop uv loop handle.
  * @param string $from
  * @param string $to
- * @param callable $callback callback expects (resource $fd, int $result).
+ * @param callable $callback callback expects (int $result).
  *
  * @return void
  */
@@ -1787,7 +1787,7 @@ function uv_fs_link(UVLoop $loop, string $from, string $to, callable $callback)
  * @param string $from
  * @param string $to
  * @param int $flags
- * @param callable $callback callback expects (resource $fd, int $result).
+ * @param callable $callback callback expects (int $result).
  *
  * @return void
  */
@@ -1802,7 +1802,7 @@ function uv_fs_symlink(UVLoop $loop, string $from, string $to, int $flags, calla
  *
  * @param UVLoop $loop uv loop handle
  * @param string $path
- * @param callable $callback callback expects (resource $fd, int $result).
+ * @param callable $callback callback expects ($result_or_link_contents).
  *
  * @return void
  */
@@ -1818,7 +1818,7 @@ function uv_fs_readlink(UVLoop $loop, string $path, callable $callback)
  * @param UVLoop $loop  uv loop handle
  * @param string $path
  * @param int $flags
- * @param callable $callback callback expects (resource $fd, int $result).
+ * @param callable $callback callback expects ($result_or_dir_contents).
  *
  * @return void
  */
