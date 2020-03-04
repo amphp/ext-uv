@@ -278,10 +278,10 @@ function uv_fs_fdatasync(UVLoop $loop, $fd, callable $callback)
  *
  * @param UVLoop $loop
  * @param string $path
- * @param callable $callback expects (int|array $result_or_dir_contents)
  * @param int $flags
+ * @param callable $callback expects (int|array $result_or_dir_contents)
  */
-function uv_fs_scandir(UVLoop $loop, string $path, callable $callback, int $flags = 0)
+function uv_fs_scandir(UVLoop $loop, string $path, int $flags = 0, callable $callback)
 {
 }
 
