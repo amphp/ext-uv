@@ -660,7 +660,7 @@ function uv_queue_work(UVLoop $loop, callable $callback, callable $after_callbac
 /**
  * Initialize the handle.
  *
- * @param UVLoop $loop uv_loop resource.
+ * @param UVLoop $loop uv_loop handle.
  *
  * @return UVIdle
  */
@@ -671,7 +671,7 @@ function uv_idle_init(UVLoop $loop = null)
 /**
  * Start the handle with the given callback.
  *
- * @param UVIdle $idle uv_idle resource.
+ * @param UVIdle $idle uv_idle handle.
  * @param callable $callback expects (UVIdle $handle)
  */
 function uv_idle_start(UVIdle $idle, callable $callback)
@@ -681,7 +681,7 @@ function uv_idle_start(UVIdle $idle, callable $callback)
 /**
  * Stop the handle, the callback will no longer be called.
  *
- * @param UVIdle $idle uv_idle resource.
+ * @param UVIdle $idle uv_idle handle.
  */
 function uv_idle_stop(UVIdle $idle)
 {
@@ -877,9 +877,9 @@ function uv_now(UVLoop $uv_loop = null)
 }
 
 /**
- * Delete specified loop resource.
+ * Delete specified loop handle.
  *
- * @param UVLoop $uv_loop uv_loop resource.
+ * @param UVLoop $uv_loop uv_loop handle.
  *
  * @return void
  */
@@ -890,8 +890,8 @@ function uv_loop_delete(UVLoop $uv_loop)
 /**
  * Bind the handle to an address and port.
  *
- * @param UVTcp $uv_tcp uv_tcp resource
- * @param UVSockAddr|resource|int $uv_sockaddr uv sockaddr4 resource.
+ * @param UVTcp $uv_tcp uv_tcp handle
+ * @param UVSockAddr|resource|int $uv_sockaddr uv sockaddr4 handle.
  *
  * @return void
  */
@@ -902,8 +902,8 @@ function uv_tcp_bind(UVTcp $uv_tcp, UVSockAddr $uv_sockaddr)
 /**
  * Bind the handle to an address and port.
  *
- * @param UVTcp $uv_tcp uv_tcp resource
- * @param UVSockAddr|resource|int $uv_sockaddr uv sockaddr6 resource.
+ * @param UVTcp $uv_tcp uv_tcp handle
+ * @param UVSockAddr|resource|int $uv_sockaddr uv sockaddr6 handle.
  *
  * @return void
  */
@@ -933,7 +933,7 @@ function uv_write2(UVStream $handle, string $data, $send, callable $callback)
 /**
  * Enable TCP_NODELAY, which disables Nagle’s algorithm.
  *
- * @param UVTcp $handle libuv tcp resource.
+ * @param UVTcp $handle libuv tcp handle.
  * @param bool $enable true means enabled. false means disabled.
  */
 function uv_tcp_nodelay(UVTcp $handle, bool $enable)
@@ -952,8 +952,8 @@ function uv_tcp_nodelay(UVTcp $handle, bool $enable)
  *
  * `Note:` server and client must be handles running on the same loop.
  *
- * @param UVTcp|UVPipe $server uv_tcp or uv_pipe server resource.
- * @param UVTcp|UVPipe $client uv_tcp or uv_pipe client resource.
+ * @param UVTcp|UVPipe $server uv_tcp or uv_pipe server handle.
+ * @param UVTcp|UVPipe $client uv_tcp or uv_pipe client handle.
  *
  * @return void
  */
@@ -996,7 +996,7 @@ function uv_read_stop(UVStream $handle)
  * @param string $ipv4_addr ipv4 address
  * @param int $port port number.
  *
- * @return UVSockAddrIPv4 resource
+ * @return UVSockAddrIPv4 handle
  */
 function uv_ip4_addr(string $ipv4_addr, int $port)
 {
@@ -1008,7 +1008,7 @@ function uv_ip4_addr(string $ipv4_addr, int $port)
  * @param string $ipv6_addr ipv6 address.
  * @param int $port port number.
  *
- * @return UVSockAddrIPv6 resource
+ * @return UVSockAddrIPv6 handle
  */
 function uv_ip6_addr(string $ipv6_addr, int $port)
 {
@@ -1026,8 +1026,8 @@ function uv_ip6_addr(string $ipv6_addr, int $port)
  * The callback is made when the connection has been established
  * or when a connection error happened.
  *
- * @param UVTcp $handle requires uv_tcp_init() resource.
- * @param UVSockAddr $ipv4_addr requires uv_sockaddr resource.
+ * @param UVTcp $handle requires uv_tcp_init() handle.
+ * @param UVSockAddr $ipv4_addr requires uv_sockaddr handle.
  * @param callable $callback callable expects (UVTcp $tcp_handle, int $status).
  *
  * @return void
@@ -1048,8 +1048,8 @@ function uv_tcp_connect(UVTcp $handle, UVSockAddr $ipv4_addr, callable $callback
  * The callback is made when the connection has been established
  * or when a connection error happened.
  *
- * @param UVTcp $handle requires uv_tcp_init() resource.
- * @param UVSockAddrIPv6 $ipv6_addr requires uv_sockaddr resource.
+ * @param UVTcp $handle requires uv_tcp_init() handle.
+ * @param UVSockAddrIPv6 $ipv6_addr requires uv_sockaddr handle.
  * @param callable $callback callable expects (UVTcp $tcp_handle, int $status).
  *
  * @return void
@@ -1061,7 +1061,7 @@ function uv_tcp_connect6(UVTcp $handle, UVSockAddrIPv6 $ipv6_addr, callable $cal
 /**
  * Stop the timer, and if it is repeating restart it using the repeat value as the timeout.
  *
- * @param UVTimer $timer uv_timer resource.
+ * @param UVTimer $timer uv_timer handle.
  *
  * @return void
  */
@@ -1086,7 +1086,7 @@ function uv_timer_again(UVTimer $timer)
  * the next timeout.
 
  *
- * @param UVTimer $timer uv_timer resource.
+ * @param UVTimer $timer uv_timer handle.
  * @param int $repeat repeat count.
  *
  * @return void
@@ -1098,7 +1098,7 @@ function uv_timer_set_repeat(UVTimer $timer, int $repeat)
 /**
  * Get the timer repeat value.
  *
- * @param UVTimer $timer uv_timer resource.
+ * @param UVTimer $timer uv_timer handle.
  *
  * @return int
  */
@@ -1159,8 +1159,8 @@ function uv_ip6_name(UVSockAddr $address)
 /**
  * Initialize the handle. No socket is created as of yet.
  *
- * @param UVLoop|null $loop loop resource or null.
- * - if not specified loop resource then use uv_default_loop resource.
+ * @param UVLoop|null $loop loop handle or null.
+ * - if not specified loop handle then use uv_default_loop handle.
  *
  * @return UVTcp UV which initialized for tcp.
  */
@@ -1171,8 +1171,8 @@ function uv_tcp_init(UVLoop $loop = null)
 /**
  * Initialize a new UDP handle. The actual socket is created lazily. Returns 0 on success.
  *
- * @param UVLoop|null $loop loop resource or null.
- * - if not specified loop resource then use uv_default_loop resource.
+ * @param UVLoop|null $loop loop handle or null.
+ * - if not specified loop handle then use uv_default_loop handle.
  *
  * @return UVUdp UV which initialized for udp.
  */
@@ -1183,34 +1183,34 @@ function uv_udp_init(UVLoop $loop = null)
 /**
  * Bind the UDP handle to an IP address and port.
  *
- * - resource – UDP handle. Should have been initialized with uv_udp_init().
+ * - handle – UDP handle. Should have been initialized with uv_udp_init().
  * - address – struct sockaddr_in or struct sockaddr_in6 with the address and port to bind to.
  * - flags – Indicate how the socket will be bound, UV_UDP_IPV6ONLY and UV_UDP_REUSEADDR are supported.
  *
- * @param UVUdp $resource UV handle (udp).
- * @param UVSockAddr $address uv sockaddr(ipv4) resource.
+ * @param UVUdp $handle UV handle (udp).
+ * @param UVSockAddr $address uv sockaddr(ipv4) handle.
  * @param int $flags unused.
  *
  * @return void
  */
-function uv_udp_bind(UVUdp $resource, UVSockAddr $address, int $flags = 0)
+function uv_udp_bind(UVUdp $handle, UVSockAddr $address, int $flags = 0)
 {
 }
 
 /**
  * Bind the UDP handle to an IP6 address and port.
  *
- * - resource – UDP handle. Should have been initialized with uv_udp_init().
+ * - handle – UDP handle. Should have been initialized with uv_udp_init().
  * - address – struct sockaddr_in6 with the address and port to bind to.
  * - flags – Indicate how the socket will be bound, UV_UDP_IPV6ONLY and UV_UDP_REUSEADDR are supported.
  *
- * @param UVUdp $resource UV handle (udp).
- * @param UVSockAddr $address uv sockaddr(ipv6) resource.
+ * @param UVUdp $handle UV handle (udp).
+ * @param UVSockAddr $address uv sockaddr(ipv6) handle.
  * @param int $flags Should be 0 or UV::UDP_IPV6ONLY.
  *
  * @return void
  */
-function uv_udp_bind6(UVUdp $resource, UVSockAddr $address, int $flags = 0)
+function uv_udp_bind6(UVUdp $handle, UVSockAddr $address, int $flags = 0)
 {
 }
 
@@ -1421,9 +1421,9 @@ function uv_loadavg()
 }
 
 /**
- * Initialize rwlock resource.
+ * Initialize rwlock handle.
  *
- * @return UVLock returns uv rwlock resource.
+ * @return UVLock returns uv rwlock handle.
  */
 function uv_rwlock_init()
 {
@@ -1486,9 +1486,9 @@ function uv_rwlock_wrunlock(UVLock $handle)
 }
 
 /**
- * Initialize mutex resource.
+ * Initialize mutex handle.
  *
- * @return UVLock uv mutex resource
+ * @return UVLock uv mutex handle
  */
 function uv_mutex_init()
 {
@@ -1515,7 +1515,7 @@ function uv_mutex_trylock(UVLock $lock)
 }
 
 /**
- * Initialize semaphore resource.
+ * Initialize semaphore handle.
  *
  * @param int $value
  * @return UVLock
