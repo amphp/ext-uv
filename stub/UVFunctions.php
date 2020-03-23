@@ -472,6 +472,13 @@ function uv_signal_stop(UVSignal $handle)
 
 /**
  * Initializes the process handle and starts the process.
+ * If the process is successfully spawned, this function will return `UVProcess`
+ * handle. Otherwise, the negative error code corresponding to the reason it couldn’t
+ * spawn is returned.
+ *
+ * Possible reasons for failing to spawn would include (but not be limited to) the
+ * file to execute not existing, not having permissions to use the setuid or setgid
+ * specified, or not having enough memory to allocate for the new process.
  *
  * @param UVLoop $loop
  * @param string $command Program to be executed.
