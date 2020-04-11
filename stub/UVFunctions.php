@@ -665,7 +665,8 @@ function uv_queue_work(UVLoop $loop, callable $callback, callable $after_callbac
 }
 
 /**
- * Initialize the handle.
+ * Initialize the `UVIdle` handle watcher.
+ * Idle watchers get invoked every loop iteration.
  *
  * @param UVLoop $loop uv_loop handle.
  *
@@ -676,67 +677,7 @@ function uv_idle_init(UVLoop $loop = null)
 }
 
 /**
- * Start the handle with the given callback.
- *
- * @param UVIdle $idle uv_idle handle.
- * @param callable $callback expects (UVIdle $handle)
- */
-function uv_idle_start(UVIdle $idle, callable $callback)
-{
-}
-
-/**
- * Stop the handle, the callback will no longer be called.
- *
- * @param UVIdle $idle uv_idle handle.
- */
-function uv_idle_stop(UVIdle $idle)
-{
-}
-
-/**
- * Initialize the handle.
- *
- * @param UVLoop $loop uv loop handle.
- *
- * @return UVPrepare
- */
-function uv_prepare_init(UVLoop $loop = null)
-{
-}
-
-/**
- * Start the handle with the given callback.
- *
- * @param UVPrepare $handle UV handle (prepare)
- * @param callable $callback expects (UVPrepare $prepare, int $status).
- */
-function uv_prepare_start(UVPrepare $handle, callable $callback)
-{
-}
-
-/**
- * Stop the handle, the callback will no longer be called.
- *
- * @param UVPrepare $handle UV handle (prepare).
- */
-function uv_prepare_stop(UVPrepare $handle)
-{
-}
-
-/**
- * Initialize the handle.
- *
- * @param UVLoop $loop uv loop handle
- *
- * @return UVCheck
- */
-function uv_check_init(UVLoop $loop = null)
-{
-}
-
-/**
- * Start the handle with the given callback.
+ * Start the Idle handle with the given callback.
  *
  * The callbacks of idle handles are invoked once per event loop.
  *
@@ -752,6 +693,76 @@ function uv_check_init(UVLoop $loop = null)
  * will freeze and the user will face an unresponsive application. In such a case queue up and idle
  * watcher to keep the UI operational.
  *
+ * @param UVIdle $idle uv_idle handle.
+ * @param callable $callback expects (UVIdle $handle)
+ */
+function uv_idle_start(UVIdle $idle, callable $callback)
+{
+}
+
+/**
+ * Stop the Idle handle, the callback will no longer be called.
+ *
+ * @param UVIdle $idle uv_idle handle.
+ */
+function uv_idle_stop(UVIdle $idle)
+{
+}
+
+/**
+ * Initialize the `UVPrepare` handle watcher.
+ * Prepare watchers get invoked before polling for I/O events.
+ *
+ * Their main purpose is to integrate other event mechanisms into `libuv` and their
+ * use is somewhat advanced. They could be used, for example, to track variable changes,
+ * implement your own watchers.
+ *
+ * @param UVLoop $loop uv loop handle.
+ *
+ * @return UVPrepare
+ */
+function uv_prepare_init(UVLoop $loop = null)
+{
+}
+
+/**
+ * Start the Prepare handle with the given callback.
+ *
+ * @param UVPrepare $handle UV handle (prepare)
+ * @param callable $callback expects (UVPrepare $prepare, int $status).
+ */
+function uv_prepare_start(UVPrepare $handle, callable $callback)
+{
+}
+
+/**
+ * Stop the Prepare handle, the callback will no longer be called.
+ *
+ * @param UVPrepare $handle UV handle (prepare).
+ */
+function uv_prepare_stop(UVPrepare $handle)
+{
+}
+
+/**
+ * Initialize the `UVCheck` handle watcher.
+ * Check watchers get invoked after polling for I/O events.
+ *
+ * Their main purpose is to integrate other event mechanisms into `libuv` and their
+ * use is somewhat advanced. They could be used, for example, to track variable changes,
+ * implement your own watchers.
+ *
+ * @param UVLoop $loop uv loop handle
+ *
+ * @return UVCheck
+ */
+function uv_check_init(UVLoop $loop = null)
+{
+}
+
+/**
+ * Start the Check handle with the given callback.
+ *
  * @param UVCheck $handle UV handle (check).
  * @param callable $callback expects (UVCheck $check, int $status).
  */
@@ -760,7 +771,7 @@ function uv_check_start(UVCheck $handle, callable $callback)
 }
 
 /**
- * Stop the handle, the callback will no longer be called.
+ * Stop the Check handle, the callback will no longer be called.
  *
  * @param UVCheck $handle UV handle (check).
  */
