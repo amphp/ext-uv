@@ -179,6 +179,46 @@ abstract class UV
      */
     const S_IXOTH = 00001;
 
+    /**
+     * bit mask type of file
+     */
+    const S_IFMT = 0170000;
+
+    /**
+     * block special file type
+     */
+    const S_IFBLK = 0060000;
+
+    /**
+     * character special file type
+     */
+    const S_IFCHR = 0020000;
+
+    /**
+     * FIFO special file type
+     */
+    const S_IFIFO = 0010000;
+
+    /**
+     * regular file type
+     */
+    const S_IFREG = 0100000;
+
+    /**
+     * directory file type
+     */
+    const S_IFDIR = 0040000;
+
+    /**
+     * symbolic link file type
+     */
+    const S_IFLNK = 0120000;
+
+    /**
+     * socket file type
+     */
+    const S_IFSOCK = 0140000;
+
     const AF_INET = 1;
     const AF_INET6 = 2;
     const AF_UNSPEC = 3;
