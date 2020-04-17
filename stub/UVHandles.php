@@ -215,6 +215,18 @@ final class UVLock
  * if the file was renamed or there was a generic change in it.
  *
  * This handle uses the best backend for the job on each platform.
+ *
+ * `inotify` on Linux.
+ *
+ * `FSEvents` on Darwin.
+ *
+ * `kqueue` on BSDs.
+ *
+ * `ReadDirectoryChangesW` on Windows.
+ *
+ * `event ports` on Solaris.
+ *
+ * `unsupported` on Cygwin
  */
 final class UVFsEvent extends UV
 {

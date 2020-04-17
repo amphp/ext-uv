@@ -1849,12 +1849,44 @@ function uv_fs_readdir(UVLoop $loop, string $path, int $flags, callable $callbac
 }
 
 /**
- * Initialize fs event.
+ * Initialize file change event `UVFsEvent` handle, and start the given callback.
+ * This will watch the specified path for changes. `$flags` can be an ORed mask of `uv_fs_event_flags`.
+ *
+ * The callback will receive the following arguments:
+ *
+ * `handle` - `UVFsEvent` handle. The path field of the handle is the file on which the watch was set.
+ * `filename` - If a directory is being monitored, this is the file which was changed. Only non-null on
+ * Linux and Windows. May be null even on those platforms.
+ * `events` - one of `UV::RENAME` or `UV::CHANGE`, or a bitwise OR of both.
+ * `status` - Currently 0, or `error` if < 0.
  *
  * @param UVLoop $loop uv loop handle
  * @param string $path
  * @param callable $callback callback expects (UVFsEvent $handle, ?string $filename, int $events, int $status).
- * @param int $flags
+ *
+ * @param int $flags - `uv_fs_event_flags` that can be passed to control its behavior.
+ *
+ * By default, if the fs event watcher is given a directory name, we will
+ * watch for all events in that directory. This flags overrides this behavior
+ * and makes fs_event report only changes to the directory entry itself. This
+ * flag does not affect individual files watched.
+ * This flag is currently not implemented yet on any backend.
+ *
+ * `UV_FS_EVENT_WATCH_ENTRY = 1`
+ *
+ * By default uv_fs_event will try to use a kernel interface such as inotify
+ * or kqueue to detect events. This may not work on remote file systems such
+ * as NFS mounts. This flag makes fs_event fall back to calling stat() on a
+ * regular interval.
+ * This flag is currently not implemented yet on any backend.
+ *
+ * `UV_FS_EVENT_STAT = 2`
+ *
+ * By default, event watcher, when watching directory, is not registering
+ * (is ignoring) changes in its subdirectories.
+ * This flag will override this behaviour on platforms that support it.
+ *
+ *  `UV_FS_EVENT_RECURSIVE = 4`
  *
  * @return UVFsEvent
  */
