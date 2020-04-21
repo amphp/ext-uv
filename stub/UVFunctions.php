@@ -142,11 +142,11 @@ function uv_timer_init(UVLoop $loop = null)
  * and then repeatedly after repeat milliseconds.
  *
  * @param UVTimer $timer
- * @param float $timeout
- * @param float $repeat
+ * @param int $timeout
+ * @param int $repeat
  * @param callable $callback expects (UVTimer $timer, int $status)
  */
-function uv_timer_start(UVTimer $timer, float $timeout, float $repeat, callable $callback)
+function uv_timer_start(UVTimer $timer, int $timeout, int $repeat, callable $callback = null)
 {
 }
 
