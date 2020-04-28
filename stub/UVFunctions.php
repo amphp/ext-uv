@@ -667,6 +667,7 @@ function uv_queue_work(UVLoop $loop, callable $callback, callable $after_callbac
 /**
  * Initialize the `UVIdle` handle watcher.
  * Idle watchers get invoked every loop iteration.
+ * This function always succeeds.
  *
  * @param UVLoop $loop uv_loop handle.
  *
@@ -678,6 +679,7 @@ function uv_idle_init(UVLoop $loop = null)
 
 /**
  * Start the Idle handle with the given callback.
+ * This function always succeeds, except when `callback` is `NULL`.
  *
  * The callbacks of idle handles are invoked once per event loop.
  *
@@ -702,6 +704,7 @@ function uv_idle_start(UVIdle $idle, callable $callback)
 
 /**
  * Stop the Idle handle, the callback will no longer be called.
+ * This function always succeeds.
  *
  * @param UVIdle $idle uv_idle handle.
  */
@@ -711,6 +714,7 @@ function uv_idle_stop(UVIdle $idle)
 
 /**
  * Initialize the `UVPrepare` handle watcher.
+ * This function always succeeds.
  * Prepare watchers get invoked before polling for I/O events.
  *
  * Their main purpose is to integrate other event mechanisms into `libuv` and their
@@ -727,6 +731,7 @@ function uv_prepare_init(UVLoop $loop = null)
 
 /**
  * Start the Prepare handle with the given callback.
+ * This function always succeeds, except when `callback` is `NULL`.
  *
  * @param UVPrepare $handle UV handle (prepare)
  * @param callable $callback expects (UVPrepare $prepare, int $status).
@@ -737,6 +742,7 @@ function uv_prepare_start(UVPrepare $handle, callable $callback)
 
 /**
  * Stop the Prepare handle, the callback will no longer be called.
+ * This function always succeeds.
  *
  * @param UVPrepare $handle UV handle (prepare).
  */
@@ -746,6 +752,7 @@ function uv_prepare_stop(UVPrepare $handle)
 
 /**
  * Initialize the `UVCheck` handle watcher.
+ * This function always succeeds.
  * Check watchers get invoked after polling for I/O events.
  *
  * Their main purpose is to integrate other event mechanisms into `libuv` and their
@@ -762,6 +769,7 @@ function uv_check_init(UVLoop $loop = null)
 
 /**
  * Start the Check handle with the given callback.
+ * This function always succeeds, except when `callback` is `NULL`.
  *
  * @param UVCheck $handle UV handle (check).
  * @param callable $callback expects (UVCheck $check, int $status).
@@ -772,6 +780,7 @@ function uv_check_start(UVCheck $handle, callable $callback)
 
 /**
  * Stop the Check handle, the callback will no longer be called.
+ * This function always succeeds.
  *
  * @param UVCheck $handle UV handle (check).
  */
