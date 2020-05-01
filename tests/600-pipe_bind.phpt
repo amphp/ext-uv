@@ -1,5 +1,7 @@
 --TEST--
 Check for pipe bind
+--SKIPIF--
+<?php if ('\\' === \DIRECTORY_SEPARATOR) print "Skip, broken on Windows"; ?>
 --FILE--
 <?php
 define("PIPE_PATH", dirname(__FILE__) . "/pipe_test.sock");

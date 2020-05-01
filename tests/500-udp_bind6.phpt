@@ -1,5 +1,7 @@
 --TEST--
 Check for udp bind
+--SKIPIF--
+<?php if ('\\' === \DIRECTORY_SEPARATOR) print "Skip, broken on Windows"; ?>
 --FILE--
 <?php
 $udp = uv_udp_init();
@@ -7,7 +9,7 @@ uv_udp_bind6($udp, uv_ip6_addr('::1',10000));
 
 uv_udp_recv_start($udp,function($stream, $buffer) {
     echo "recv: " .  $buffer;
-    
+
     uv_close($stream);
 });
 
