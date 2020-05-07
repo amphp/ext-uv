@@ -30,6 +30,8 @@
  */
 abstract class UV
 {
+    const EOF = null;
+
     /**
      * This flag indicates an event that becomes active when the provided file
      * descriptor(usually a stream resource, or socket) is ready for reading.
