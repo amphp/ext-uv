@@ -2021,12 +2021,9 @@ function uv_chdir(string $directory)
 /**
  * Get the current address to which the handle is bound.
  *
- * Name must point to a valid and big enough chunk of memory,
- * struct sockaddr_storage is recommended for IPv4 and IPv6 support.
- *
  * @param UVTcp $uv_sock
  *
- * @return string
+ * @return array ['address'], ['port'], ['family']
  */
 function uv_tcp_getsockname(UVTcp $uv_sock)
 {
@@ -2035,12 +2032,9 @@ function uv_tcp_getsockname(UVTcp $uv_sock)
 /**
  * Get the address of the peer connected to the handle.
  *
- * Name must point to a valid and big enough chunk of memory,
- * struct sockaddr_storage is recommended for IPv4 and IPv6 support.
- *
  * @param UVTcp $uv_sock
  *
- * @return string
+ * @return array ['address'], ['port'], ['family']
  */
 function uv_tcp_getpeername(UVTcp $uv_sock)
 {
@@ -2051,7 +2045,7 @@ function uv_tcp_getpeername(UVTcp $uv_sock)
  *
  * @param UVUdp $uv_sockaddr
  *
- * @return string
+ * @return array ['address'], ['port'], ['family']
  */
 function uv_udp_getsockname(UVUdp $uv_sock)
 {
