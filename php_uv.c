@@ -1322,6 +1322,9 @@ static int php_uv_do_callback(zval *retval_ptr, php_uv_cb_t *callback, zval *par
 		callback->fci.params = params;
 		callback->fci.retval = retval_ptr;
 		callback->fci.param_count = param_count;
+#if PHP_VERSION_ID < 80000
+		callback->fci.no_separation = 1;
+#endif
 
 		error = zend_call_function(&callback->fci, &callback->fcc);
 	} else {
@@ -1346,6 +1349,9 @@ static int php_uv_do_callback2(zval *retval_ptr, php_uv_t *uv, zval *params, int
 		uv->callback[type]->fci.params        = params;
 		uv->callback[type]->fci.retval        = retval_ptr;
 		uv->callback[type]->fci.param_count   = param_count;
+#if PHP_VERSION_ID < 80000
+		uv->callback[type]->fci.no_separation = 1;
+#endif
 
 		if (zend_call_function(&uv->callback[type]->fci, &uv->callback[type]->fcc) != SUCCESS) {
 			error = -1;
@@ -1411,6 +1417,9 @@ static int php_uv_do_callback3(zval *retval_ptr, php_uv_t *uv, zval *params, int
 		uv->callback[type]->fci.params        = params;
 		uv->callback[type]->fci.retval        = retval_ptr;
 		uv->callback[type]->fci.param_count   = param_count;
+#if PHP_VERSION_ID < 80000
+		uv->callback[type]->fci.no_separation = 1;
+#endif
 		uv->callback[type]->fci.object = NULL;
 #if PHP_VERSION_ID >= 70300
 		uv->callback[type]->fci.size = sizeof(zend_fcall_info);
