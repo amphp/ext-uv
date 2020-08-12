@@ -2810,6 +2810,9 @@ PHP_RSHUTDOWN_FUNCTION(uv)
 	return SUCCESS;
 }
 
+ZEND_BEGIN_ARG_INFO_EX(arginfo_void, 0, 0, 0)
+ZEND_END_ARG_INFO()
+
 ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_run, 0, 0, 0)
 	ZEND_ARG_INFO(0, loop)
 	ZEND_ARG_INFO(0, run_mode)
@@ -6264,8 +6267,8 @@ static zend_function_entry uv_functions[] = {
 	PHP_FE(uv_update_time,              arginfo_uv_update_time)
 	PHP_FE(uv_ref,                      arginfo_uv_ref)
 	PHP_FE(uv_unref,                    arginfo_uv_unref)
-	PHP_FE(uv_loop_new,                 NULL)
-	PHP_FE(uv_default_loop,             NULL)
+	PHP_FE(uv_loop_new,                 arginfo_void)
+	PHP_FE(uv_default_loop,             arginfo_void)
 	PHP_FE(uv_stop,                     arginfo_uv_stop)
 	PHP_FE(uv_run,                      arginfo_uv_run)
 	PHP_FE(uv_ip4_addr,                 arginfo_uv_ip4_addr)
@@ -6343,7 +6346,7 @@ static zend_function_entry uv_functions[] = {
 	PHP_FE(uv_pipe_pending_instances,   arginfo_uv_pipe_pending_instances)
 	PHP_FE(uv_pipe_pending_count,       arginfo_uv_pipe_pending_count)
 	PHP_FE(uv_pipe_pending_type,        arginfo_uv_pipe_pending_type)
-	PHP_FE(uv_stdio_new,                NULL)
+	PHP_FE(uv_stdio_new,                arginfo_void)
 	/* spawn */
 	PHP_FE(uv_spawn,                    arginfo_uv_spawn)
 	PHP_FE(uv_process_kill,             arginfo_uv_process_kill)
@@ -6352,7 +6355,7 @@ static zend_function_entry uv_functions[] = {
 	/* c-ares */
 	PHP_FE(uv_getaddrinfo,              arginfo_uv_getaddrinfo)
 	/* rwlock */
-	PHP_FE(uv_rwlock_init,              NULL)
+	PHP_FE(uv_rwlock_init,              arginfo_void)
 	PHP_FE(uv_rwlock_rdlock,            arginfo_uv_rwlock_rdlock)
 	PHP_FE(uv_rwlock_tryrdlock,         arginfo_uv_rwlock_tryrdlock)
 	PHP_FE(uv_rwlock_rdunlock,          arginfo_uv_rwlock_rdunlock)
@@ -6360,7 +6363,7 @@ static zend_function_entry uv_functions[] = {
 	PHP_FE(uv_rwlock_trywrlock,         arginfo_uv_rwlock_trywrlock)
 	PHP_FE(uv_rwlock_wrunlock,          arginfo_uv_rwlock_wrunlock)
 	/* mutex */
-	PHP_FE(uv_mutex_init,               NULL)
+	PHP_FE(uv_mutex_init,               arginfo_void)
 	PHP_FE(uv_mutex_lock,               arginfo_uv_mutex_lock)
 	PHP_FE(uv_mutex_trylock,            arginfo_uv_mutex_trylock)
 	PHP_FE(uv_mutex_unlock,             arginfo_uv_mutex_unlock)
@@ -6415,20 +6418,20 @@ static zend_function_entry uv_functions[] = {
 	/* tty */
 	PHP_FE(uv_tty_init,                 arginfo_uv_tty_init)
 	PHP_FE(uv_tty_get_winsize,          arginfo_uv_tty_get_winsize)
-	PHP_FE(uv_tty_set_mode,             NULL)
-	PHP_FE(uv_tty_reset_mode,           NULL)
+	PHP_FE(uv_tty_set_mode,             arginfo_void)
+	PHP_FE(uv_tty_reset_mode,           arginfo_void)
 	/* info */
-	PHP_FE(uv_loadavg,                  NULL)
-	PHP_FE(uv_uptime,                   NULL)
-	PHP_FE(uv_cpu_info,                 NULL)
-	PHP_FE(uv_interface_addresses,      NULL)
-	PHP_FE(uv_get_free_memory,          NULL)
-	PHP_FE(uv_get_total_memory,         NULL)
-	PHP_FE(uv_hrtime,                   NULL)
-	PHP_FE(uv_exepath,                  NULL)
-	PHP_FE(uv_cwd,                      NULL)
+	PHP_FE(uv_loadavg,                  arginfo_void)
+	PHP_FE(uv_uptime,                   arginfo_void)
+	PHP_FE(uv_cpu_info,                 arginfo_void)
+	PHP_FE(uv_interface_addresses,      arginfo_void)
+	PHP_FE(uv_get_free_memory,          arginfo_void)
+	PHP_FE(uv_get_total_memory,         arginfo_void)
+	PHP_FE(uv_hrtime,                   arginfo_void)
+	PHP_FE(uv_exepath,                  arginfo_void)
+	PHP_FE(uv_cwd,                      arginfo_void)
 	PHP_FE(uv_chdir,                    arginfo_uv_chdir)
-	PHP_FE(uv_resident_set_memory,      NULL)
+	PHP_FE(uv_resident_set_memory,      arginfo_void)
 	/* signal handling */
 	PHP_FE(uv_signal_init,              arginfo_uv_signal_init)
 	PHP_FE(uv_signal_start,             arginfo_uv_signal_start)
