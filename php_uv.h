@@ -40,7 +40,11 @@
 #elif !defined(PHP_WIN32)
 typedef struct {
 	int bsd_socket;
-	/* other fields are not interesting... */
+	int type;
+	int error;
+	int blocking;
+	zval zstream;
+	zend_object std;
 } php_socket;
 #endif
 
