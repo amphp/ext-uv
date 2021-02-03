@@ -109,7 +109,7 @@ PHP License
 
 # Documentation
 
-Use your favorite **IDE** and pull in the provided [**stubs**](https://github.com/bwoebi/php-uv/tree/master/stub).
+Use your favorite **IDE** and pull in the provided [**stubs**](https://github.com/amphp/ext-uv/tree/master/stub).
 
 For deeper usage understanding, see the online [book](https://nikhilm.github.io/uvbook/index.html) for a full tutorial overview.
 
