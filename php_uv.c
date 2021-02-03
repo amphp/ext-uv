@@ -296,9 +296,10 @@ static int uv_parse_arg_object(zval *arg, zval **dest, int check_null, zend_clas
 
 #if !defined(PHP_WIN32) && !(defined(HAVE_SOCKETS) && !defined(COMPILE_DL_SOCKETS))
 # if PHP_VERSION_ID >= 80000
-zend_class_entry *(*socket_ce)(void) = NULL;
+__attribute__((weak)) zend_class_entry *socket_ce = NULL;
 # else
-int (*php_sockets_le_socket)(void) = NULL;
+int (*php_sockets_le_socket_ptr)(void) = NULL;
+int php_sockets_le_socket(void) __attribute__((weak));
 # endif
 #endif
 
@@ -453,7 +454,7 @@ static php_socket_t php_uv_zval_to_valid_poll_fd(zval *ptr)
 
 			fd = -1;
 #if PHP_VERSION_ID < 80000 && (!defined(PHP_WIN32) || (defined(HAVE_SOCKETS) && !defined(COMPILE_DL_SOCKETS)))
-		} else if (php_sockets_le_socket && (socket = (php_socket *) zend_fetch_resource_ex(ptr, NULL, php_sockets_le_socket()))) {
+		} else if (php_sockets_le_socket_ptr && (socket = (php_socket *) zend_fetch_resource_ex(ptr, NULL, php_sockets_le_socket_ptr()))) {
 			fd = socket->bsd_socket;
 #endif
 		} else {
@@ -483,7 +484,7 @@ static php_socket_t php_uv_zval_to_fd(zval *ptr)
 				fd = -1;
 			}
 #if PHP_VERSION_ID < 80000 && (!defined(PHP_WIN32) || (defined(HAVE_SOCKETS) && !defined(COMPILE_DL_SOCKETS)))
-		} else if (php_sockets_le_socket && (socket = (php_socket *) zend_fetch_resource_ex(ptr, NULL, php_sockets_le_socket()))) {
+		} else if (php_sockets_le_socket_ptr && (socket = (php_socket *) zend_fetch_resource_ex(ptr, NULL, php_sockets_le_socket_ptr()))) {
 			fd = socket->bsd_socket;
 #endif
 		} else {
@@ -2774,15 +2775,18 @@ PHP_MINIT_FUNCTION(uv)
 		if ((sockets = zend_hash_str_find_ptr(&module_registry, ZEND_STRL("sockets")))) {
 			if (sockets->handle) { // shared
 # if PHP_VERSION_ID >= 80000
-				socket_ce = (int (*)(void)) DL_FETCH_SYMBOL(sockets->handle, "_socket_ce");
-				if (socket_ce == NULL) {
-					socket_ce = (int (*)(void)) DL_FETCH_SYMBOL(sockets->handle, "_socket_ce");
+				zend_class_entry **socket_ce_ptr = (zend_class_entry **) DL_FETCH_SYMBOL(sockets->handle, "_socket_ce");
+				if (socket_ce_ptr == NULL) {
+					socket_ce_ptr = (zend_class_entry **) DL_FETCH_SYMBOL(sockets->handle, "_socket_ce");
 				}
+				socket_ce = *socket_ce_ptr;
 # else
-				php_sockets_le_socket = (int (*)(void)) DL_FETCH_SYMBOL(sockets->handle, "php_sockets_le_socket");
-				if (php_sockets_le_socket == NULL) {
-					php_sockets_le_socket = (int (*)(void)) DL_FETCH_SYMBOL(sockets->handle, "_php_sockets_le_socket");
+				php_sockets_le_socket_ptr = (int (*)(void)) DL_FETCH_SYMBOL(sockets->handle, "php_sockets_le_socket");
+				if (php_sockets_le_socket_ptr == NULL) {
+					php_sockets_le_socket_ptr = (int (*)(void)) DL_FETCH_SYMBOL(sockets->handle, "_php_sockets_le_socket");
 				}
+			} else {
+				php_sockets_le_socket_ptr = &php_sockets_le_socket;
 #endif
 			}
 		}
