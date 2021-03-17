@@ -2775,7 +2775,7 @@ PHP_MINIT_FUNCTION(uv)
 		if ((sockets = zend_hash_str_find_ptr(&module_registry, ZEND_STRL("sockets")))) {
 			if (sockets->handle) { // shared
 # if PHP_VERSION_ID >= 80000
-				zend_class_entry **socket_ce_ptr = (zend_class_entry **) DL_FETCH_SYMBOL(sockets->handle, "_socket_ce");
+				zend_class_entry **socket_ce_ptr = (zend_class_entry **) DL_FETCH_SYMBOL(sockets->handle, "socket_ce");
 				if (socket_ce_ptr == NULL) {
 					socket_ce_ptr = (zend_class_entry **) DL_FETCH_SYMBOL(sockets->handle, "_socket_ce");
 				}
