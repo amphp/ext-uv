@@ -1897,7 +1897,7 @@ static void php_uv_fs_cb(uv_fs_t* req)
 			break;
 
 		case UV_FS_SCANDIR:
-			argc = 2;
+			argc = 1;
 			if (uv->uv.fs.result < 0) { /* req->ptr may be NULL here, but uv_fs_scandir_next() knows to handle it */
 				ZVAL_LONG(&params[0], uv->uv.fs.result);
 			} else {
