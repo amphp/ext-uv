@@ -2679,9 +2679,14 @@ static zend_class_entry *php_uv_register_internal_class_ex(const char *name, zen
 	ce.name = zend_new_interned_string(zend_string_init(name, strlen(name), 1));
 	ce.info.internal.builtin_functions = php_uv_empty_methods;
 	new = zend_register_internal_class_ex(&ce, parent);
+#if PHP_VERSION_ID < 80100
 	new->serialize = zend_class_serialize_deny;
 	new->unserialize = zend_class_unserialize_deny;
+#endif
 	new->ce_flags |= ZEND_ACC_FINAL;
+#if PHP_VERSION_ID >= 80100
+	new->ce_flags |= ZEND_ACC_NOT_SERIALIZABLE ;
+#endif
 	new->create_object = php_uv_create_uv;
 
 	return new;
