@@ -1250,7 +1250,14 @@ void static destruct_uv_loop(zend_object *obj)
 		/* for proper destruction: close all handles, let libuv call close callback and then close and free the loop */
 		uv_walk(loop, destruct_uv_loop_walk_cb, NULL);
 		uv_run(loop, UV_RUN_DEFAULT);
-		uv_loop_close(loop);
+	}
+}
+
+void static free_uv_loop(zend_object *obj)
+{
+	php_uv_loop_t *loop_obj = (php_uv_loop_t *) obj;
+	if (loop_obj != UV_G(default_loop)) {
+		uv_loop_close(&loop_obj->loop);
 	}
 	if (loop_obj->gc_buffer) {
 		efree(loop_obj->gc_buffer);
@@ -1897,7 +1904,7 @@ static void php_uv_fs_cb(uv_fs_t* req)
 			break;
 
 		case UV_FS_SCANDIR:
-			argc = 2;
+			argc = 1;
 			if (uv->uv.fs.result < 0) { /* req->ptr may be NULL here, but uv_fs_scandir_next() knows to handle it */
 				ZVAL_LONG(&params[0], uv->uv.fs.result);
 			} else {
@@ -2679,9 +2686,14 @@ static zend_class_entry *php_uv_register_internal_class_ex(const char *name, zen
 	ce.name = zend_new_interned_string(zend_string_init(name, strlen(name), 1));
 	ce.info.internal.builtin_functions = php_uv_empty_methods;
 	new = zend_register_internal_class_ex(&ce, parent);
+#if PHP_VERSION_ID < 80100
 	new->serialize = zend_class_serialize_deny;
 	new->unserialize = zend_class_unserialize_deny;
+#endif
 	new->ce_flags |= ZEND_ACC_FINAL;
+#if PHP_VERSION_ID >= 80100
+	new->ce_flags |= ZEND_ACC_NOT_SERIALIZABLE ;
+#endif
 	new->create_object = php_uv_create_uv;
 
 	return new;
@@ -2746,6 +2758,7 @@ PHP_MINIT_FUNCTION(uv)
 	memcpy(&uv_loop_handlers, &uv_default_handlers, sizeof(zend_object_handlers));
 	uv_loop_handlers.get_gc = php_uv_loop_get_gc;
 	uv_loop_handlers.dtor_obj = destruct_uv_loop;
+	uv_loop_handlers.free_obj = free_uv_loop;
 
 	uv_sockaddr_ce = php_uv_register_internal_class("UVSockAddr");
 	uv_sockaddr_ce->ce_flags |= ZEND_ACC_ABSTRACT;
