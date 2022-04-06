@@ -45,3 +45,4 @@ tests/*.log
 tests/*.php
 tests/*.sh
 tests/*.out
+php-sdk/
