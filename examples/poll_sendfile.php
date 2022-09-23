@@ -1,6 +1,6 @@
 <?php
 
-$socket = stream_socket_server("tcp://0.0.0.0:9999", $errno, $errstr);
+$socket = stream_socket_server("tcp://127.0.0.1:9999", $errno, $errstr);
 
 $poll = uv_poll_init(uv_default_loop(), $socket);
 

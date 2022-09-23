@@ -1,6 +1,3 @@
---TEST--
-Check for uv_listen callback is not destroyed by gc
---FILE--
 <?php
 class TcpServer
 {
@@ -20,7 +17,7 @@ class TcpServer
 
     public function listen()
     {
-        uv_listen($this->tcp, 100, function ($server, $status) {
+        uv_listen($this->tcp, 128, function ($server, $status) {
 
             $client = uv_tcp_init($this->loop);
             uv_accept($server, $client);
@@ -60,9 +57,3 @@ for ($i = 0; $i < 4; $i++) {
 }
 
 uv_run($loop, UV::RUN_DEFAULT);
-
---EXPECTF--
-OK
-OK
-OK
-OK

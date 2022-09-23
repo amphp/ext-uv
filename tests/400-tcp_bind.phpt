@@ -1,15 +1,13 @@
 --TEST--
 Check for tcp bind
---SKIPIF--
-<?php if ('\\' === \DIRECTORY_SEPARATOR) print "Skip, broken on Windows"; ?>
 --FILE--
 <?php
 $tcp = uv_tcp_init();
-uv_tcp_bind($tcp, uv_ip4_addr('0.0.0.0',0));
+uv_tcp_bind($tcp, uv_ip4_addr('127.0.0.1',0));
 uv_listen($tcp, 100, function($server){
     $client = uv_tcp_init();
     uv_accept($server, $client);
-    uv_read_start($client, function($socket, $buffer) use ($server) {
+    uv_read_start($client, function($socket, $nRead, $buffer) use ($server) {
         echo $buffer . PHP_EOL;
         uv_close($socket);
         uv_close($server);
