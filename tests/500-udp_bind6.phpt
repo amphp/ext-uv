@@ -7,7 +7,7 @@ uv_udp_bind6($udp, uv_ip6_addr('::1',10000));
 
 uv_udp_recv_start($udp,function($stream, $buffer) {
     echo "recv: " .  $buffer;
-    
+
     uv_close($stream);
 });
 

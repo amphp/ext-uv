@@ -2,7 +2,13 @@
 Check for pipe bind
 --FILE--
 <?php
-define("PIPE_PATH", dirname(__FILE__) . "/pipe_test.sock");
+
+if (stripos(PHP_OS, "WIN") == 0) {
+    define("PIPE_PATH", "\\\\.\\pipe\\MyPipeName");
+} else {
+    define("PIPE_PATH", dirname(__FILE__) . "/pipe_test.sock");
+}
+
 @unlink(PIPE_PATH);
 $a = uv_pipe_init(uv_default_loop(), 0);
 $ret = uv_pipe_bind($a, PIPE_PATH);

@@ -6,11 +6,12 @@ uv_fs_open(uv_default_loop(),__FILE__, UV::O_RDONLY, 0, function($r){
                 throw new Exception("read error");
             }
 
-            uv_fs_close(uv_default_loop(), $stream, function(){
-            });
-        } else {
-            echo $data;
-        }
+                uv_fs_close(uv_default_loop(), $stream, function () {
+                });
+            } else {
+                echo $data;
+            }
+        });
     });
 });
 

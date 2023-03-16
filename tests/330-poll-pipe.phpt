@@ -1,5 +1,7 @@
 --TEST--
 Check poll of a pipe works
+--SKIPIF--
+<?php if ('\\' === \DIRECTORY_SEPARATOR) print "Skip, opening pipe as a socket don't work on Windows, only Linux."; ?>
 --FILE--
 <?php
 $php = (getenv('TEST_PHP_EXECUTABLE') ? : PHP_BINARY)  . ' ' . (getenv('TEST_PHP_ARGS') ? : '-n');
