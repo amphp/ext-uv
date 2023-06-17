@@ -20,8 +20,8 @@ if (uv_rwlock_tryrdlock($lock)) {
 }
 
 uv_rwlock_rdunlock($lock);
---EXPECT--
+--EXPECTF--
 OK
 OK
 
-Notice: Unknown: uv_rwlock: still locked resource detected; forcing rdunlock in Unknown on line 0
+Notice: %s: uv_rwlock: still locked resource detected; forcing rdunlock in Unknown on line 0
