@@ -1,146 +1,151 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<package packagerversion="1.9.4" version="2.0" xmlns="http://pear.php.net/dtd/package-2.0" xmlns:tasks="http://pear.php.net/dtd/tasks-1.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://pear.php.net/dtd/tasks-1.0 http://pear.php.net/dtd/tasks-1.0.xsd http://pear.php.net/dtd/package-2.0 http://pear.php.net/dtd/package-2.0.xsd">
- <name>uv</name>
- <channel>pecl.php.net</channel>
- <summary>libuv wrapper</summary>
- <description>uv provides access to underlying libuv functions</description>
- <lead>
-  <name>Bob Weinand</name>
-  <user>bwoebi</user>
-  <email>bobwei9@hotmail.com</email>
-  <active>yes</active>
- </lead>
- <date>2019-05-01</date>
- <time>13:00:00</time>
- <version>
-  <release>0.2.4</release>
-  <api>0.2.4</api>
- </version>
- <stability>
-  <release>beta</release>
-  <api>beta</api>
- </stability>
- <license uri="http://www.php.net/license">PHP License</license>
- <notes>
- - Fix Windows build
- </notes>
- <contents>
-  <dir name="/">
-    <dir name="examples">
-      <file name="async.php" role="doc" />
-      <file name="check.php" role="doc" />
-      <file name="chmod.php" role="doc" />
-      <file name="debug_timer.php" role="doc" />
-      <file name="fingerd.php" role="doc" />
-      <file name="fs.php" role="doc" />
-      <file name="fs_poll.php" role="doc" />
-      <file name="fs_truncate.php" role="doc" />
-      <file name="fsevevnt.php" role="doc" />
-      <file name="fstat.php" role="doc" />
-      <file name="fsw.php" role="doc" />
-      <file name="getaddrinfo.php" role="doc" />
-      <file name="gethostbyname.php" role="doc" />
-      <file name="idle.php" role="doc" />
-      <file name="lstat.php" role="doc" />
-      <file name="mkdir.php" role="doc" />
-      <file name="pipe.php" role="doc" />
-      <file name="pipe_bind_connect.php" role="doc" />
-      <file name="poll.php" role="doc" />
-      <file name="prepare.php" role="doc" />
-      <file name="queue.php" role="doc" />
-      <file name="readdir.php" role="doc" />
-      <file name="readlink.php" role="doc" />
-      <file name="rename.php" role="doc" />
-      <file name="request.php" role="doc" />
-      <file name="rmdir.php" role="doc" />
-      <file name="run_once.php" role="doc" />
-      <file name="sendfile.php" role="doc" />
-      <file name="spawn.php" role="doc" />
-      <file name="spawn_fd.php" role="doc" />
-      <file name="stat.php" role="doc" />
-      <file name="tcp_bind.php" role="doc" />
-      <file name="tcp_bind6.php" role="doc" />
-      <file name="timer.php" role="doc" />
-      <file name="tty.php" role="doc" />
-      <file name="udp_bind.php" role="doc" />
-      <file name="unlink.php" role="doc" />
-      <file name="utime.php" role="doc" />
-    </dir>
-    <dir name="tests">
-      <file name="000-load.phpt" role="test" />
-      <file name="001-constants.phpt" role="test" />
-      <file name="002-uv_loop_delete_segfault.phpt" role="test" />
-      <file name="003-uv_write_different-callbacks.phpt" role="test" />
-      <file name="004-uv_write-no-memory_leak.phpt" role="test" />
-      <file name="005-uv_listen_cb-not-destroyed.phpt" role="test" />
-      <file name="006-uv_async_init-no-memory-leak.phpt" role="test" />
-      <file name="010-uv_ip4_addr.phpt" role="test" />
-      <file name="010-uv_ip4_name.phpt" role="test" />
-      <file name="010-uv_ip6_addr.phpt" role="test" />
-      <file name="010-uv_ip6_name.phpt" role="test" />
-      <file name="010-uv_loop_new.phpt" role="test" />
-      <file name="100-uv_async.phpt" role="test" />
-      <file name="100-uv_check.phpt" role="test" />
-      <file name="100-uv_prepare.phpt" role="test" />
-      <file name="100-uv_stop.phpt" role="test" />
-      <file name="100-uv_timer.phpt" role="test" />
-      <file name="101-uv-idle.phpt" role="test" />
-      <file name="200-ares_getaddrinfo.phpt" role="test" />
-      <file name="300-fs.phpt" role="test" />
-      <file name="310-fs-mkdir.phpt" role="test" />
-      <file name="311-fs-rmdir.phpt" role="test" />
-      <file name="320-fs-event.phpt" role="test" />
-      <file name="320-fs-poll.phpt" role="test" />
-      <file name="320-fs-sendfile.phpt" role="test" />
-      <file name="330-poll-pipe.phpt" role="test" />
-      <file name="330-poll.phpt" role="test" />
-      <file name="399-fs-stat-regression-no14.phpt" role="test" />
-      <file name="400-tcp_bind.phpt" role="test" />
-      <file name="400-tcp_bind6.phpt" role="test" />
-      <file name="500-udp_bind.phpt" role="test" />
-      <file name="500-udp_bind6.phpt" role="test" />
-      <file name="600-pipe_bind.phpt" role="test" />
-      <file name="700-uv_rwlock.phpt" role="test" />
-      <file name="700-uv_wrlock.phpt" role="test" />
-      <file name="701-uv_mutex.phpt" role="test" />
-      <file name="800-uv_queue_work.phpt" role="test" />
-      <file name="800-uv_spawn-issue59.phpt" role="test" />
-      <file name="800-uv_tty.phpt" role="test" />
-      <file name="999-uv_chdir.phpt" role="test" />
-      <file name="999-uv_cpu_info.phpt" role="test" />
-      <file name="999-uv_cpuinfo.phpt" role="test" />
-      <file name="999-uv_cwd.phpt" role="test" />
-      <file name="999-uv_exepath.phpt" role="test" />
-      <file name="999-uv_get_free_memory.phpt" role="test" />
-      <file name="999-uv_get_total_memory.phpt" role="test" />
-      <file name="999-uv_hrtime.phpt" role="test" />
-      <file name="999-uv_loadavg.phpt" role="test" />
-      <file name="999-uv_resident_set_memory.phpt" role="test" />
-      <file name="999-uv_uptime.phpt" role="test" />
-      <file name="fixtures/hello.data" role="test" />
-      <file name="fixtures/poll" role="test" />
-      <file name="fixtures/proc.php" role="test" />
-    </dir>
-    <file name="config.m4" role="src" />
-    <file name="config.w32" role="src" />
-    <file name="LICENSE" role="doc" />
-    <file name="php_uv.c" role="src" />
-    <file name="php_uv.h" role="src" />
-    <file name="phpuv_dtrace.d" role="src" />
-    <file name="README.md" role="doc" />
-    <file name="uv.c" role="src" />
-  </dir>
- </contents>
- <dependencies>
-  <required>
-   <php>
-    <min>7.0.0</min>
-   </php>
-   <pearinstaller>
-    <min>1.4.0b1</min>
-   </pearinstaller>
-  </required>
- </dependencies>
- <providesextension>uv</providesextension>
- <extsrcrelease />
+<package packagerversion="1.9.4" version="2.0" xmlns="http://pear.php.net/dtd/package-2.0"
+         xmlns:tasks="http://pear.php.net/dtd/tasks-1.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://pear.php.net/dtd/tasks-1.0 http://pear.php.net/dtd/tasks-1.0.xsd http://pear.php.net/dtd/package-2.0 http://pear.php.net/dtd/package-2.0.xsd">
+    <name>uv</name>
+    <channel>pecl.php.net</channel>
+    <summary>libuv wrapper</summary>
+    <description>uv provides access to underlying libuv functions</description>
+    <lead>
+        <name>Bob Weinand</name>
+        <user>bwoebi</user>
+        <email>bobwei9@hotmail.com</email>
+        <active>yes</active>
+    </lead>
+    <lead>
+        <name>Aaron Piotrowski</name>
+        <user>trowski</user>
+        <email>aaron@trowski.com</email>
+        <active>yes</active>
+    </lead>
+    <date>2023-06-17</date>
+    <version>
+        <release>0.3.0</release>
+        <api>0.3.0</api>
+    </version>
+    <stability>
+        <release>beta</release>
+        <api>beta</api>
+    </stability>
+    <license uri="http://www.php.net/license">PHP License</license>
+    <notes>0.3.0 release</notes>
+    <contents>
+        <dir name="/">
+            <dir name="examples">
+                <file name="async.php" role="doc"/>
+                <file name="check.php" role="doc"/>
+                <file name="chmod.php" role="doc"/>
+                <file name="debug_timer.php" role="doc"/>
+                <file name="fingerd.php" role="doc"/>
+                <file name="fs.php" role="doc"/>
+                <file name="fs_poll.php" role="doc"/>
+                <file name="fs_truncate.php" role="doc"/>
+                <file name="fstat.php" role="doc"/>
+                <file name="fsw.php" role="doc"/>
+                <file name="getaddrinfo.php" role="doc"/>
+                <file name="idle.php" role="doc"/>
+                <file name="lstat.php" role="doc"/>
+                <file name="mkdir.php" role="doc"/>
+                <file name="pipe.php" role="doc"/>
+                <file name="pipe_bind_connect.php" role="doc"/>
+                <file name="poll.php" role="doc"/>
+                <file name="prepare.php" role="doc"/>
+                <file name="queue.php" role="doc"/>
+                <file name="readdir.php" role="doc"/>
+                <file name="readlink.php" role="doc"/>
+                <file name="rename.php" role="doc"/>
+                <file name="rmdir.php" role="doc"/>
+                <file name="run_once.php" role="doc"/>
+                <file name="sendfile.php" role="doc"/>
+                <file name="spawn.php" role="doc"/>
+                <file name="spawn_fd.php" role="doc"/>
+                <file name="stat.php" role="doc"/>
+                <file name="tcp_bind.php" role="doc"/>
+                <file name="tcp_bind6.php" role="doc"/>
+                <file name="timer.php" role="doc"/>
+                <file name="tty.php" role="doc"/>
+                <file name="udp_bind.php" role="doc"/>
+                <file name="unlink.php" role="doc"/>
+                <file name="utime.php" role="doc"/>
+            </dir>
+            <dir name="tests">
+                <file name="000-load.phpt" role="test"/>
+                <file name="001-constants.phpt" role="test"/>
+                <file name="002-uv_loop_delete_segfault.phpt" role="test"/>
+                <file name="003-uv_write_different-callbacks.phpt" role="test"/>
+                <file name="004-uv_write-no-memory_leak.phpt" role="test"/>
+                <file name="005-uv_listen_cb-not-destroyed.phpt" role="test"/>
+                <file name="006-uv_async_init-no-memory-leak.phpt" role="test"/>
+                <file name="010-uv_ip4_addr.phpt" role="test"/>
+                <file name="010-uv_ip4_name.phpt" role="test"/>
+                <file name="010-uv_ip6_addr.phpt" role="test"/>
+                <file name="010-uv_ip6_name.phpt" role="test"/>
+                <file name="010-uv_loop_new.phpt" role="test"/>
+                <file name="100-uv_async.phpt" role="test"/>
+                <file name="100-uv_check.phpt" role="test"/>
+                <file name="100-uv_prepare.phpt" role="test"/>
+                <file name="100-uv_stop.phpt" role="test"/>
+                <file name="100-uv_timer.phpt" role="test"/>
+                <file name="101-uv-idle.phpt" role="test"/>
+                <file name="200-ares_getaddrinfo.phpt" role="test"/>
+                <file name="300-fs.phpt" role="test"/>
+                <file name="310-fs-mkdir.phpt" role="test"/>
+                <file name="310-fs-scandir.phpt" role="test"/>
+                <file name="311-fs-rmdir.phpt" role="test"/>
+                <file name="320-fs-event.phpt" role="test"/>
+                <file name="320-fs-poll.phpt" role="test"/>
+                <file name="320-fs-readlink.phpt" role="test"/>
+                <file name="320-fs-sendfile.phpt" role="test"/>
+                <file name="330-poll-pipe.phpt" role="test"/>
+                <file name="330-poll.phpt" role="test"/>
+                <file name="399-fs-stat-regression-no14.phpt" role="test"/>
+                <file name="400-tcp_bind.phpt" role="test"/>
+                <file name="400-tcp_bind6.phpt" role="test"/>
+                <file name="500-udp_bind.phpt" role="test"/>
+                <file name="500-udp_bind6.phpt" role="test"/>
+                <file name="600-pipe_bind.phpt" role="test"/>
+                <file name="700-uv_rwlock.phpt" role="test"/>
+                <file name="700-uv_wrlock.phpt" role="test"/>
+                <file name="701-uv_mutex.phpt" role="test"/>
+                <file name="800-broken-uv_spawn-issue-79.phpt" role="test"/>
+                <file name="800-uv_queue_work.phpt" role="test"/>
+                <file name="800-uv_stdio_new-issue59.phpt" role="test"/>
+                <file name="800-uv_tty.phpt" role="test"/>
+                <file name="999-uv_chdir.phpt" role="test"/>
+                <file name="999-uv_cpu_info.phpt" role="test"/>
+                <file name="999-uv_cpuinfo.phpt" role="test"/>
+                <file name="999-uv_cwd.phpt" role="test"/>
+                <file name="999-uv_exepath.phpt" role="test"/>
+                <file name="999-uv_get_free_memory.phpt" role="test"/>
+                <file name="999-uv_get_total_memory.phpt" role="test"/>
+                <file name="999-uv_hrtime.phpt" role="test"/>
+                <file name="999-uv_loadavg.phpt" role="test"/>
+                <file name="999-uv_resident_set_memory.phpt" role="test"/>
+                <file name="999-uv_uptime.phpt" role="test"/>
+                <file name="fixtures/hello.data" role="test"/>
+                <file name="fixtures/poll" role="test"/>
+                <file name="fixtures/proc.php" role="test"/>
+            </dir>
+            <file name="config.m4" role="src"/>
+            <file name="config.w32" role="src"/>
+            <file name="LICENSE" role="doc"/>
+            <file name="php_uv.c" role="src"/>
+            <file name="php_uv.h" role="src"/>
+            <file name="phpuv_dtrace.d" role="src"/>
+            <file name="README.md" role="doc"/>
+            <file name="uv.c" role="src"/>
+        </dir>
+    </contents>
+    <dependencies>
+        <required>
+            <php>
+                <min>8.0.0</min>
+            </php>
+            <pearinstaller>
+                <min>1.4.0</min>
+            </pearinstaller>
+        </required>
+    </dependencies>
+    <providesextension>uv</providesextension>
+    <extsrcrelease/>
 </package>
