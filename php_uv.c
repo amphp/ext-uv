@@ -1,9 +1,5 @@
 /*
    +----------------------------------------------------------------------+
-   | PHP Version 5                                                        |
-   +----------------------------------------------------------------------+
-   | Copyright (c) 1997-2012 The PHP Group                                |
-   +----------------------------------------------------------------------+
    | This source file is subject to version 3.01 of the PHP license,      |
    | that is bundled with this package in the file LICENSE, and is        |
    | available through the world-wide-web at the following url:           |
@@ -798,7 +794,7 @@ static void php_uv_fs_common(uv_fs_type fs_type, INTERNAL_FUNCTION_PARAMETERS)
 		Z_PARAM_FUNC_EX(fci, fcc, 1, 0) \
 	ZEND_PARSE_PARAMETERS_END()
 
-#define PHP_UV_FS_PARSE_PARAMETERS(num, params) PHP_UV_FS_PARSE_PARAMETERS_EX(num, params, 0)	
+#define PHP_UV_FS_PARSE_PARAMETERS(num, params) PHP_UV_FS_PARSE_PARAMETERS_EX(num, params, 0)
 
 #define PHP_UV_FS_SETUP() \
 	PHP_UV_INIT_UV(uv, uv_fs_ce); \
@@ -1231,7 +1227,7 @@ void static destruct_uv_lock(zend_object *obj)
 	}
 }
 
-static void destruct_uv_loop_walk_cb(uv_handle_t* handle, void* arg) 
+static void destruct_uv_loop_walk_cb(uv_handle_t* handle, void* arg)
 {
 	php_uv_t *uv = (php_uv_t *) handle->data;
 	if (!PHP_UV_IS_DTORED(uv)) { // otherwise we're already closing
@@ -2642,7 +2638,7 @@ static zend_object *php_uv_create_uv_loop(zend_class_entry *ce) {
 	php_uv_loop_t *loop = emalloc(sizeof(php_uv_loop_t));
 	zend_object_std_init(&loop->std, ce);
 	loop->std.handlers = &uv_loop_handlers;
-	
+
 	uv_loop_init(&loop->loop);
 
 	loop->gc_buffer_size = 0;
@@ -3135,7 +3131,7 @@ ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_spawn, 0, 0, 7)
 	ZEND_ARG_INFO(0, env)
 	ZEND_ARG_INFO(0, callback)
 	ZEND_ARG_INFO(0, flags)
-	ZEND_ARG_INFO(0, options)	
+	ZEND_ARG_INFO(0, options)
 ZEND_END_ARG_INFO()
 
 ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_kill, 0, 0, 2)
@@ -5851,7 +5847,7 @@ PHP_FUNCTION(uv_fs_fchown)
 	php_uv_fs_common(UV_FS_FCHOWN, INTERNAL_FUNCTION_PARAM_PASSTHRU);
 }
 /* }}} */
-	
+
 /* {{{ proto void uv_fs_link(UVLoop $loop, string $from, string $to[, callable(long $result) $callback])
 */
 PHP_FUNCTION(uv_fs_link)
