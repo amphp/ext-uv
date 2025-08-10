@@ -2825,11 +2825,6 @@ PHP_RSHUTDOWN_FUNCTION(uv)
 ZEND_BEGIN_ARG_INFO_EX(arginfo_void, 0, 0, 0)
 ZEND_END_ARG_INFO()
 
-ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_stdio_new, 0, 0, 0)
-    ZEND_ARG_INFO(0, handle)
-    ZEND_ARG_INFO(0, flags)
-ZEND_END_ARG_INFO()
-
 ZEND_BEGIN_ARG_INFO_EX(arginfo_uv_run, 0, 0, 0)
 	ZEND_ARG_INFO(0, loop)
 	ZEND_ARG_INFO(0, run_mode)
@@ -6363,7 +6358,7 @@ static zend_function_entry uv_functions[] = {
 	PHP_FE(uv_pipe_pending_instances,   arginfo_uv_pipe_pending_instances)
 	PHP_FE(uv_pipe_pending_count,       arginfo_uv_pipe_pending_count)
 	PHP_FE(uv_pipe_pending_type,        arginfo_uv_pipe_pending_type)
-	PHP_FE(uv_stdio_new,                arginfo_uv_stdio_new)
+	PHP_FE(uv_stdio_new,                arginfo_void)
 	/* spawn */
 	PHP_FE(uv_spawn,                    arginfo_uv_spawn)
 	PHP_FE(uv_process_kill,             arginfo_uv_process_kill)
