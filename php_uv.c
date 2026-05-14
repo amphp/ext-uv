@@ -841,8 +841,6 @@ static void php_uv_fs_common(uv_fs_type fs_type, INTERNAL_FUNCTION_PARAMETERS)
 			PHP_UV_FS_PARSE_PARAMETERS(2, Z_PARAM_RESOURCE(zstream) Z_PARAM_LONG(mode));
 			PHP_UV_FS_SETUP();
 			PHP_UV_ZVAL_TO_FD(fd, zstream);
-			uv->fs_fd = *zstream;
-			Z_ADDREF(uv->fs_fd);
 			PHP_UV_FS_ASYNC(loop, fchmod, fd, mode);
 			break;
 		}
@@ -888,8 +886,6 @@ static void php_uv_fs_common(uv_fs_type fs_type, INTERNAL_FUNCTION_PARAMETERS)
 			PHP_UV_FS_PARSE_PARAMETERS(2, Z_PARAM_RESOURCE(zstream) Z_PARAM_LONG(offset));
 			PHP_UV_FS_SETUP()
 			PHP_UV_ZVAL_TO_FD(fd, zstream);
-			uv->fs_fd = *zstream;
-			Z_ADDREF(uv->fs_fd);
 			PHP_UV_FS_ASYNC(loop, ftruncate, fd, offset);
 			break;
 		}
@@ -901,8 +897,6 @@ static void php_uv_fs_common(uv_fs_type fs_type, INTERNAL_FUNCTION_PARAMETERS)
 			PHP_UV_FS_PARSE_PARAMETERS(1, Z_PARAM_RESOURCE(zstream));
 			PHP_UV_FS_SETUP()
 			PHP_UV_ZVAL_TO_FD(fd, zstream);
-			uv->fs_fd = *zstream;
-			Z_ADDREF(uv->fs_fd);
 			PHP_UV_FS_ASYNC(loop, fdatasync, fd);
 			break;
 		}
@@ -914,8 +908,6 @@ static void php_uv_fs_common(uv_fs_type fs_type, INTERNAL_FUNCTION_PARAMETERS)
 			PHP_UV_FS_PARSE_PARAMETERS(1, Z_PARAM_RESOURCE(zstream));
 			PHP_UV_FS_SETUP()
 			PHP_UV_ZVAL_TO_FD(fd, zstream);
-			uv->fs_fd = *zstream;
-			Z_ADDREF(uv->fs_fd);
 			PHP_UV_FS_ASYNC(loop, fsync, fd);
 			break;
 		}
@@ -923,13 +915,26 @@ static void php_uv_fs_common(uv_fs_type fs_type, INTERNAL_FUNCTION_PARAMETERS)
 		{
 			zval *zstream = NULL;
 			unsigned long fd;
+			int dup_fd;
 
 			PHP_UV_FS_PARSE_PARAMETERS(1, Z_PARAM_RESOURCE(zstream));
 			PHP_UV_FS_SETUP()
 			PHP_UV_ZVAL_TO_FD(fd, zstream);
-			uv->fs_fd = *zstream;
-			Z_ADDREF(uv->fs_fd);
-			PHP_UV_FS_ASYNC(loop, close, fd);
+
+			/* The wrapping php_stream still owns the original fd and will
+			 * close() it from its destructor when the resource is released.
+			 * Pass a dup() to libuv so the libuv async close targets a
+			 * separate fd number — otherwise libuv frees the fd in the
+			 * kernel before the stream destructor runs, the kernel may
+			 * recycle the fd number for an unrelated open, and the stream
+			 * destructor's close() then hits the wrong file. */
+			dup_fd = dup((int) fd);
+			if (dup_fd < 0) {
+				PHP_UV_DEINIT_UV(uv);
+				php_error_docref(NULL, E_ERROR, "uv_fs_close: dup() failed: %s", strerror(errno));
+				return;
+			}
+			PHP_UV_FS_ASYNC(loop, close, dup_fd);
 			break;
 		}
 		case UV_FS_CHOWN:
@@ -950,8 +955,6 @@ static void php_uv_fs_common(uv_fs_type fs_type, INTERNAL_FUNCTION_PARAMETERS)
 			PHP_UV_FS_PARSE_PARAMETERS(3, Z_PARAM_RESOURCE(zstream) Z_PARAM_LONG(uid) Z_PARAM_LONG(gid));
 			PHP_UV_FS_SETUP()
 			PHP_UV_ZVAL_TO_FD(fd, zstream);
-			uv->fs_fd = *zstream;
-			Z_ADDREF(uv->fs_fd);
 			PHP_UV_FS_ASYNC(loop, fchown, fd, uid, gid);
 			break;
 		}
@@ -995,8 +998,6 @@ static void php_uv_fs_common(uv_fs_type fs_type, INTERNAL_FUNCTION_PARAMETERS)
 			PHP_UV_FS_PARSE_PARAMETERS_EX(1, Z_PARAM_RESOURCE(zstream), 1);
 			PHP_UV_FS_SETUP()
 			PHP_UV_ZVAL_TO_FD(fd, zstream);
-			uv->fs_fd = *zstream;
-			Z_ADDREF(uv->fs_fd);
 			PHP_UV_FS_ASYNC(loop, fstat, fd);
 			break;
 		}
@@ -1026,8 +1027,6 @@ static void php_uv_fs_common(uv_fs_type fs_type, INTERNAL_FUNCTION_PARAMETERS)
 			PHP_UV_FS_PARSE_PARAMETERS(3, Z_PARAM_RESOURCE(zstream) Z_PARAM_LONG(utime) Z_PARAM_LONG(atime));
 			PHP_UV_FS_SETUP()
 			PHP_UV_ZVAL_TO_FD(fd, zstream);
-			uv->fs_fd = *zstream;
-			Z_ADDREF(uv->fs_fd);
 			PHP_UV_FS_ASYNC(loop, futime, fd, utime, atime);
 			break;
 		}
@@ -1056,8 +1055,6 @@ static void php_uv_fs_common(uv_fs_type fs_type, INTERNAL_FUNCTION_PARAMETERS)
 			}
 			PHP_UV_FS_SETUP()
 			PHP_UV_ZVAL_TO_FD(fd, zstream);
-			uv->fs_fd = *zstream;
-			Z_ADDREF(uv->fs_fd);
 
 			uv->buffer = (char*) emalloc(length);
 			buf = uv_buf_init(uv->buffer, length);
@@ -1076,10 +1073,9 @@ static void php_uv_fs_common(uv_fs_type fs_type, INTERNAL_FUNCTION_PARAMETERS)
 			/* TODO */
 			PHP_UV_ZVAL_TO_FD(in_fd, z_instream);
 			PHP_UV_ZVAL_TO_FD(out_fd, z_outstream);
-			uv->fs_fd = *z_outstream;
-			Z_ADDREF(uv->fs_fd);
-			uv->fs_fd_alt = *z_instream;
-			Z_ADDREF(uv->fs_fd_alt);
+			ZVAL_COPY_VALUE(&uv->fs_fd_alt, &uv->fs_fd);
+			/* The second PHP_UV_ZVAL_TO_FD() doesn't increment its refcount, so increment it here */
+			ZVAL_COPY(&uv->fs_fd, z_outstream);
 			PHP_UV_FS_ASYNC(loop, sendfile, in_fd, out_fd, offset, length);
 			break;
 		}
@@ -1100,8 +1096,6 @@ static void php_uv_fs_common(uv_fs_type fs_type, INTERNAL_FUNCTION_PARAMETERS)
 			ZEND_PARSE_PARAMETERS_END();
 			PHP_UV_FS_SETUP();
 			PHP_UV_ZVAL_TO_FD(fd, zstream);
-			uv->fs_fd = *zstream;
-			Z_ADDREF(uv->fs_fd);
 			uv->buffer = estrndup(buffer->val, buffer->len);
 
 			/* TODO: is this right?! */
@@ -1865,6 +1859,12 @@ static void php_uv_fs_cb(uv_fs_t* req)
 	}
 
 	switch (uv->uv.fs.fs_type) {
+		case UV_FS_CLOSE:
+			argc = 1;
+			zval_ptr_dtor(&params[0]);
+			ZVAL_LONG(&params[0], uv->uv.fs.result);
+			break;
+
 		case UV_FS_SYMLINK:
 		case UV_FS_LINK:
 		case UV_FS_CHMOD:
@@ -1872,7 +1872,6 @@ static void php_uv_fs_cb(uv_fs_t* req)
 		case UV_FS_UNLINK:
 		case UV_FS_RMDIR:
 		case UV_FS_MKDIR:
-		case UV_FS_CLOSE:
 		case UV_FS_CHOWN:
 		case UV_FS_UTIME:
 		case UV_FS_FUTIME:
