@@ -458,7 +458,7 @@ static php_socket_t php_uv_zval_to_valid_poll_fd(zval *ptr)
 			fd = -1;
 		}
 #if PHP_VERSION_ID >= 80000 && (!defined(PHP_WIN32) || (defined(HAVE_SOCKETS) && !defined(COMPILE_DL_SOCKETS)))
-	} else if (socket_ce && Z_TYPE_P(ptr) == IS_OBJECT && Z_OBJCE_P(ptr) == socket_ce && (socket = (php_socket *) ((char *)(Z_OBJ_P(ptr)) - XtOffsetOf(php_socket, std)))) {
+	} else if (socket_ce && Z_TYPE_P(ptr) == IS_OBJECT && Z_OBJCE_P(ptr) == socket_ce && (socket = (php_socket *) ((char *)(Z_OBJ_P(ptr)) - offsetof(php_socket, std)))) {
 		fd = socket->bsd_socket;
 #endif
 	}
@@ -502,7 +502,7 @@ static php_socket_t php_uv_zval_to_fd(zval *ptr)
 			}
 		}
 #if PHP_VERSION_ID >= 80000 && (!defined(PHP_WIN32) || (defined(HAVE_SOCKETS) && !defined(COMPILE_DL_SOCKETS)))
-	} else if (socket_ce && Z_TYPE_P(ptr) == IS_OBJECT && Z_OBJCE_P(ptr) == socket_ce && (socket = (php_socket *) ((char *)(Z_OBJ_P(ptr)) - XtOffsetOf(php_socket, std)))) {
+	} else if (socket_ce && Z_TYPE_P(ptr) == IS_OBJECT && Z_OBJCE_P(ptr) == socket_ce && (socket = (php_socket *) ((char *)(Z_OBJ_P(ptr)) - offsetof(php_socket, std)))) {
 		fd = socket->bsd_socket;
 #endif
 	}
@@ -542,7 +542,7 @@ static void php_uv_cb_init(php_uv_cb_t **result, php_uv_t *uv, zend_fcall_info *
 		cb = uv->callback[type];
 
 		if (Z_TYPE(cb->fci.function_name) != IS_UNDEF) {
-			zval_dtor(&cb->fci.function_name);
+			zval_ptr_dtor_nogc(&cb->fci.function_name);
 		}
 		if (fci->object) {
 			OBJ_RELEASE(fci->object);
@@ -1268,7 +1268,7 @@ void static clean_uv_handle(php_uv_t *uv) {
 		php_uv_cb_t *cb = uv->callback[i];
 		if (cb != NULL) {
 			if (ZEND_FCI_INITIALIZED(cb->fci)) {
-				zval_dtor(&cb->fci.function_name);
+				zval_ptr_dtor_nogc(&cb->fci.function_name);
 
 				if (cb->fci.object != NULL) {
 					OBJ_RELEASE(cb->fci.object);
@@ -2548,7 +2548,7 @@ static HashTable *php_uv_get_gc(zval *object, zval **table, int *n) {
 	}
 
 	// include trailing zvals like fs_fd/_alt
-	*n = (sizeof(php_uv_t) -  XtOffsetOf(php_uv_t, gc_data)) / sizeof(zval);
+	*n = (sizeof(php_uv_t) -  offsetof(php_uv_t, gc_data)) / sizeof(zval);
 	for (i = 0; i < PHP_UV_CB_MAX; i++) {
 		php_uv_cb_t *cb = uv->callback[i];
 		if (cb) {
@@ -4896,7 +4896,7 @@ PHP_FUNCTION(uv_stdio_new)
 			RETURN_FALSE;
 		}
 #if PHP_VERSION_ID >= 80000 && (!defined(PHP_WIN32) || (defined(HAVE_SOCKETS) && !defined(COMPILE_DL_SOCKETS)))
-	} else if (socket_ce && Z_TYPE_P(handle) == IS_OBJECT && Z_OBJCE_P(handle) == socket_ce && (socket = (php_socket *) ((char *)(Z_OBJ_P(handle)) - XtOffsetOf(php_socket, std)))) {
+	} else if (socket_ce && Z_TYPE_P(handle) == IS_OBJECT && Z_OBJCE_P(handle) == socket_ce && (socket = (php_socket *) ((char *)(Z_OBJ_P(handle)) - offsetof(php_socket, std)))) {
 		fd = socket->bsd_socket;
 		if (flags & (UV_CREATE_PIPE | UV_INHERIT_STREAM)) {
 			php_error_docref(NULL, E_WARNING, "flags must not be UV::CREATE_PIPE or UV::INHERIT_STREAM for socket objects");
