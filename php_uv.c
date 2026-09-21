@@ -16,6 +16,10 @@
 #pragma GCC diagnostic ignored "-Wmissing-braces"
 
 #include "php_uv.h"
+
+#if PHP_VERSION_ID >= 80600
+# include "main/php_poll.h"
+#endif
 #include "php_main.h"
 #include "ext/standard/info.h"
 #include "zend_smart_str.h"
@@ -417,6 +421,15 @@ static php_socket_t php_uv_zval_to_valid_poll_fd(zval *ptr)
 {
 	php_socket_t fd = -1;
 	php_stream *stream;
+
+#if PHP_VERSION_ID >= 80600
+	/* An Io\Poll\Handle provided by PHP or by any extension */
+	php_poll_handle_object *poll_handle = php_poll_handle_from_zval(ptr);
+
+	if (poll_handle != NULL) {
+		return php_poll_handle_get_fd(poll_handle);
+	}
+#endif
 
 	/* Validate Checks */
 
@@ -6128,7 +6141,7 @@ PHP_FUNCTION(uv_poll_init)
 
 	ZEND_PARSE_PARAMETERS_START(2, 2)
 		UV_PARAM_OBJ(loop, php_uv_loop_t, uv_loop_ce)
-		Z_PARAM_RESOURCE(zstream)
+		Z_PARAM_ZVAL(zstream)
 	ZEND_PARSE_PARAMETERS_END();
 
 	PHP_UV_FETCH_UV_DEFAULT_LOOP(loop);
@@ -6141,6 +6154,14 @@ PHP_FUNCTION(uv_poll_init)
 	PHP_UV_CHECK_VALID_FD(fd, zstream);
 
 	uv->sock = fd;
+
+#if PHP_VERSION_ID >= 80600
+	/* A handle owns what it watches, so keep it alive and hand it to the callback */
+	if (php_poll_handle_from_zval(zstream) != NULL) {
+		ZVAL_COPY(&uv->fs_fd, zstream);
+	}
+#endif
+
 	PHP_UV_DEBUG_PRINT("uv_poll_init: resource: %p\n", uv);
 
 	RETURN_OBJ(&uv->std);
