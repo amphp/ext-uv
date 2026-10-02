@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -euo pipefail
+
 VALIDATE_OUTPUT=`pear package-validate`
 
 echo "VALIDATE_OUTPUT is $VALIDATE_OUTPUT"

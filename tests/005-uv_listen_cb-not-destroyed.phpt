@@ -6,6 +6,7 @@ class TcpServer
 {
     private $loop;
     private $tcp;
+    private $accepted = 0;
 
     public function __construct($loop)
     {
@@ -29,6 +30,10 @@ class TcpServer
                 echo 'OK', PHP_EOL;
                 uv_close($socket);
             });
+
+            if (++$this->accepted === 4) {
+                $this->close();
+            }
         });
     }
 
@@ -46,16 +51,10 @@ $tcpServer = new TcpServer($loop);
 $tcpServer->bind('0.0.0.0', 9876);
 $tcpServer->listen();
 
-$closed = 0;
 for ($i = 0; $i < 4; $i++) {
     $c = uv_tcp_init($loop);
-    uv_tcp_connect($c, uv_ip4_addr('0.0.0.0', 9876), function ($stream, $stat) use (&$closed, $tcpServer) {
-        $closed++;
+    uv_tcp_connect($c, uv_ip4_addr('0.0.0.0', 9876), function ($stream, $stat) {
         uv_close($stream);
-
-        if ($closed === 4) {
-            $tcpServer->close();
-        }
     });
 }
 

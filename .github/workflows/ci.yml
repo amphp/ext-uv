@@ -4,6 +4,10 @@ on:
   push:
   pull_request:
 
+env:
+  REPORT_EXIT_STATUS: '1'
+  NO_INTERACTION: '1'
+
 jobs:
   tests:
     name: Tests (PHP ${{ matrix.php }})
@@ -12,26 +16,54 @@ jobs:
       fail-fast: false
       matrix:
         php:
-          - 8.4
-          - 8.3
-          - 8.2
-          - 8.1
-          - 8.0
+          - '8.6'
+          - '8.5'
+          - '8.4'
+          - '8.3'
+          - '8.2'
+          - '8.1'
+          - '8.0'
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
       - uses: shivammathur/setup-php@v2
         with:
           php-version: ${{ matrix.php }}
-      - run: |
-          # install 'libuv'
-          mkdir libuv
-          curl -L https://github.com/libuv/libuv/archive/v1.6.1.tar.gz | tar xzf -
-          cd libuv-1.6.1 && ./autogen.sh && ./configure --prefix=$(readlink -f `pwd`/../libuv) && make && make install
-          cd ..
-
-          # install 'php-uv'
-          phpize && ./configure --with-uv=$(readlink -f `pwd`/libuv)
+          coverage: none
+      - name: Install libuv
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libuv1-dev pkg-config
+      - name: Build and install the extension
+        run: |
+          phpize
+          ./configure
           make
           sudo make install
-          echo "extension = uv.so" >> $(php -r 'echo php_ini_loaded_file();')
-      - run: php run-tests.php -p `which php` --offline --show-diff --set-timeout 120
+          echo "extension=uv.so" >> "$(php -r 'echo php_ini_loaded_file();')"
+      - name: Run tests
+        run: php run-tests.php -p "$(command -v php)" --offline --show-diff --set-timeout 120
+
+  pie:
+    name: PIE install (PHP 8.6)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.6'
+          coverage: none
+          tools: composer, pie
+      - name: Install libuv
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libuv1-dev pkg-config
+      - name: Validate PIE metadata
+        run: composer validate --strict
+      - name: Install the checkout with PIE
+        run: |
+          sudo pie install --no-interaction
+          php --ri uv
+      - name: Run tests against the PIE installation
+        run: |
+          sudo phpize
+          php run-tests.php -p "$(command -v php)" --offline --show-diff --set-timeout 120

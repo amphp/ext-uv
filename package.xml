@@ -98,7 +98,11 @@
                 <file name="320-fs-sendfile.phpt" role="test"/>
                 <file name="330-poll-pipe.phpt" role="test"/>
                 <file name="330-poll.phpt" role="test"/>
+                <file name="399-fs-close-refcount-leak-issue-118.phpt" role="test"/>
+                <file name="399-fs-close-refcount-observe-issue-118.phpt" role="test"/>
+                <file name="399-fs-sendfile-refcount-leak-issue-118.phpt" role="test"/>
                 <file name="399-fs-stat-regression-no14.phpt" role="test"/>
+                <file name="399-fs-write-refcount-leak-issue-118.phpt" role="test"/>
                 <file name="400-tcp_bind.phpt" role="test"/>
                 <file name="400-tcp_bind6.phpt" role="test"/>
                 <file name="500-udp_bind.phpt" role="test"/>

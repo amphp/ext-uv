@@ -1,0 +1,41 @@
+{
+    "name": "amphp/uv",
+    "description": "PHP extension providing access to libuv functions",
+    "type": "php-ext",
+    "license": "PHP-3.01",
+    "authors": [
+        {
+            "name": "Bob Weinand",
+            "email": "bobwei9@hotmail.com",
+            "role": "Maintainer"
+        },
+        {
+            "name": "Aaron Piotrowski",
+            "email": "aaron@trowski.com",
+            "role": "Maintainer"
+        }
+    ],
+    "require": {
+        "php": ">=8.0"
+    },
+    "php-ext": {
+        "extension-name": "uv",
+        "configure-options": [
+            {
+                "name": "with-uv",
+                "description": "Path to the libuv installation",
+                "needs-value": true
+            },
+            {
+                "name": "enable-uv-debug",
+                "description": "Enable uv debugging",
+                "needs-value": false
+            },
+            {
+                "name": "enable-dtrace",
+                "description": "Enable DTrace support (macOS only)",
+                "needs-value": false
+            }
+        ]
+    }
+}

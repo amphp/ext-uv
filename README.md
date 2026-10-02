@@ -1,6 +1,6 @@
 # php-uv
 
-[![Build Status](https://secure.travis-ci.org/bwoebi/php-uv.png)](http://travis-ci.org/bwoebi/php-uv)
+[![Build Status](https://github.com/amphp/ext-uv/actions/workflows/ci.yml/badge.svg)](https://github.com/amphp/ext-uv/actions/workflows/ci.yml)
 
 Interface to libuv for php.
 
@@ -8,9 +8,24 @@ Interface to libuv for php.
 
 ## \*nix
 
+Install the libuv development headers first (for example, `libuv1-dev` on
+Debian/Ubuntu or `libuv` with Homebrew on macOS).
+
+### PIE
+
+With [PIE](https://github.com/php/pie) and the PHP development tools installed,
+
+```sh
+pie install amphp/uv
+```
+
+PIE enables the extension automatically. If libuv is installed in a custom location, use `pie install --with-uv=/path/to/libuv`.
+
+### Manual build
+
 ````
-git clone https://github.com/amphp/php-uv.git
-cd php-uv
+git clone https://github.com/amphp/ext-uv.git
+cd ext-uv
 phpize
 ./configure
 make

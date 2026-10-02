@@ -10,23 +10,24 @@ on:
 jobs:
   test_package_valid:
     name: Release validate on PHP ${{ matrix.php }}
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        os: [ ubuntu-latest ]
-        php: [ 8.0, 8.1, 8.2 ]
+        php: [ '8.0', '8.1', '8.2', '8.3', '8.4', '8.5', '8.6' ]
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
 
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
         with:
           php-version: ${{ matrix.php }}
+          coverage: none
+          tools: pecl
 
-      - name: Sanity check package.xml and install ext-uv
+      - name: Sanity check package.xml
         run: |
           bash validate-package.sh
           for file in tests/*.phpt; do grep $(basename $file) package.xml >/dev/null || (echo "Missing $file from package.xml" ; exit 1); done
