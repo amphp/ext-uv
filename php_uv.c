@@ -4851,7 +4851,7 @@ PHP_FUNCTION(uv_stdio_new)
 	php_uv_stdio_t *stdio;
 	zval *handle;
 	zend_long flags = 0;
-#if !defined(PHP_WIN32) || defined(HAVE_SOCKET)
+#if !defined(PHP_WIN32) || defined(HAVE_SOCKETS)
 	php_socket *socket;
 #endif
 	php_socket_t fd = -1;
@@ -4877,7 +4877,7 @@ PHP_FUNCTION(uv_stdio_new)
 				php_error_docref(NULL, E_WARNING, "passed resource without file descriptor");
 				RETURN_FALSE;
 			}
-#if PHP_VERSION_ID < 80000 && (!defined(PHP_WIN32) || (defined(HAVE_SOCKET) && !defined(COMPILE_DL_SOCKETS)))
+#if PHP_VERSION_ID < 80000 && (!defined(PHP_WIN32) || (defined(HAVE_SOCKETS) && !defined(COMPILE_DL_SOCKETS)))
 		} else if ((socket = (php_socket *) zend_fetch_resource_ex(handle, NULL, php_sockets_le_socket()))) {
 			fd = socket->bsd_socket;
 #endif
