@@ -112,6 +112,9 @@ void php_uv_init(zend_class_entry *uv_class_entry)
 #endif
 
 #else
+	/* Match libuv's no-op UV_FS_O_NOCTTY flag on Windows. */
+	zend_declare_class_constant_long(uv_class_entry, "O_NOCTTY", sizeof("O_NOCTTY")-1, 0 TSRMLS_CC);
+
 	zend_declare_class_constant_long(uv_class_entry, "S_IRWXU",  sizeof("S_IRWXU")-1, _S_IWRITE | _S_IREAD TSRMLS_CC);
 	zend_declare_class_constant_long(uv_class_entry, "S_IRUSR",  sizeof("S_IRUSR")-1, _S_IREAD TSRMLS_CC);
 	zend_declare_class_constant_long(uv_class_entry, "S_IWUSR",  sizeof("S_IWUSR")-1, _S_IWRITE TSRMLS_CC);
