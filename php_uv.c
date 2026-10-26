@@ -4127,12 +4127,12 @@ PHP_FUNCTION(uv_timer_start)
 	ZEND_PARSE_PARAMETERS_END();
 
 	if (timeout < 0) {
-		php_error_docref(NULL, E_WARNING, "timeout value have to be larger than 0. given %lld", timeout);
+		php_error_docref(NULL, E_WARNING, "timeout value have to be larger than 0. given " ZEND_LONG_FMT, timeout);
 		RETURN_FALSE;
 	}
 
 	if (repeat < 0) {
-		php_error_docref(NULL, E_WARNING, "repeat value have to be larger than 0. given %lld", repeat);
+		php_error_docref(NULL, E_WARNING, "repeat value have to be larger than 0. given " ZEND_LONG_FMT, repeat);
 		RETURN_FALSE;
 	}
 
